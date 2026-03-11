@@ -226,7 +226,7 @@ class AtariPixelRendererFixed extends CustomPainter {
       if (pixelsDrawn >= pixelLimit) break;
     }
 
-    return _PixelRenderResult(pixelData, lastRenderedCmd);
+    return _PixelRenderResult(pixelData, lastRenderedCmd, pixelsDrawn < pixelLimit);
   }
 
   /// Create pixel buffer and render it to an image
@@ -515,8 +515,8 @@ class AtariPixelRendererFixed extends CustomPainter {
               final testY = seedY + dy;
               if (testX >= 0 && testX < canvasWidth && testY >= 0 && testY < canvasHeight) {
                 final testIdx = testY * canvasWidth + testX;
-                // Just use the first non-boundary pixel we find
-                if (boundaryMask[testIdx] == 0) {
+                // Pick a non-boundary pixel that is inside the mathematical path
+                if (boundaryMask[testIdx] == 0 && path.contains(Offset(testX + 0.5, testY + 0.5))) {
                   seedX = testX;
                   seedY = testY;
                   foundInterior = true;
@@ -860,5 +860,6 @@ class _RenderResult {
 class _PixelRenderResult {
   final Uint32List pixelBuffer;
   final int lastCommandIndex;
-  _PixelRenderResult(this.pixelBuffer, this.lastCommandIndex);
+  final bool isComplete;
+  _PixelRenderResult(this.pixelBuffer, this.lastCommandIndex, this.isComplete);
 }

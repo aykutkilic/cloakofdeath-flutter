@@ -135,8 +135,8 @@ class AtariRenderControllerV2 extends ChangeNotifier {
 
     notifyListeners();
 
-    // Check if we've rendered all commands
-    if (_currentCommandIndex >= roomData.commands.length - 1) {
+    // Check if we've rendered all commands AND the last command has finished drawing
+    if (_currentCommandIndex >= roomData.commands.length - 1 && result.isComplete) {
       _isAnimating = false;
     } else {
       // Schedule next frame (target 60fps)
