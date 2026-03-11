@@ -120,6 +120,7 @@ class AtariPixelRendererFixed extends CustomPainter {
     final commandLimit = maxCommandIndex ?? roomData.commands.length - 1;
     Path? lastPolyline; // For flood fill operations
     Offset? lastPolylineFirstPoint; // First point of last polyline for flood fill seed
+    Offset? lastPolylineLastPoint; // Last point of the polyline for closing
     int lastRenderedCmd = 0;
 
     for (int cmdIdx = 0;
@@ -146,37 +147,28 @@ class AtariPixelRendererFixed extends CustomPainter {
           pixelsDrawn = result.pixelsDrawn;
           lastPolyline = result.path;
           lastPolylineFirstPoint = result.firstPoint; // Store first point
+          lastPolylineLastPoint = result.lastPoint; // Store last point
           break;
 
         case BytecodeCommandType.closedPolyline:
           // C9/CA command: Close the last polyline
-          if (cmd.points.isEmpty && lastPolyline != null && lastPolylineFirstPoint != null) {
-            // This is a C9/CA command - close the previous polyline
-            // The polyline was already drawn, we just need to close it by drawing
-            // a line from the last point back to the first point
-            if (cmdIdx > 0) {
-              final prevCmd = roomData.commands[cmdIdx - 1];
-              if (prevCmd.type == BytecodeCommandType.polyline && prevCmd.points.isNotEmpty) {
-                // Draw just the closing segment (last point to first point)
-                final lastPoint = prevCmd.points.last;
-                final firstPoint = prevCmd.points.first;
-                final closePixels = _bresenhamLine(
-                  pixelData,
-                  boundaryMask,
-                  lastPoint.dx.toInt(),
-                  lastPoint.dy.toInt(),
-                  firstPoint.dx.toInt(),
-                  firstPoint.dy.toInt(),
-                  _colorToArgb(roomData.palette[prevCmd.colorIndex ?? 0]),
-                  pixelsDrawn,
-                  pixelLimit,
-                );
-                pixelsDrawn = closePixels;
+          if (cmd.points.isEmpty && lastPolyline != null && lastPolylineFirstPoint != null && lastPolylineLastPoint != null) {
+            // Draw just the closing segment (last point to first point)
+            final closePixels = _bresenhamLine(
+              pixelData,
+              boundaryMask,
+              lastPolylineLastPoint!.dx.toInt(),
+              lastPolylineLastPoint!.dy.toInt(),
+              lastPolylineFirstPoint!.dx.toInt(),
+              lastPolylineFirstPoint!.dy.toInt(),
+              _colorToArgb(roomData.palette[cmd.colorIndex ?? 0]), // Use current color
+              pixelsDrawn,
+              pixelLimit,
+            );
+            pixelsDrawn = closePixels;
 
-                // Update path to be closed
-                lastPolyline.close();
-              }
-            }
+            // Update path to be closed
+            lastPolyline!.close();
           } else if (cmd.points.isNotEmpty) {
             // CB command with explicit points: Always close the polygon
             final result = _drawPolyline(
@@ -191,6 +183,7 @@ class AtariPixelRendererFixed extends CustomPainter {
             pixelsDrawn = result.pixelsDrawn;
             lastPolyline = result.path;
             lastPolylineFirstPoint = result.firstPoint;
+            lastPolylineLastPoint = result.lastPoint;
           }
           break;
 
@@ -261,6 +254,7 @@ class AtariPixelRendererFixed extends CustomPainter {
     final commandLimit = maxCommandIndex ?? roomData.commands.length - 1;
     Path? lastPolyline; // For flood fill operations
     Offset? lastPolylineFirstPoint; // First point of last polyline for flood fill seed
+    Offset? lastPolylineLastPoint; // Last point of the polyline for closing
     int lastRenderedCmd = 0;
 
     for (int cmdIdx = 0;
@@ -287,37 +281,28 @@ class AtariPixelRendererFixed extends CustomPainter {
           pixelsDrawn = result.pixelsDrawn;
           lastPolyline = result.path;
           lastPolylineFirstPoint = result.firstPoint; // Store first point
+          lastPolylineLastPoint = result.lastPoint; // Store last point
           break;
 
         case BytecodeCommandType.closedPolyline:
           // C9/CA command: Close the last polyline
-          if (cmd.points.isEmpty && lastPolyline != null && lastPolylineFirstPoint != null) {
-            // This is a C9/CA command - close the previous polyline
-            // The polyline was already drawn, we just need to close it by drawing
-            // a line from the last point back to the first point
-            if (cmdIdx > 0) {
-              final prevCmd = roomData.commands[cmdIdx - 1];
-              if (prevCmd.type == BytecodeCommandType.polyline && prevCmd.points.isNotEmpty) {
-                // Draw just the closing segment (last point to first point)
-                final lastPoint = prevCmd.points.last;
-                final firstPoint = prevCmd.points.first;
-                final closePixels = _bresenhamLine(
-                  pixelData,
-                  boundaryMask,
-                  lastPoint.dx.toInt(),
-                  lastPoint.dy.toInt(),
-                  firstPoint.dx.toInt(),
-                  firstPoint.dy.toInt(),
-                  _colorToArgb(roomData.palette[prevCmd.colorIndex ?? 0]),
-                  pixelsDrawn,
-                  pixelLimit,
-                );
-                pixelsDrawn = closePixels;
+          if (cmd.points.isEmpty && lastPolyline != null && lastPolylineFirstPoint != null && lastPolylineLastPoint != null) {
+            // Draw just the closing segment (last point to first point)
+            final closePixels = _bresenhamLine(
+              pixelData,
+              boundaryMask,
+              lastPolylineLastPoint!.dx.toInt(),
+              lastPolylineLastPoint!.dy.toInt(),
+              lastPolylineFirstPoint!.dx.toInt(),
+              lastPolylineFirstPoint!.dy.toInt(),
+              _colorToArgb(roomData.palette[cmd.colorIndex ?? 0]), // Use current color
+              pixelsDrawn,
+              pixelLimit,
+            );
+            pixelsDrawn = closePixels;
 
-                // Update path to be closed
-                lastPolyline.close();
-              }
-            }
+            // Update path to be closed
+            lastPolyline!.close();
           } else if (cmd.points.isNotEmpty) {
             // CB command with explicit points: Always close the polygon
             final result = _drawPolyline(
@@ -332,6 +317,7 @@ class AtariPixelRendererFixed extends CustomPainter {
             pixelsDrawn = result.pixelsDrawn;
             lastPolyline = result.path;
             lastPolylineFirstPoint = result.firstPoint;
+            lastPolylineLastPoint = result.lastPoint;
           }
           break;
 
@@ -398,7 +384,7 @@ class AtariPixelRendererFixed extends CustomPainter {
     bool shouldClose, // Whether to draw closing line back to first point
   ) {
     if (points.isEmpty) {
-      return _PolylineResult(Path(), startPixelCount, null);
+      return _PolylineResult(Path(), startPixelCount, null, null);
     }
 
     final path = Path();
@@ -439,7 +425,7 @@ class AtariPixelRendererFixed extends CustomPainter {
       path.close();
     }
 
-    return _PolylineResult(path, pixelsDrawn, firstPoint);
+    return _PolylineResult(path, pixelsDrawn, firstPoint, points.last);
   }
 
   /// Bresenham's line algorithm
@@ -518,7 +504,7 @@ class AtariPixelRendererFixed extends CustomPainter {
 
     // Ensure we start filling from an interior point
     int seedIdx = seedY * canvasWidth + seedX;
-    if (boundaryMask[seedIdx] == 1 || !path.contains(Offset(seedX + 0.5, seedY + 0.5))) {
+    if (boundaryMask[seedIdx] == 1) {
       bool foundInterior = false;
       const maxRadius = 15;
       for (int radius = 1; radius <= maxRadius && !foundInterior; radius++) {
@@ -529,8 +515,8 @@ class AtariPixelRendererFixed extends CustomPainter {
               final testY = seedY + dy;
               if (testX >= 0 && testX < canvasWidth && testY >= 0 && testY < canvasHeight) {
                 final testIdx = testY * canvasWidth + testX;
-                // It must be inside the polygon and not on a boundary line
-                if (boundaryMask[testIdx] == 0 && path.contains(Offset(testX + 0.5, testY + 0.5))) {
+                // Just use the first non-boundary pixel we find
+                if (boundaryMask[testIdx] == 0) {
                   seedX = testX;
                   seedY = testY;
                   foundInterior = true;
@@ -848,7 +834,8 @@ class _PolylineResult {
   final Path path;
   final int pixelsDrawn;
   final Offset? firstPoint; // First point of the polyline for flood fill seed
-  _PolylineResult(this.path, this.pixelsDrawn, [this.firstPoint]);
+  final Offset? lastPoint; // Last point to close the polygon
+  _PolylineResult(this.path, this.pixelsDrawn, [this.firstPoint, this.lastPoint]);
 }
 
 class _FloodFillResult {
