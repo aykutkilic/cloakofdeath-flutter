@@ -35,15 +35,17 @@ enum BytecodeCommandType {
 /// Room data parsed from Atari bytecode format
 class AtariRoomBytecode {
   final int roomId;
-  final List<Color> palette; // 4 colors
+  final List<Color> palette; // 4 colors: [COLBK, COLOR0, COLOR1, COLOR2]
   final List<AtariBytecodeCommand> commands;
   final Uint8List rawBytes;
+  final int screenFillByte; // Initial screen fill pattern byte from header
 
   AtariRoomBytecode({
     required this.roomId,
     required this.palette,
     required this.commands,
     required this.rawBytes,
+    required this.screenFillByte,
   });
 }
 
@@ -144,18 +146,22 @@ class AtariBytecodeParser {
       return null; // Room not found or incomplete header
     }
 
-    // Parse header: AA C1 C2 C3 C4
-    final paletteBytes = buffer.sublist(startPos + 1, startPos + 5);
-    final palette = paletteBytes.map((b) => _atariColorToRgb(b)).toList();
-
-    // Special rule: if color 0 is 0x55, force it to black
-    if (paletteBytes[0] == 0x55) {
-      palette[0] = const Color(0xFF000000); // Black
-    }
+    // Parse header: AA [screen_fill] [COLOR0] [COLOR1] [COLOR2]
+    // Byte 0: screen fill byte (fills screen buffer, NOT a color register)
+    // Bytes 1-3: COLOR0-COLOR2 (for pixel values 1-3)
+    // COLBK (pixel value 0) = black (set by GRAPHICS 23 in BASIC, not in bytecode)
+    final screenFillByte = buffer[startPos + 1];
+    final colorBytes = buffer.sublist(startPos + 2, startPos + 5);
+    final palette = <Color>[
+      const Color(0xFF000000),          // Index 0: COLBK = black (OS default)
+      _atariColorToRgb(colorBytes[0]),  // Index 1: COLOR0 (pixel value 1)
+      _atariColorToRgb(colorBytes[1]),  // Index 2: COLOR1 (pixel value 2)
+      _atariColorToRgb(colorBytes[2]),  // Index 3: COLOR2 (pixel value 3)
+    ];
 
     if (enableLogging) {
-      // Compact header: show room marker and palette bytes
-      final headerHex = [marker, ...paletteBytes].map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+      // Compact header: show room marker, fill byte, and color bytes
+      final headerHex = [marker, screenFillByte, ...colorBytes].map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
       _log('$headerHex  Starting room ${roomId.toRadixString(16).toUpperCase()}');
     }
 
@@ -185,6 +191,7 @@ class AtariBytecodeParser {
       palette: palette,
       commands: commands,
       rawBytes: buffer.sublist(startPos, endPos),
+      screenFillByte: screenFillByte,
     );
   }
 
@@ -199,7 +206,7 @@ class AtariBytecodeParser {
   ) {
     final commands = <AtariBytecodeCommand>[];
     int i = start;
-    int currentColor = 0; // Default color index
+    int currentColor = 1; // DRAW routine initializes $06F2 to 1 at $488A
     Offset? lastPolylineVertex0; // Track first vertex of last polyline for C9/CA offsets
 
     while (i < end) {

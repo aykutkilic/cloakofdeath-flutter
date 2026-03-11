@@ -79,10 +79,11 @@ class AtariPixelRendererFixed extends CustomPainter {
         Paint()..filterQuality = FilterQuality.none,
       );
     } else {
-      // Fallback: draw background
+      // Fallback: draw background using screen fill dominant color
+      final fillPixelValue = (roomData.screenFillByte >> 6) & 0x03;
       canvas.drawRect(
         Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()..color = roomData.palette[1], // Background is palette[1]
+        Paint()..color = roomData.palette[fillPixelValue],
       );
     }
   }
@@ -107,10 +108,9 @@ class AtariPixelRendererFixed extends CustomPainter {
     // Create boundary mask to track polyline pixels
     final boundaryMask = Uint8List(canvasWidth * canvasHeight);
 
-    // Fill with background color (palette[1])
-    final bgColor = roomData.palette[1];
-    final bgArgb = _colorToArgb(bgColor);
-    pixelData.fillRange(0, pixelData.length, bgArgb);
+    // Fill with screen fill pattern from header byte 0
+    // On the Atari, this byte fills every byte of screen memory (4 pixels per byte, 2 bits each)
+    _fillScreenPattern(pixelData, roomData.screenFillByte, roomData.palette);
 
     // Track pixels drawn for animation
     int pixelsDrawn = 0;
@@ -241,10 +241,8 @@ class AtariPixelRendererFixed extends CustomPainter {
     // Create boundary mask to track polyline pixels
     final boundaryMask = Uint8List(canvasWidth * canvasHeight);
 
-    // Fill with background color (palette[1])
-    final bgColor = roomData.palette[1];
-    final bgArgb = _colorToArgb(bgColor);
-    pixelData.fillRange(0, pixelData.length, bgArgb);
+    // Fill with screen fill pattern from header byte 0
+    _fillScreenPattern(pixelData, roomData.screenFillByte, roomData.palette);
 
     // Track pixels drawn for animation
     int pixelsDrawn = 0;
@@ -807,6 +805,31 @@ class AtariPixelRendererFixed extends CustomPainter {
 
     if (inSpan) {
       stack.add(_ScanlineSpan(y, spanStart, x2, direction));
+    }
+  }
+
+  /// Fill pixel buffer with the screen fill byte pattern
+  /// On the Atari, the DRAW routine fills every byte of screen memory with this value.
+  /// Each byte = 4 pixels (2 bits each), so the pattern repeats every 4 pixels.
+  static void _fillScreenPattern(Uint32List pixelData, int fillByte, List<Color> palette) {
+    // Decode fill byte into 4 pixel color indices (2 bits each, MSB first)
+    final fillColors = [
+      _colorToArgb(palette[(fillByte >> 6) & 0x03]),
+      _colorToArgb(palette[(fillByte >> 4) & 0x03]),
+      _colorToArgb(palette[(fillByte >> 2) & 0x03]),
+      _colorToArgb(palette[fillByte & 0x03]),
+    ];
+
+    // Check if all 4 pixels are the same (uniform fill, common case)
+    if (fillColors[0] == fillColors[1] &&
+        fillColors[1] == fillColors[2] &&
+        fillColors[2] == fillColors[3]) {
+      pixelData.fillRange(0, pixelData.length, fillColors[0]);
+    } else {
+      // Pattern fill: repeat 4-pixel pattern across canvas
+      for (int i = 0; i < pixelData.length; i++) {
+        pixelData[i] = fillColors[i % 4];
+      }
     }
   }
 

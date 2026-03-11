@@ -4,59 +4,75 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains **Cloak of Death**, a classic text adventure game originally written in Atari BASIC for 8-bit Atari computers. The project is a retro gaming preservation archive with the game's source code, binary cassette format, solution walkthrough, and visual game maps.
+This repository contains **Cloak of Death**, a classic text adventure game originally written in Atari BASIC for 8-bit Atari computers by David Cockram. It has two main components:
+1. **Original game preservation** — Atari BASIC source (`Cloak of Death.bas`), cassette image (`.cas`), solution walkthrough, and game maps
+2. **Flutter mobile recreation** — A faithful Flutter reimplementation in `cloak_of_death_flutter/` with authentic Atari-style vector/pixel rendering
 
-## File Structure
+## Build & Run Commands
 
-- `Cloak of Death.bas` - Original Atari BASIC source code (UTF-8 text format)
-- `Cloak of Death.cas` - Binary cassette tape image for Atari emulators
-- `solution.txt` - Complete walkthrough with step-by-step commands to win the game
-- `cas_dump.txt` - Hexadecimal/ASCII dump of the cassette file structure
-- `Cloak of death.drawio.png` / `.svg` - Visual game map diagrams
-- `README.txt` - Notes about tape loading behavior
+All Flutter commands must be run from `cloak_of_death_flutter/`:
 
-## Game Architecture
+```bash
+cd cloak_of_death_flutter
 
-**Cloak of Death** is a haunted house escape text adventure with:
+# Install dependencies
+flutter pub get
 
-- **27 locations** (rooms numbered 1-27, with location 27 being the exit/win condition)
-- **53 objects** tracked in array `P(53)` indicating object locations (0=not present, -1=in inventory, 1-27=room number)
-- **Text-based parser** accepting verb-noun commands (e.g., "GET CANDLE", "OPEN DOOR")
-- **State flags** (F1-F10) controlling game progression and puzzle states
-- **Inventory system** with 6-item carrying capacity (tracked via `IN` variable)
-- **Dynamic lighting mechanic** requiring a lit candle to see in many locations
-- **Timer-based candle mechanic** (burns out after ~200 moves via `LC` counter)
-- **Multiple puzzles** involving keys, locked doors, exorcism ritual, and item combinations
+# Run the app (mobile/desktop)
+flutter run
 
-### Key Technical Details
+# Run all tests
+flutter test
 
-The BASIC code uses:
-- `USR()` calls for custom machine language routines (FIND, DRAW, CLS)
-- Compressed data storage using character encoding (CHR$()+127 offset)
-- String arrays for object descriptions (`O$`), location descriptions (`L$`), exits (`E$`)
-- GOTO-based command dispatch (line 990: `GOTO (V*200)+800`)
-- Cassette tape I/O for save/load game functionality
+# Run a single test file
+flutter test test/widget_test.dart
 
-### Critical Game Objects
+# Static analysis
+flutter analyze
 
-- Objects 4, 13, 16: Bible, crucifix, holy water (needed for final exorcism)
-- Object 9: Lit candle (essential for navigation in dark rooms)
-- Object 23: Matches (used to light candles)
-- Objects 19, 20: Keys for unlocking doors
-- Object 31: "Cloak" entity that must be exorcised to win
+# Run standalone Dart tool scripts (used for rendering debugging)
+dart run tools/test_render_png.dart
+```
 
-## Development Notes
+The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.yaml`).
 
-This is a **preservation/archive project** of retro gaming history. When working with this codebase:
+## Architecture
 
-- The BASIC syntax is Atari BASIC specific (not standard BASIC)
-- Line numbers are intentionally sparse to allow insertions
-- Machine language routines are embedded and called via USR()
-- The cassette format uses Atari FSK encoding (viewable via cas_reader.py tool)
-- Character encoding uses special Atari ATASCII characters (visible as Unicode symbols in the .bas file)
+### Flutter App (`cloak_of_death_flutter/lib/`)
 
-When analyzing or modifying the game:
-- Preserve the line number structure
-- Maintain compatibility with Atari BASIC syntax
-- Test changes in an Atari 8-bit emulator (e.g., Altirra, Atari800)
-- The game uses memory addresses and PEEK/POKE commands specific to Atari hardware
+**State management**: Provider pattern — `GameState` (ChangeNotifier) is the single source of truth for room, inventory, flags, and move count. Created in `main.dart` and consumed by all widgets.
+
+**Rendering pipeline** (the most complex subsystem):
+- `room_bytecode_loader.dart` — loads raw bytecode from `assets/rooms.bin` (extracted from original cassette)
+- `atari_bytecode_parser.dart` — parses the FIND bytecode format into `AtariBytecodeCommand` objects (polylines, closed polygons, flood fills). Bytecode commands: C8-D0 range (see `disassemble/DRAW Algorithm.md` for full spec)
+- `atari_pixel_renderer_fixed.dart` — `CustomPainter` that renders commands pixel-by-pixel at authentic Atari resolution (160×96), using Bresenham line drawing and scanline flood fill
+- `atari_render_controller_v2.dart` — animation controller for progressive room rendering (pixel-by-pixel reveal effect)
+- `atari_colors.dart` — Atari GTIA color palette mapping
+
+**Widgets**:
+- `room_view.dart` — main room graphics display using the pixel renderer
+- `verb_panel.dart` / `object_panel.dart` — command input UI
+- `interactive_inventory.dart` — inventory display
+- `unified_minimap.dart` — room navigation minimap
+
+### Original Game Data
+
+- **27 rooms** (IDs 1-27), **53 objects** tracked in array `P(53)`, **10 state flags** (F1-F10)
+- Room connectivity is currently hardcoded in `GameState._roomConnections`
+- Binary room graphics data: `assets/rooms.bin` (extracted from cassette chunks 117-195)
+- JSON room data: `assets/room_vectors.json` (legacy format, rooms.bin is now primary)
+
+### Disassembly (`disassemble/`)
+
+Contains reverse-engineered 6502 assembly of the original Atari DRAW and FILL routines. Key reference: `DRAW Algorithm.md` documents all 7 bytecode commands and the state machine. This is the authoritative spec for the Flutter rendering pipeline.
+
+### Tools (`cloak_of_death_flutter/tools/`)
+
+Standalone Dart scripts for debugging room rendering. `extract_rooms_from_cas.py` extracts room binary data from the cassette image. The `test_room8_fill*.dart` files are iterative debugging scripts for the flood fill algorithm.
+
+## Key Technical Details
+
+- The rendering bytecode uses a polyline state machine: first coordinate pair starts a polyline (vertex0), subsequent pairs draw connected lines. Commands >= 0xA1 are control codes, < 0xA1 are coordinate pairs.
+- C9/CA commands close a polygon and flood fill using an offset byte encoding: high nibble = X offset, low nibble = Y offset, relative to vertex0.
+- Atari aspect ratio: pixels are non-square (160×96 stretched to ~4:3 display). The renderer accounts for this.
+- The original game uses ATASCII character encoding (not ASCII). The `.bas` file contains Unicode representations of ATASCII symbols.

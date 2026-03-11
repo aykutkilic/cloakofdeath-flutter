@@ -13,7 +13,7 @@ class GameState extends ChangeNotifier {
   String? _selectedVerb;
 
   // Pixel renderer configuration
-  double _pixelRenderSpeed = 20.0; // pixels per second
+  double _pixelRenderSpeed = 10000.0; // pixels per second
   bool _autoAnimateRooms = true;
 
   // Game constants

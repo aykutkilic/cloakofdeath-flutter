@@ -13,12 +13,12 @@ class AtariRenderControllerV2 extends ChangeNotifier {
   int _currentPixelCount = 0;
   ui.Image? _cachedImage;
   Uint32List? _pixelBuffer;
-  double _pixelsPerSecond = 1000.0; // Default: 1000 pixels per second
+  double _pixelsPerSecond = 10000.0; // Default: 10K pixels per second
   DateTime? _lastFrameTime;
 
   AtariRenderControllerV2({
     required this.roomData,
-    double pixelsPerSecond = 1000.0,
+    double pixelsPerSecond = 10000.0,
   }) : _pixelsPerSecond = pixelsPerSecond;
 
   bool get isAnimating => _isAnimating;
@@ -187,7 +187,7 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
     super.initState();
     _controller = AtariRenderControllerV2(
       roomData: widget.roomData,
-      pixelsPerSecond: widget.pixelsPerSecond ?? 1000.0,
+      pixelsPerSecond: widget.pixelsPerSecond ?? 10000.0,
     );
 
     if (widget.autoStart) {
@@ -206,7 +206,7 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
       _controller.dispose();
       _controller = AtariRenderControllerV2(
         roomData: widget.roomData,
-        pixelsPerSecond: widget.pixelsPerSecond ?? 1000.0,
+        pixelsPerSecond: widget.pixelsPerSecond ?? 10000.0,
       );
 
       if (widget.autoStart) {
@@ -234,7 +234,7 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
             Expanded(
               child: Center(
                 child: AspectRatio(
-                  aspectRatio: 2.0, // Atari pixels are stretched horizontally
+                  aspectRatio: 5 / 3, // Atari GR.7: 160x96 pixels, 192 scan lines on 4:3 NTSC = 4/2.4
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Colors.black,
