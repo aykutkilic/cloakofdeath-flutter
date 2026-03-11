@@ -252,7 +252,7 @@ class AtariBytecodeParser {
 
           // Add flood fill at absolute position
           commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.floodFillAt,
+            type: BytecodeCommandType.floodFill,
             fillPattern: fillColor,
             fillSeed: Offset(fillX, fillY),
             hexBytes: _getHexString(buffer, cmdStart, 3),
@@ -319,7 +319,7 @@ class AtariBytecodeParser {
 
           // Add flood fill at absolute position
           commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.floodFillAt,
+            type: BytecodeCommandType.floodFill,
             fillPattern: currentColor,
             fillSeed: Offset(fillX, fillY),
             hexBytes: _getHexString(buffer, cmdStart, 2),

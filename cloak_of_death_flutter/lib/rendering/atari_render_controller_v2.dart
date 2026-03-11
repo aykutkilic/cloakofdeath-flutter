@@ -236,9 +236,8 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
                 child: AspectRatio(
                   aspectRatio: 160 / 96,
                   child: Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: Colors.black,
-                      border: Border.all(color: Colors.green, width: 2),
                     ),
                     child: CustomPaint(
                       painter: _controller.createPainter(),

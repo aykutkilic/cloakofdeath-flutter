@@ -30,8 +30,9 @@ class AtariPixelRendererFixed extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (pixelBuffer != null) {
-      // Fast path: draw pixel buffer using square pixels with 1:1 aspect ratio
-      final pixelSize = 2.0; // 2x2 physical pixels per logical pixel (square)
+      // Fast path: draw pixel buffer stretched to canvas size
+      final pixelWidth = size.width / canvasWidth;
+      final pixelHeight = size.height / canvasHeight;
 
       // Group pixels by color for batch rendering
       final colorGroups = <int, List<Rect>>{};
@@ -40,12 +41,12 @@ class AtariPixelRendererFixed extends CustomPainter {
         for (int x = 0; x < canvasWidth; x++) {
           final argb = pixelBuffer![y * canvasWidth + x];
           colorGroups.putIfAbsent(argb, () => []);
-          // Create perfect square pixels
+          // Create pixel rectangles matching the aspect ratio
           colorGroups[argb]!.add(Rect.fromLTWH(
-            x * pixelSize,
-            y * pixelSize,
-            pixelSize,
-            pixelSize,
+            x * pixelWidth,
+            y * pixelHeight,
+            pixelWidth + 0.5, // slight overlap to avoid visual seams
+            pixelHeight + 0.5,
           ));
         }
       }
@@ -173,9 +174,7 @@ class AtariPixelRendererFixed extends CustomPainter {
                 pixelsDrawn = closePixels;
 
                 // Update path to be closed
-                if (lastPolyline != null) {
-                  lastPolyline.close();
-                }
+                lastPolyline.close();
               }
             }
           } else if (cmd.points.isNotEmpty) {
@@ -196,13 +195,13 @@ class AtariPixelRendererFixed extends CustomPainter {
           break;
 
         case BytecodeCommandType.floodFill:
-          if (lastPolyline != null && lastPolylineFirstPoint != null) {
+          if (cmd.fillSeed != null && cmd.fillPattern != null && lastPolyline != null) {
             final result = _floodFillPath(
               pixelData,
               boundaryMask,
               lastPolyline,
-              lastPolylineFirstPoint, // Pass first point as seed
-              roomData.palette[cmd.colorIndex ?? 0],
+              cmd.fillSeed!,
+              roomData.palette[cmd.fillPattern!],
               pixelsDrawn,
               pixelLimit,
             );
@@ -315,9 +314,7 @@ class AtariPixelRendererFixed extends CustomPainter {
                 pixelsDrawn = closePixels;
 
                 // Update path to be closed
-                if (lastPolyline != null) {
-                  lastPolyline.close();
-                }
+                lastPolyline.close();
               }
             }
           } else if (cmd.points.isNotEmpty) {
@@ -338,13 +335,13 @@ class AtariPixelRendererFixed extends CustomPainter {
           break;
 
         case BytecodeCommandType.floodFill:
-          if (lastPolyline != null && lastPolylineFirstPoint != null) {
+          if (cmd.fillSeed != null && cmd.fillPattern != null && lastPolyline != null) {
             final result = _floodFillPath(
               pixelData,
               boundaryMask,
               lastPolyline,
-              lastPolylineFirstPoint, // Pass first point as seed
-              roomData.palette[cmd.colorIndex ?? 0],
+              cmd.fillSeed!,
+              roomData.palette[cmd.fillPattern!],
               pixelsDrawn,
               pixelLimit,
             );
@@ -493,8 +490,10 @@ class AtariPixelRendererFixed extends CustomPainter {
     return pixelsDrawn;
   }
 
-  /// Flood fill a closed path (C9/CA commands) - STUB
-  /// TODO: Reimplement based on Atari DRAW assembly code analysis
+  /// Flood fill a closed path (C9/CA commands)
+  ///
+  /// Uses boundary-only fill (respect only polygon edges in boundaryMask)
+  /// Seed position from vertex0 + offset
   static _FloodFillResult _floodFillPath(
     Uint32List pixels,
     Uint8List boundaryMask,
@@ -504,8 +503,60 @@ class AtariPixelRendererFixed extends CustomPainter {
     int startPixelCount,
     int pixelLimit,
   ) {
-    // Stub: no fill operation
-    return _FloodFillResult(startPixelCount);
+    int seedX = seedPoint.dx.toInt();
+    int seedY = seedPoint.dy.toInt();
+
+    if (seedX < 0 ||
+        seedX >= canvasWidth ||
+        seedY < 0 ||
+        seedY >= canvasHeight) {
+      return _FloodFillResult(startPixelCount);
+    }
+
+    // Ensure we start filling from an interior point
+    int seedIdx = seedY * canvasWidth + seedX;
+    if (boundaryMask[seedIdx] == 1 || !path.contains(Offset(seedX.toDouble(), seedY.toDouble()))) {
+      bool foundInterior = false;
+      const maxRadius = 15;
+      for (int radius = 1; radius <= maxRadius && !foundInterior; radius++) {
+        for (int dy = -radius; dy <= radius && !foundInterior; dy++) {
+          for (int dx = -radius; dx <= radius && !foundInterior; dx++) {
+            if (dy.abs() == radius || dx.abs() == radius) {
+              final testX = seedX + dx;
+              final testY = seedY + dy;
+              if (testX >= 0 && testX < canvasWidth && testY >= 0 && testY < canvasHeight) {
+                final testIdx = testY * canvasWidth + testX;
+                // It must be inside the polygon and not on a boundary line
+                if (boundaryMask[testIdx] == 0 && path.contains(Offset(testX.toDouble(), testY.toDouble()))) {
+                  seedX = testX;
+                  seedY = testY;
+                  foundInterior = true;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (!foundInterior) return _FloodFillResult(startPixelCount);
+    }
+
+    final fillArgb = _colorToArgb(fillColor);
+
+    // Polygon fills (C9/CA) always use boundary-only mode
+    int pixelsDrawn = _scanlineFill(
+      pixels,
+      boundaryMask,
+      seedX,
+      seedY,
+      0, // targetColor ignored in boundary-only mode
+      fillArgb,
+      startPixelCount,
+      pixelLimit,
+      null,
+      true, // boundaryOnly = true for polygon fills
+    );
+
+    return _FloodFillResult(pixelsDrawn);
   }
 
   /// Flood fill at specific point with pattern or solid color (CC command)
@@ -616,15 +667,7 @@ class AtariPixelRendererFixed extends CustomPainter {
     return _FloodFillResult(pixelsDrawn);
   }
 
-  /// Scanline flood fill algorithm with boundary detection
-  ///
-  /// Flood fill behavior (for CC commands):
-  /// - Respects boundary mask (polyline edges marked as boundaries)
-  /// - Uses target color matching to stop at color changes
-  ///
-  /// Atari authentic behavior:
-  /// - First scanline: only expand RIGHT from seed point
-  /// - Subsequent scanlines: expand both LEFT and RIGHT
+  /// Standard scanline flood fill algorithm (Bidirectional)
   static int _scanlineFill(
     Uint32List pixels,
     Uint8List boundaryMask,
@@ -641,80 +684,85 @@ class AtariPixelRendererFixed extends CustomPainter {
       return startPixelCount;
     }
 
-    // Check if seed point is not a boundary
     final seedIdx = startY * canvasWidth + startX;
-    if (boundaryMask[seedIdx] == 1) {
-      return startPixelCount;
-    }
+    if (boundaryMask[seedIdx] == 1) return startPixelCount;
+    if (!boundaryOnly && pixels[seedIdx] != targetColor) return startPixelCount;
 
     int pixelsDrawn = startPixelCount;
-    // Mark first span with special direction = 0 to indicate "first scanline, only expand right"
-    final stack = [_ScanlineSpan(startY, startX, startX, 0)];
-    final visited = Uint8List(canvasWidth * canvasHeight); // Track visited pixels
+    final stack = [_ScanlineSpan(startY, startX, startX, 1), _ScanlineSpan(startY, startX, startX, -1)];
+    final visited = Uint8List(canvasWidth * canvasHeight);
+    
+    // First line expansion
+    int x1 = startX;
+    int x2 = startX;
+    while (x1 > 0 && boundaryMask[startY * canvasWidth + (x1 - 1)] == 0 && 
+           (boundaryOnly || pixels[startY * canvasWidth + (x1 - 1)] == targetColor)) {
+      x1--;
+    }
+    while (x2 < canvasWidth - 1 && boundaryMask[startY * canvasWidth + (x2 + 1)] == 0 && 
+           (boundaryOnly || pixels[startY * canvasWidth + (x2 + 1)] == targetColor)) {
+      x2++;
+    }
+
+    // Process first line
+    for (int x = x1; x <= x2; x++) {
+      final idx = startY * canvasWidth + x;
+      if (visited[idx] == 0) {
+        visited[idx] = 1;
+        pixels[idx] = patternColors != null ? patternColors[x % 4] : fillColor;
+        pixelsDrawn++;
+      }
+    }
+
+    // Seed neighbors
+    if (startY > 0) {
+      _addSpansForLine(pixels, boundaryMask, visited, startY - 1, x1, x2, targetColor, boundaryOnly, stack, -1);
+    }
+    if (startY < canvasHeight - 1) {
+      _addSpansForLine(pixels, boundaryMask, visited, startY + 1, x1, x2, targetColor, boundaryOnly, stack, 1);
+    }
+
     int iterations = 0;
-    const maxIterations = 100000; // Safety limit
+    const maxIterations = 50000;
 
     while (stack.isNotEmpty && pixelsDrawn < pixelLimit && iterations < maxIterations) {
       iterations++;
       final span = stack.removeLast();
+      final y = span.y;
+      if (y < 0 || y >= canvasHeight) continue;
 
-      if (span.y < 0 || span.y >= canvasHeight) continue;
+      int curX1 = span.x1;
+      int curX2 = span.x2;
 
-      // Expand left and right on this line, stopping at boundaries or color changes
-      int x1 = span.x1;
-      int x2 = span.x2;
-
-      // Atari authentic behavior:
-      // - First scanline (direction=0): only expand RIGHT from seed
-      // - Subsequent scanlines (direction=1): expand both LEFT and RIGHT
-      final isFirstScanline = span.direction == 0;
-
-      // Only expand left on subsequent scanlines, not the first one
-      if (!isFirstScanline) {
-        while (x1 > 0) {
-          final idx = span.y * canvasWidth + (x1 - 1);
-          // Stop at boundary, or at color change if not boundaryOnly mode
-          if (boundaryMask[idx] == 1) break;
-          if (!boundaryOnly && pixels[idx] != targetColor) break;
-          x1--;
-        }
+      // Fill and expand horizontally
+      while (curX1 > 0 && boundaryMask[y * canvasWidth + (curX1 - 1)] == 0 && 
+             (boundaryOnly || pixels[y * canvasWidth + (curX1 - 1)] == targetColor)) {
+        curX1--;
+      }
+      while (curX2 < canvasWidth - 1 && boundaryMask[y * canvasWidth + (curX2 + 1)] == 0 && 
+             (boundaryOnly || pixels[y * canvasWidth + (curX2 + 1)] == targetColor)) {
+        curX2++;
       }
 
-      // Always expand right
-      while (x2 < canvasWidth - 1) {
-        final idx = span.y * canvasWidth + (x2 + 1);
-        // Stop at boundary, or at color change if not boundaryOnly mode
-        if (boundaryMask[idx] == 1) break;
-        if (!boundaryOnly && pixels[idx] != targetColor) break;
-        x2++;
-      }
-
-      // Fill the span
-      bool filled = false;
-      for (int x = x1; x <= x2; x++) {
-        final idx = span.y * canvasWidth + x;
-        // For boundaryOnly mode: only check boundary and visited
-        // For region fill mode: also check if pixel matches target color
-        final shouldFill = boundaryOnly
-            ? (boundaryMask[idx] == 0 && visited[idx] == 0)
-            : (boundaryMask[idx] == 0 && visited[idx] == 0 && pixels[idx] == targetColor);
-
-        if (shouldFill) {
+      bool filledAny = false;
+      for (int x = curX1; x <= curX2; x++) {
+        final idx = y * canvasWidth + x;
+        if (visited[idx] == 0) {
           visited[idx] = 1;
-          if (patternColors != null) {
-            pixels[idx] = patternColors[x % 4];
-          } else {
-            pixels[idx] = fillColor;
-          }
+          pixels[idx] = patternColors != null ? patternColors[x % 4] : fillColor;
           pixelsDrawn++;
-          filled = true;
+          filledAny = true;
         }
       }
 
-      // If we filled pixels, check line below only (Atari algorithm goes downward)
-      // Subsequent scanlines use direction=1 (expand both left and right)
-      if (filled && span.y < canvasHeight - 1) {
-        _addSpansForLine(pixels, boundaryMask, visited, span.y + 1, x1, x2, targetColor, boundaryOnly, stack);
+      if (filledAny) {
+        if (y + span.direction >= 0 && y + span.direction < canvasHeight) {
+          _addSpansForLine(pixels, boundaryMask, visited, y + span.direction, curX1, curX2, targetColor, boundaryOnly, stack, span.direction);
+        }
+        // Also check opposite direction for complex shapes
+        if (y - span.direction >= 0 && y - span.direction < canvasHeight) {
+          _addSpansForLine(pixels, boundaryMask, visited, y - span.direction, curX1, curX2, targetColor, boundaryOnly, stack, -span.direction);
+        }
       }
     }
 
@@ -732,29 +780,27 @@ class AtariPixelRendererFixed extends CustomPainter {
     int targetColor,
     bool boundaryOnly,
     List<_ScanlineSpan> stack,
+    int direction,
   ) {
     bool inSpan = false;
     int spanStart = 0;
 
     for (int x = x1; x <= x2; x++) {
       final idx = y * canvasWidth + x;
-      // For boundaryOnly: only check boundary and visited
-      // For region fill: also check if pixel matches target color
-      final isFillable = boundaryOnly
-          ? (boundaryMask[idx] == 0 && visited[idx] == 0)
-          : (boundaryMask[idx] == 0 && visited[idx] == 0 && pixels[idx] == targetColor);
+      final isFillable = boundaryMask[idx] == 0 && visited[idx] == 0 && 
+                         (boundaryOnly || pixels[idx] == targetColor);
 
       if (isFillable && !inSpan) {
         inSpan = true;
         spanStart = x;
       } else if (!isFillable && inSpan) {
-        stack.add(_ScanlineSpan(y, spanStart, x - 1, 1));
+        stack.add(_ScanlineSpan(y, spanStart, x - 1, direction));
         inSpan = false;
       }
     }
 
     if (inSpan) {
-      stack.add(_ScanlineSpan(y, spanStart, x2, 1));
+      stack.add(_ScanlineSpan(y, spanStart, x2, direction));
     }
   }
 
