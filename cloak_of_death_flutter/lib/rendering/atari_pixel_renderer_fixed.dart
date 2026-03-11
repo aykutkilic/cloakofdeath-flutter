@@ -201,7 +201,8 @@ class AtariPixelRendererFixed extends CustomPainter {
               boundaryMask,
               lastPolyline,
               cmd.fillSeed!,
-              roomData.palette[cmd.fillPattern!],
+              cmd.fillPattern!,
+              roomData.palette,
               pixelsDrawn,
               pixelLimit,
             );
@@ -341,7 +342,8 @@ class AtariPixelRendererFixed extends CustomPainter {
               boundaryMask,
               lastPolyline,
               cmd.fillSeed!,
-              roomData.palette[cmd.fillPattern!],
+              cmd.fillPattern!,
+              roomData.palette,
               pixelsDrawn,
               pixelLimit,
             );
@@ -499,7 +501,8 @@ class AtariPixelRendererFixed extends CustomPainter {
     Uint8List boundaryMask,
     Path path,
     Offset seedPoint,
-    Color fillColor,
+    int pattern,
+    List<Color> palette,
     int startPixelCount,
     int pixelLimit,
   ) {
@@ -540,21 +543,38 @@ class AtariPixelRendererFixed extends CustomPainter {
       if (!foundInterior) return _FloodFillResult(startPixelCount);
     }
 
-    final fillArgb = _colorToArgb(fillColor);
+    int pixelsDrawn = startPixelCount;
 
-    // Polygon fills (C9/CA) always use boundary-only mode
-    int pixelsDrawn = _scanlineFill(
-      pixels,
-      boundaryMask,
-      seedX,
-      seedY,
-      0, // targetColor ignored in boundary-only mode
-      fillArgb,
-      startPixelCount,
-      pixelLimit,
-      null,
-      true, // boundaryOnly = true for polygon fills
-    );
+    if (pattern <= 3) {
+      final fillArgb = _colorToArgb(palette[pattern]);
+      // Polygon fills (C9/CA) always use boundary-only mode
+      pixelsDrawn = _scanlineFill(
+        pixels,
+        boundaryMask,
+        seedX,
+        seedY,
+        0, // targetColor ignored in boundary-only mode
+        fillArgb,
+        pixelsDrawn,
+        pixelLimit,
+        null,
+        true, // boundaryOnly = true for polygon fills
+      );
+    } else {
+      final patternColors = _decodePattern(pattern, palette);
+      pixelsDrawn = _scanlineFill(
+        pixels,
+        boundaryMask,
+        seedX,
+        seedY,
+        0, // targetColor ignored in boundary-only mode
+        0,
+        pixelsDrawn,
+        pixelLimit,
+        patternColors,
+        true, // boundaryOnly = true for polygon fills
+      );
+    }
 
     return _FloodFillResult(pixelsDrawn);
   }
