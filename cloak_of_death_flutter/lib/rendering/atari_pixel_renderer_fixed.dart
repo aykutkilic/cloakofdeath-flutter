@@ -518,7 +518,7 @@ class AtariPixelRendererFixed extends CustomPainter {
 
     // Ensure we start filling from an interior point
     int seedIdx = seedY * canvasWidth + seedX;
-    if (boundaryMask[seedIdx] == 1 || !path.contains(Offset(seedX.toDouble(), seedY.toDouble()))) {
+    if (boundaryMask[seedIdx] == 1 || !path.contains(Offset(seedX + 0.5, seedY + 0.5))) {
       bool foundInterior = false;
       const maxRadius = 15;
       for (int radius = 1; radius <= maxRadius && !foundInterior; radius++) {
@@ -530,7 +530,7 @@ class AtariPixelRendererFixed extends CustomPainter {
               if (testX >= 0 && testX < canvasWidth && testY >= 0 && testY < canvasHeight) {
                 final testIdx = testY * canvasWidth + testX;
                 // It must be inside the polygon and not on a boundary line
-                if (boundaryMask[testIdx] == 0 && path.contains(Offset(testX.toDouble(), testY.toDouble()))) {
+                if (boundaryMask[testIdx] == 0 && path.contains(Offset(testX + 0.5, testY + 0.5))) {
                   seedX = testX;
                   seedY = testY;
                   foundInterior = true;

@@ -230,11 +230,11 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
       builder: (context, child) {
         return Column(
           children: [
-            // Render area - 160x96 aspect ratio, flexible sizing
+            // Render area - 320x160 aspect ratio (2.0), matching the emulator width
             Expanded(
               child: Center(
                 child: AspectRatio(
-                  aspectRatio: 160 / 96,
+                  aspectRatio: 2.0, // Atari pixels are stretched horizontally
                   child: Container(
                     decoration: const BoxDecoration(
                       color: Colors.black,
