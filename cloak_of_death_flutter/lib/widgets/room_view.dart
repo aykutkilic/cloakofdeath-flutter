@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/room.dart';
 import '../rendering/atari_bytecode_parser.dart';
-import '../rendering/atari_render_controller_v2.dart';
+import '../rendering/atari_render_controller.dart';
 import '../rendering/room_bytecode_loader.dart';
 import '../game/game_state.dart';
 
@@ -34,7 +34,7 @@ class RoomView extends StatelessWidget {
     }
 
     // Render with pixel engine (V2 - Fixed)
-    return AtariAnimatedRoomViewV2(
+    return AtariAnimatedRoomView(
       roomData: roomData,
       autoStart: gameState.autoAnimateRooms,
     );

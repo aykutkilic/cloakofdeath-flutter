@@ -266,7 +266,7 @@ class AtariBytecodeParser {
           ));
 
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, 3, 'CA: Close+Fill color=$fillColor vertex0=${lastPolylineVertex0} offset=($offsetX,$offsetY) → fill@($fillX,$fillY)');
+            _logCommand(buffer, cmdStart, 3, 'CA: Close+Fill color=$fillColor vertex0=$lastPolylineVertex0 offset=($offsetX,$offsetY) → fill@($fillX,$fillY)');
           }
 
           i += 2;

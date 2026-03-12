@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'atari_bytecode_parser.dart';
-import 'atari_render_controller_v2.dart';
+import 'atari_render_controller.dart';
 
 /// Demo widget for testing the Atari pixel rendering engine
 ///
@@ -117,7 +117,7 @@ class AtariPixelDemo extends StatelessWidget {
 
           // Rendering area
           Expanded(
-            child: AtariAnimatedRoomViewV2(
+            child: AtariAnimatedRoomView(
               roomData: roomData,
               autoStart: true,
               pixelsPerSecond: pixelsPerSecond,
@@ -250,7 +250,7 @@ class _AtariPixelToggleDemoState extends State<AtariPixelToggleDemo> {
       );
     }
 
-    return AtariAnimatedRoomViewV2(
+    return AtariAnimatedRoomView(
       roomData: roomData,
       pixelsPerSecond: _pixelsPerSecond,
       autoStart: true,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'room_bytecode_loader.dart';
 import 'atari_bytecode_parser.dart';
-import 'atari_render_controller_v2.dart';
+import 'atari_render_controller.dart';
 
 /// Test application for room bytecode data
 ///
@@ -258,7 +258,7 @@ class RoomBytecodeViewer extends StatelessWidget {
           // Rendering area (2/3 of screen)
           Expanded(
             flex: 2,
-            child: AtariAnimatedRoomViewV2(
+            child: AtariAnimatedRoomView(
               roomData: roomData,
               autoStart: true,
             ),

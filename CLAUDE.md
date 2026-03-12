@@ -45,8 +45,8 @@ The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.
 **Rendering pipeline** (the most complex subsystem):
 - `room_bytecode_loader.dart` — loads raw bytecode from `assets/rooms.bin` (extracted from original cassette)
 - `atari_bytecode_parser.dart` — parses the FIND bytecode format into `AtariBytecodeCommand` objects (polylines, closed polygons, flood fills). Bytecode commands: C8-D0 range (see `disassemble/DRAW Algorithm.md` for full spec)
-- `atari_pixel_renderer_fixed.dart` — `CustomPainter` that renders commands pixel-by-pixel at authentic Atari resolution (160×96), using Bresenham line drawing and scanline flood fill
-- `atari_render_controller_v2.dart` — animation controller for progressive room rendering (pixel-by-pixel reveal effect)
+- `atari_pixel_renderer.dart` — `CustomPainter` that renders commands pixel-by-pixel at authentic Atari resolution (160×96), using Bresenham line drawing and scanline flood fill
+- `atari_render_controller.dart` — animation controller for progressive room rendering (pixel-by-pixel reveal effect)
 - `atari_colors.dart` — Atari GTIA color palette mapping
 
 **Widgets**:

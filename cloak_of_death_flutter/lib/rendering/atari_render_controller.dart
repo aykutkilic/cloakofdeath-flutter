@@ -2,28 +2,28 @@ import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'atari_bytecode_parser.dart';
-import 'atari_pixel_renderer_fixed.dart';
+import 'atari_pixel_renderer.dart';
 
 /// Controller for progressive Atari rendering animation (V2 - Fixed)
-class AtariRenderControllerV2 extends ChangeNotifier {
+class AtariRenderController extends ChangeNotifier {
   final AtariRoomBytecode roomData;
 
   bool _isAnimating = false;
   int _currentCommandIndex = 0;
-  int _currentPixelCount = 0;
   ui.Image? _cachedImage;
   Uint32List? _pixelBuffer;
   double _pixelsPerSecond = 10000.0; // Default: 10K pixels per second
   DateTime? _lastFrameTime;
+  Offset? _lastPolyFirstPoint;
+  Offset? _lastPolyLastPoint;
 
-  AtariRenderControllerV2({
+  AtariRenderController({
     required this.roomData,
     double pixelsPerSecond = 10000.0,
   }) : _pixelsPerSecond = pixelsPerSecond;
 
   bool get isAnimating => _isAnimating;
   int get currentCommandIndex => _currentCommandIndex;
-  int get currentPixelCount => _currentPixelCount;
   double get pixelsPerSecond => _pixelsPerSecond;
   ui.Image? get cachedImage => _cachedImage;
 
@@ -36,7 +36,9 @@ class AtariRenderControllerV2 extends ChangeNotifier {
     if (_isAnimating) return;
     _isAnimating = true;
     _currentCommandIndex = 0;
-    _currentPixelCount = 0;
+    _pixelBuffer = null;
+    _lastPolyFirstPoint = null;
+    _lastPolyLastPoint = null;
     _lastFrameTime = DateTime.now();
     notifyListeners();
     _animate();
@@ -49,11 +51,12 @@ class AtariRenderControllerV2 extends ChangeNotifier {
 
   void reset() {
     _currentCommandIndex = 0;
-    _currentPixelCount = 0;
     _isAnimating = false;
     _cachedImage = null;
     _pixelBuffer = null;
     _lastFrameTime = null;
+    _lastPolyFirstPoint = null;
+    _lastPolyLastPoint = null;
     notifyListeners();
   }
 
@@ -61,7 +64,7 @@ class AtariRenderControllerV2 extends ChangeNotifier {
     _isAnimating = false;
 
     // Render full image
-    final result = await AtariPixelRendererFixed.renderToImage(
+    final result = await AtariPixelRenderer.renderToImage(
       roomData,
       maxCommandIndex: null,
     );
@@ -76,21 +79,28 @@ class AtariRenderControllerV2 extends ChangeNotifier {
     if (_currentCommandIndex >= roomData.commands.length - 1) return;
 
     _isAnimating = false;
-    _currentCommandIndex++;
+    final nextCmd = _currentCommandIndex + 1;
 
-    // Render up to the next command
-    final result = AtariPixelRendererFixed.renderToPixelBuffer(
+    final result = AtariPixelRenderer.renderToPixelBuffer(
       roomData,
-      maxCommandIndex: _currentCommandIndex,
+      maxCommandIndex: nextCmd,
+      existingPixelBuffer: _pixelBuffer,
+      startCommandIndex: nextCmd,
+      lastPolyFirstPoint: _lastPolyFirstPoint,
+      lastPolyLastPoint: _lastPolyLastPoint,
     );
     _pixelBuffer = result.pixelBuffer;
+    _currentCommandIndex = result.lastCommandIndex;
+    _lastPolyFirstPoint = result.lastPolyFirstPoint;
+    _lastPolyLastPoint = result.lastPolyLastPoint;
 
     notifyListeners();
   }
 
   /// Get the current command being rendered
   AtariBytecodeCommand? getCurrentCommand() {
-    if (_currentCommandIndex >= 0 && _currentCommandIndex < roomData.commands.length) {
+    if (_currentCommandIndex >= 0 &&
+        _currentCommandIndex < roomData.commands.length) {
       return roomData.commands[_currentCommandIndex];
     }
     return null;
@@ -99,44 +109,44 @@ class AtariRenderControllerV2 extends ChangeNotifier {
   void _animate() {
     if (!_isAnimating) return;
 
-    // Calculate pixels to render this frame based on elapsed time
+    // Calculate pixel budget for this frame based on elapsed time
     final now = DateTime.now();
     final elapsedMs = _lastFrameTime != null
         ? now.difference(_lastFrameTime!).inMilliseconds
         : 16;
     _lastFrameTime = now;
 
-    // Calculate base pixels per frame (assuming ~60fps = 16ms per frame)
-    final pixelsThisFrame = (_pixelsPerSecond * elapsedMs / 1000.0).round().clamp(1, 10000);
+    int pixelBudget = (_pixelsPerSecond * elapsedMs / 1000.0)
+        .round()
+        .clamp(1, 10000);
 
-    // Apply speed multiplier for flood fill commands
-    int adjustedPixelLimit = _currentPixelCount + pixelsThisFrame;
-
-    // Check if current or next command is a flood fill, apply 2x speed
+    // 2x rate for flood fills
     if (_currentCommandIndex < roomData.commands.length) {
       final currentCmd = roomData.commands[_currentCommandIndex];
       if (currentCmd.type == BytecodeCommandType.floodFill ||
           currentCmd.type == BytecodeCommandType.floodFillAt) {
-        // 2x speed for flood fills
-        adjustedPixelLimit = _currentPixelCount + (pixelsThisFrame * 2);
+        pixelBudget *= 2;
       }
     }
 
-    // Render with pixel limit
-    final result = AtariPixelRendererFixed.renderToPixelBuffer(
+    final result = AtariPixelRenderer.renderToPixelBuffer(
       roomData,
-      maxPixelCount: adjustedPixelLimit,
+      pixelBudget: pixelBudget,
+      existingPixelBuffer: _pixelBuffer,
+      startCommandIndex: _currentCommandIndex,
+      lastPolyFirstPoint: _lastPolyFirstPoint,
+      lastPolyLastPoint: _lastPolyLastPoint,
     );
     _pixelBuffer = result.pixelBuffer;
     _currentCommandIndex = result.lastCommandIndex;
-
-    // Update pixel count based on what was actually rendered
-    _currentPixelCount = adjustedPixelLimit;
+    _lastPolyFirstPoint = result.lastPolyFirstPoint;
+    _lastPolyLastPoint = result.lastPolyLastPoint;
 
     notifyListeners();
 
     // Check if we've rendered all commands AND the last command has finished drawing
-    if (_currentCommandIndex >= roomData.commands.length - 1 && result.isComplete) {
+    if (_currentCommandIndex >= roomData.commands.length - 1 &&
+        result.isComplete) {
       _isAnimating = false;
     } else {
       // Schedule next frame (target 60fps)
@@ -144,8 +154,8 @@ class AtariRenderControllerV2 extends ChangeNotifier {
     }
   }
 
-  AtariPixelRendererFixed createPainter() {
-    return AtariPixelRendererFixed(
+  AtariPixelRenderer createPainter() {
+    return AtariPixelRenderer(
       roomData: roomData,
       cachedImage: _cachedImage,
       pixelBuffer: _pixelBuffer,
@@ -161,12 +171,12 @@ class AtariRenderControllerV2 extends ChangeNotifier {
 }
 
 /// Widget that displays animated Atari pixel rendering with debug info
-class AtariAnimatedRoomViewV2 extends StatefulWidget {
+class AtariAnimatedRoomView extends StatefulWidget {
   final AtariRoomBytecode roomData;
   final bool autoStart;
   final double? pixelsPerSecond;
 
-  const AtariAnimatedRoomViewV2({
+  const AtariAnimatedRoomView({
     super.key,
     required this.roomData,
     this.autoStart = true,
@@ -174,18 +184,20 @@ class AtariAnimatedRoomViewV2 extends StatefulWidget {
   });
 
   @override
-  State<AtariAnimatedRoomViewV2> createState() =>
-      _AtariAnimatedRoomViewV2State();
+  State<AtariAnimatedRoomView> createState() =>
+      _AtariAnimatedRoomViewState();
 }
 
-class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
-  late AtariRenderControllerV2 _controller;
-  bool _showCommands = false;
+class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
+  late AtariRenderController _controller;
+  final bool _showCommands = false;
+  Offset? _hoverAtariCoord;
+  Offset? _hoverLocalPos;
 
   @override
   void initState() {
     super.initState();
-    _controller = AtariRenderControllerV2(
+    _controller = AtariRenderController(
       roomData: widget.roomData,
       pixelsPerSecond: widget.pixelsPerSecond ?? 10000.0,
     );
@@ -198,13 +210,13 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
   }
 
   @override
-  void didUpdateWidget(AtariAnimatedRoomViewV2 oldWidget) {
+  void didUpdateWidget(AtariAnimatedRoomView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // If room data changed, recreate the controller
     if (oldWidget.roomData != widget.roomData) {
       _controller.dispose();
-      _controller = AtariRenderControllerV2(
+      _controller = AtariRenderController(
         roomData: widget.roomData,
         pixelsPerSecond: widget.pixelsPerSecond ?? 10000.0,
       );
@@ -234,14 +246,80 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
             Expanded(
               child: Center(
                 child: AspectRatio(
-                  aspectRatio: 5 / 3, // Atari GR.7: 160x96 pixels, 192 scan lines on 4:3 NTSC = 4/2.4
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                    ),
-                    child: CustomPaint(
-                      painter: _controller.createPainter(),
-                    ),
+                  aspectRatio:
+                      3.0, // Atari GR.7+16: 160x96, PAR ~1.2 → 160*1.2/96 = 2.0
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final pxW = constraints.maxWidth / AtariPixelRenderer.canvasWidth;
+                      final pxH = constraints.maxHeight / AtariPixelRenderer.canvasHeight;
+                      return MouseRegion(
+                        cursor: SystemMouseCursors.precise,
+                        onHover: (event) {
+                          final pixelX = (event.localPosition.dx / constraints.maxWidth * AtariPixelRenderer.canvasWidth).floorToDouble();
+                          final pixelY = (event.localPosition.dy / constraints.maxHeight * AtariPixelRenderer.canvasHeight).floorToDouble();
+                          setState(() {
+                            _hoverAtariCoord = Offset(
+                              pixelX.clamp(0, AtariPixelRenderer.canvasWidth - 1),
+                              pixelY.clamp(0, AtariPixelRenderer.canvasHeight - 1),
+                            );
+                            _hoverLocalPos = event.localPosition;
+                          });
+                        },
+                        onExit: (_) => setState(() {
+                          _hoverAtariCoord = null;
+                          _hoverLocalPos = null;
+                        }),
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            SizedBox.expand(
+                              child: Container(
+                                decoration: const BoxDecoration(color: Colors.black),
+                                child: CustomPaint(painter: _controller.createPainter()),
+                              ),
+                            ),
+                            if (_hoverAtariCoord != null) ...[
+                              // Highlight the hovered Atari pixel
+                              Positioned(
+                                left: _hoverAtariCoord!.dx * pxW,
+                                top: _hoverAtariCoord!.dy * pxH,
+                                child: IgnorePointer(
+                                  child: Container(
+                                    width: pxW,
+                                    height: pxH,
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.white, width: 1),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Coordinate label near the cursor
+                              Positioned(
+                                left: (_hoverLocalPos!.dx + 12).clamp(0, constraints.maxWidth - 60),
+                                top: (_hoverLocalPos!.dy - 20).clamp(0, constraints.maxHeight - 16),
+                                child: IgnorePointer(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.8),
+                                      border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+                                    ),
+                                    child: Text(
+                                      '${_hoverAtariCoord!.dx.toInt()}, ${_hoverAtariCoord!.dy.toInt()}',
+                                      style: const TextStyle(
+                                        color: Colors.green,
+                                        fontSize: 10,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -355,25 +433,31 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
                                 .asMap()
                                 .entries
                                 .map((entry) {
-                              final idx = entry.key;
-                              final cmd = entry.value;
-                              final isCurrentCommand = idx == _controller.currentCommandIndex;
-                              return Container(
-                                padding: const EdgeInsets.only(bottom: 2),
-                                color: isCurrentCommand
-                                    ? Colors.green.withValues(alpha: 0.3)
-                                    : Colors.transparent,
-                                child: Text(
-                                  '${idx + 1}. ${_describeCommand(cmd)}',
-                                  style: TextStyle(
-                                    color: isCurrentCommand ? Colors.white : Colors.green,
-                                    fontSize: 9,
-                                    fontWeight: isCurrentCommand ? FontWeight.bold : FontWeight.normal,
-                                    fontFamily: 'monospace',
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                                  final idx = entry.key;
+                                  final cmd = entry.value;
+                                  final isCurrentCommand =
+                                      idx == _controller.currentCommandIndex;
+                                  return Container(
+                                    padding: const EdgeInsets.only(bottom: 2),
+                                    color: isCurrentCommand
+                                        ? Colors.green.withValues(alpha: 0.3)
+                                        : Colors.transparent,
+                                    child: Text(
+                                      '${idx + 1}. ${_describeCommand(cmd)}',
+                                      style: TextStyle(
+                                        color: isCurrentCommand
+                                            ? Colors.white
+                                            : Colors.green,
+                                        fontSize: 9,
+                                        fontWeight: isCurrentCommand
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                        fontFamily: 'monospace',
+                                      ),
+                                    ),
+                                  );
+                                })
+                                .toList(),
                           ),
                         ),
                       ),
@@ -475,7 +559,7 @@ class _AtariAnimatedRoomViewV2State extends State<AtariAnimatedRoomViewV2> {
             (pat >> 6) & 0x03,
             (pat >> 4) & 0x03,
             (pat >> 2) & 0x03,
-            pat & 0x03
+            pat & 0x03,
           ];
           return 'FILL_AT pattern=$cols @${cmd.fillSeed}';
         }
