@@ -1,59 +1,46 @@
 import 'package:flutter/material.dart';
-import 'dart:typed_data';
 import 'atari_bytecode_parser.dart';
 import 'atari_pixel_renderer.dart';
+import 'atari_screen_buffer.dart';
 
 /// Controller for progressive Atari rendering animation.
 ///
-/// Pre-generates a [PlotQueue] from the room bytecode, then plays it back
-/// at a configurable rate by advancing a cursor through the queue.
+/// All bytecode commands are rendered into the [AtariScreenBuffer]'s plot queue
+/// up front, then played back at a configurable pixel rate. The buffer's
+/// two-buffer architecture (truth + display) ensures drawing correctness while
+/// allowing progressive pixel reveal.
 class AtariRenderController extends ChangeNotifier {
   final AtariRoomBytecode roomData;
 
-  PlotQueue? _plotQueue;
-  Uint32List? _pixelBuffer;
-  int _cursor = 0; // Current position in the plot queue
+  final AtariScreenBuffer screenBuffer = AtariScreenBuffer();
   bool _isAnimating = false;
-  double _pixelsPerSecond = 10000.0;
+  bool _isRendered = false;
+  double _pixelsPerSecond = 1000.0;
   DateTime? _lastFrameTime;
 
   AtariRenderController({
     required this.roomData,
-    double pixelsPerSecond = 10000.0,
+    double pixelsPerSecond = 1000.0,
   }) : _pixelsPerSecond = pixelsPerSecond;
 
   bool get isAnimating => _isAnimating;
   double get pixelsPerSecond => _pixelsPerSecond;
-  int get cursor => _cursor;
-  int get totalPlots => _plotQueue?.length ?? 0;
-  bool get isComplete => _plotQueue != null && _cursor >= _plotQueue!.length;
-
-  /// Which bytecode command index the cursor is currently within.
-  int get currentCommandIndex {
-    final q = _plotQueue;
-    if (q == null) return 0;
-    // Binary search through command boundaries
-    for (int i = q.commandBoundaries.length - 2; i >= 0; i--) {
-      if (_cursor >= q.commandBoundaries[i]) return i;
-    }
-    return 0;
-  }
+  int get currentCommandIndex => screenBuffer.currentCommandIndex;
+  int get totalCommands => screenBuffer.totalCommands;
+  int get cursor => screenBuffer.cursor;
+  int get totalPlots => screenBuffer.totalPlots;
+  bool get isComplete => screenBuffer.pendingCount == 0 && _isRendered;
 
   void setPixelsPerSecond(double pps) {
     _pixelsPerSecond = pps.clamp(100.0, 100000.0);
     notifyListeners();
   }
 
+  /// Render all commands into the queue (if not already done) and start
+  /// draining pixels at the configured rate.
   void startAnimation() {
     if (_isAnimating) return;
-
-    // Generate queue on first start (or after reset)
-    _plotQueue ??= AtariPixelRenderer.generatePlotQueue(roomData);
-
-    if (_pixelBuffer == null) {
-      _pixelBuffer = _plotQueue!.createBuffer();
-      _cursor = 0;
-    }
+    _ensureRendered();
 
     _isAnimating = true;
     _lastFrameTime = DateTime.now();
@@ -68,41 +55,29 @@ class AtariRenderController extends ChangeNotifier {
 
   void reset() {
     _isAnimating = false;
-    _cursor = 0;
-    _pixelBuffer = null;
+    _isRendered = false;
     _lastFrameTime = null;
+    screenBuffer.clear();
     notifyListeners();
   }
 
-  /// Render everything instantly.
+  /// Render and display everything instantly.
   void renderAll() {
-    _plotQueue ??= AtariPixelRenderer.generatePlotQueue(roomData);
-    _pixelBuffer = _plotQueue!.createBuffer();
-    _plotQueue!.applyRange(_pixelBuffer!, 0, _plotQueue!.length);
-    _cursor = _plotQueue!.length;
+    _ensureRendered();
+    screenBuffer.flushAllPending();
     _isAnimating = false;
     notifyListeners();
   }
 
-  /// Advance one bytecode command.
+  /// Advance one bytecode command worth of pixels.
   void stepToNextCommand() {
-    _plotQueue ??= AtariPixelRenderer.generatePlotQueue(roomData);
-    if (_pixelBuffer == null) {
-      _pixelBuffer = _plotQueue!.createBuffer();
-      _cursor = 0;
-    }
-
+    _ensureRendered();
     _isAnimating = false;
-    final cmdIdx = currentCommandIndex;
-    if (cmdIdx + 1 >= _plotQueue!.commandBoundaries.length - 1) return;
-
-    final end = _plotQueue!.commandBoundaries[cmdIdx + 1];
-    _plotQueue!.applyRange(_pixelBuffer!, _cursor, end);
-    _cursor = end;
+    screenBuffer.drainToNextCommand();
     notifyListeners();
   }
 
-  /// Get the current command being rendered.
+  /// Get the current command being played back.
   AtariBytecodeCommand? getCurrentCommand() {
     final idx = currentCommandIndex;
     if (idx >= 0 && idx < roomData.commands.length) {
@@ -111,9 +86,21 @@ class AtariRenderController extends ChangeNotifier {
     return null;
   }
 
+  /// Render all bytecode commands into the buffer's plot queue.
+  void _ensureRendered() {
+    if (_isRendered) return;
+    screenBuffer.fillScreenPattern(roomData.screenFillByte, roomData.palette);
+    AtariPixelRenderer.renderCommands(
+      screenBuffer,
+      roomData,
+      0,
+      roomData.commands.length,
+    );
+    _isRendered = true;
+  }
+
   void _animate() {
     if (!_isAnimating) return;
-    final q = _plotQueue!;
 
     final now = DateTime.now();
     final elapsedMs = _lastFrameTime != null
@@ -121,18 +108,14 @@ class AtariRenderController extends ChangeNotifier {
         : 16;
     _lastFrameTime = now;
 
-    int budget = (_pixelsPerSecond * elapsedMs / 1000.0).round().clamp(
+    final budget = (_pixelsPerSecond * elapsedMs / 1000.0).round().clamp(
       1,
       100000,
     );
-
-    final end = (_cursor + budget).clamp(0, q.length);
-    q.applyRange(_pixelBuffer!, _cursor, end);
-    _cursor = end;
-
+    screenBuffer.drainPending(budget);
     notifyListeners();
 
-    if (_cursor >= q.length) {
+    if (screenBuffer.pendingCount == 0) {
       _isAnimating = false;
     } else {
       Future.delayed(const Duration(milliseconds: 16), _animate);
@@ -140,12 +123,13 @@ class AtariRenderController extends ChangeNotifier {
   }
 
   AtariPixelRenderer createPainter() {
-    return AtariPixelRenderer(pixelBuffer: _pixelBuffer);
+    return AtariPixelRenderer(screenBuffer: screenBuffer);
   }
 
   @override
   void dispose() {
     _isAnimating = false;
+    screenBuffer.dispose();
     super.dispose();
   }
 }
@@ -169,6 +153,7 @@ class AtariAnimatedRoomView extends StatefulWidget {
 
 class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   late AtariRenderController _controller;
+  late Listenable _listenable;
   final bool _showCommands = false;
   Offset? _hoverAtariCoord;
   Offset? _hoverLocalPos;
@@ -176,10 +161,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   @override
   void initState() {
     super.initState();
-    _controller = AtariRenderController(
-      roomData: widget.roomData,
-      pixelsPerSecond: widget.pixelsPerSecond ?? 10000.0,
-    );
+    _initController();
 
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -188,16 +170,21 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
     }
   }
 
+  void _initController() {
+    _controller = AtariRenderController(
+      roomData: widget.roomData,
+      pixelsPerSecond: widget.pixelsPerSecond ?? 1000.0,
+    );
+    _listenable = Listenable.merge([_controller, _controller.screenBuffer]);
+  }
+
   @override
   void didUpdateWidget(AtariAnimatedRoomView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.roomData != widget.roomData) {
       _controller.dispose();
-      _controller = AtariRenderController(
-        roomData: widget.roomData,
-        pixelsPerSecond: widget.pixelsPerSecond ?? 10000.0,
-      );
+      _initController();
 
       if (widget.autoStart) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -216,7 +203,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _controller,
+      listenable: _listenable,
       builder: (context, child) {
         return Column(
           children: [
@@ -227,33 +214,26 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final pxW =
-                          constraints.maxWidth / AtariPixelRenderer.canvasWidth;
+                          constraints.maxWidth / AtariScreenBuffer.width;
                       final pxH =
-                          constraints.maxHeight /
-                          AtariPixelRenderer.canvasHeight;
+                          constraints.maxHeight / AtariScreenBuffer.height;
                       return MouseRegion(
                         cursor: SystemMouseCursors.precise,
                         onHover: (event) {
                           final pixelX =
                               (event.localPosition.dx /
                                       constraints.maxWidth *
-                                      AtariPixelRenderer.canvasWidth)
+                                      AtariScreenBuffer.width)
                                   .floorToDouble();
                           final pixelY =
                               (event.localPosition.dy /
                                       constraints.maxHeight *
-                                      AtariPixelRenderer.canvasHeight)
+                                      AtariScreenBuffer.height)
                                   .floorToDouble();
                           setState(() {
                             _hoverAtariCoord = Offset(
-                              pixelX.clamp(
-                                0,
-                                AtariPixelRenderer.canvasWidth - 1,
-                              ),
-                              pixelY.clamp(
-                                0,
-                                AtariPixelRenderer.canvasHeight - 1,
-                              ),
+                              pixelX.clamp(0, AtariScreenBuffer.width - 1),
+                              pixelY.clamp(0, AtariScreenBuffer.height - 1),
                             );
                             _hoverLocalPos = event.localPosition;
                           });
@@ -354,7 +334,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Command ${_controller.currentCommandIndex + 1} / ${widget.roomData.commands.length}  |  Plot ${_controller.cursor} / ${_controller.totalPlots}',
+                      'Command ${_controller.currentCommandIndex + 1} / ${_controller.totalCommands}  |  Plot ${_controller.cursor} / ${_controller.totalPlots}',
                       style: const TextStyle(
                         color: Colors.green,
                         fontSize: 11,
@@ -401,7 +381,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                         Expanded(
                           child: Slider(
                             value: _controller.pixelsPerSecond,
-                            min: 10,
+                            min: 100,
                             max: 10000,
                             divisions: 99,
                             activeColor: Colors.green,
