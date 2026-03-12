@@ -1,65 +1,31 @@
-import 'dart:convert';
-import 'package:flutter/services.dart' show rootBundle;
 import 'room.dart';
-import 'vector_command.dart';
-import '../rendering/room_bytecode_data.dart';
 
-/// Holds all game data loaded from JSON
+/// Holds all game data
 class GameData {
-  final Map<String, dynamic> metadata;
   final List<Room> rooms;
 
   GameData({
-    required this.metadata,
     required this.rooms,
   });
 
-  /// Load game data from JSON asset file
+  /// Load game data from hardcoded room definitions
   static Future<GameData> loadFromAssets() async {
-    final String jsonString =
-        await rootBundle.loadString('assets/room_vectors.json');
-    final Map<String, dynamic> json = jsonDecode(jsonString);
-
-    // New format has rooms as a map with room IDs as keys
-    final roomsMap = json['rooms'] as Map<String, dynamic>;
     final List<Room> roomsList = [];
 
-    roomsMap.forEach((key, value) {
-      final roomData = value as Map<String, dynamic>;
-      final roomId = int.parse(key);
-
-      // Load bytecode data for pixel rendering
-      final bytecode = RoomBytecodeData.getRoomBuffer(roomId);
-
+    for (int roomId = 1; roomId <= 27; roomId++) {
       roomsList.add(Room(
         id: roomId,
         name: _getRoomName(roomId),
         description: _getRoomDescription(roomId),
-        vectors: (roomData['commands'] as List)
-            .map((c) => VectorCommand.fromJson(c as Map<String, dynamic>))
-            .toList(),
         exits: _getRoomExits(roomId),
-        objects: const [],
-        rawBytes: roomData['raw_bytes'] != null
-            ? (roomData['raw_bytes'] as List).map((e) => e as int).toList()
-            : const [],
-        bytecodeData: bytecode,
       ));
-    });
+    }
 
-    return GameData(
-      metadata: {
-        'format_version': json['format_version'],
-        'description': json['description'],
-        'coordinate_system': json['coordinate_system'],
-      },
-      rooms: roomsList,
-    );
+    return GameData(rooms: roomsList);
   }
 
   static String _getRoomName(int roomId) {
-    // Room names from the BASIC code
-    final names = {
+    const names = {
       1: 'Entrance Hall',
       2: 'Dining Room',
       3: 'Kitchen',
@@ -92,7 +58,7 @@ class GameData {
   }
 
   static String _getRoomDescription(int roomId) {
-    final descriptions = {
+    const descriptions = {
       1: 'in the entrance hall',
       2: 'in a large dining room',
       3: 'in the kitchen',
@@ -125,8 +91,7 @@ class GameData {
   }
 
   static List<String> _getRoomExits(int roomId) {
-    // Basic exit data from game_state.dart room connections
-    final exits = {
+    const exits = {
       1: ['N', 'W', 'E'],
       2: ['S', 'N', 'E'],
       3: ['E', 'N', 'W'],
