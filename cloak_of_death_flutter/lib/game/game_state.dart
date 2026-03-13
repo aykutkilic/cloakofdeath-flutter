@@ -259,10 +259,42 @@ class GameState extends ChangeNotifier {
     processCommand(command);
   }
 
+  List<String> _wrapText(String text, {int width = 40}) {
+    if (text.isEmpty) return [];
+    
+    final words = text.split(' ');
+    final lines = <String>[];
+    String currentLine = '';
+
+    for (final word in words) {
+      if (word.isEmpty) continue;
+
+      if (currentLine.isEmpty) {
+        currentLine = word;
+      } else if (currentLine.length + 1 + word.length <= width) {
+        currentLine += ' $word';
+      } else {
+        lines.add(currentLine);
+        currentLine = word;
+      }
+    }
+    
+    if (currentLine.isNotEmpty) {
+      lines.add(currentLine);
+    }
+
+    return lines;
+  }
+
   void addMessage(String message) {
-    _outputMessages.add(message);
+    if (message.isEmpty) {
+      _outputMessages.add('');
+    } else {
+      _outputMessages.addAll(_wrapText(message));
+    }
+    
     if (_outputMessages.length > 50) {
-      _outputMessages.removeAt(0);
+      _outputMessages.removeRange(0, _outputMessages.length - 50);
     }
   }
 
