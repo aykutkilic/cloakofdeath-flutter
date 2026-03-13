@@ -129,7 +129,7 @@ class InteractiveInventory extends StatelessWidget {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 2,
-                              childAspectRatio: 2.5,
+                              childAspectRatio: 4.5,
                               crossAxisSpacing: 4,
                               mainAxisSpacing: 4,
                             ),

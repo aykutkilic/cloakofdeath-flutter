@@ -280,7 +280,7 @@ class _GameScreenState extends State<GameScreen> {
                             children: [
                               // Room visualization
                               Expanded(
-                                flex: 3,
+                                flex: 4,
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: Colors.black,
@@ -295,7 +295,7 @@ class _GameScreenState extends State<GameScreen> {
                               const SizedBox(height: 4),
                               // Interactive inventory
                               const Expanded(
-                                flex: 2,
+                                flex: 1,
                                 child: InteractiveInventory(),
                               ),
                             ],
@@ -420,9 +420,8 @@ class _GameScreenState extends State<GameScreen> {
                 // Command input
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: AppTheme.panel,
-                    border: Border.all(color: AppTheme.highlight, width: 2),
                   ),
                   child: Row(
                     children: [
@@ -475,41 +474,6 @@ class _GameScreenState extends State<GameScreen> {
                               _commandController.clear();
                             }
                           },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Status bar
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.panel,
-                    border: Border(top: BorderSide(color: AppTheme.highlight)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Room ${room.id}',
-                        style: const TextStyle(
-                          color: AppTheme.text,
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        'Inventory: ${gameState.inventoryCount}/${GameState.maxInventory}',
-                        style: const TextStyle(
-                          color: AppTheme.text,
-                          fontSize: 12,
-                        ),
-                      ),
-                      Text(
-                        'Moves: ${gameState.moveCount}',
-                        style: const TextStyle(
-                          color: AppTheme.text,
-                          fontSize: 12,
                         ),
                       ),
                     ],
