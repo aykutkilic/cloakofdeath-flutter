@@ -264,112 +264,75 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
           children: [
             Expanded(
               child: Center(
-                child: AspectRatio(
-                  aspectRatio: 3.0,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final pxW =
-                          constraints.maxWidth / AtariScreenBuffer.width;
-                      final pxH =
-                          constraints.maxHeight / AtariScreenBuffer.height;
-                      return MouseRegion(
-                        cursor: SystemMouseCursors.precise,
-                        onHover: (event) {
-                          final pixelX =
-                              (event.localPosition.dx /
-                                      constraints.maxWidth *
-                                      AtariScreenBuffer.width)
-                                  .floorToDouble();
-                          final pixelY =
-                              (event.localPosition.dy /
-                                      constraints.maxHeight *
-                                      AtariScreenBuffer.height)
-                                  .floorToDouble();
-                          setState(() {
-                            _hoverAtariCoord = Offset(
-                              pixelX.clamp(0, AtariScreenBuffer.width - 1),
-                              pixelY.clamp(0, AtariScreenBuffer.height - 1),
-                            );
-                            _hoverLocalPos = event.localPosition;
-                          });
-                        },
-                        onExit: (_) => setState(() {
-                          _hoverAtariCoord = null;
-                          _hoverLocalPos = null;
-                        }),
-                        child: Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            SizedBox.expand(
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.transparent,
-                                ),
-                                child: CustomPaint(
-                                  painter: _controller.createPainter(),
-                                ),
-                              ),
-                            ),
-                            if (_hoverAtariCoord != null &&
-                                widget.showDebugInfo) ...[
-                              Positioned(
-                                left: _hoverAtariCoord!.dx * pxW,
-                                top: _hoverAtariCoord!.dy * pxH,
-                                child: IgnorePointer(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final aspectWidth = AtariScreenBuffer.width.toDouble();
+                    final aspectHeight = AtariScreenBuffer.height.toDouble();
+                    
+                    // Force the widget to fill the entire container by scaling the internal content to fit it
+                    // The Atari aspect ratio is fundamentally ~3.0 but we want it to adapt or cover based on the view
+                    return SizedBox.expand(
+                      child: FittedBox(
+                        fit: BoxFit.fill,
+                        child: SizedBox(
+                          width: aspectWidth,
+                          height: aspectHeight,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.precise,
+                            onHover: (event) {
+                              final pixelX = (event.localPosition.dx).floorToDouble();
+                              final pixelY = (event.localPosition.dy).floorToDouble();
+                              setState(() {
+                                _hoverAtariCoord = Offset(
+                                  pixelX.clamp(0, AtariScreenBuffer.width - 1),
+                                  pixelY.clamp(0, AtariScreenBuffer.height - 1),
+                                );
+                                _hoverLocalPos = event.localPosition;
+                              });
+                            },
+                            onExit: (_) => setState(() {
+                              _hoverAtariCoord = null;
+                              _hoverLocalPos = null;
+                            }),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                SizedBox.expand(
                                   child: Container(
-                                    width: pxW,
-                                    height: pxH,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 1,
-                                      ),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.transparent,
+                                    ),
+                                    child: CustomPaint(
+                                      painter: _controller.createPainter(),
                                     ),
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                left: (_hoverLocalPos!.dx + 12).clamp(
-                                  0,
-                                  constraints.maxWidth - 60,
-                                ),
-                                top: (_hoverLocalPos!.dy - 20).clamp(
-                                  0,
-                                  constraints.maxHeight - 16,
-                                ),
-                                child: IgnorePointer(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 4,
-                                      vertical: 1,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.8,
-                                      ),
-                                      border: Border.all(
-                                        color: Colors.green.withValues(
-                                          alpha: 0.5,
+                                if (_hoverAtariCoord != null &&
+                                    widget.showDebugInfo) ...[
+                                  Positioned(
+                                    left: _hoverAtariCoord!.dx,
+                                    top: _hoverAtariCoord!.dy,
+                                    child: IgnorePointer(
+                                      child: Container(
+                                        width: 1,
+                                        height: 1,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: Colors.white,
+                                            width: 0.1,
+                                          ),
                                         ),
                                       ),
                                     ),
-                                    child: Text(
-                                      '${_hoverAtariCoord!.dx.toInt()}, ${_hoverAtariCoord!.dy.toInt()}',
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontSize: 10,
-                                        fontFamily: 'Atari',
-                                      ),
-                                    ),
                                   ),
-                                ),
-                              ),
-                            ],
-                          ],
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
