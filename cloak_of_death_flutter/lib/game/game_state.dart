@@ -120,6 +120,7 @@ class GameState extends ChangeNotifier {
       'PAINTING': 13,
       'SAFE': 0,
       'GATE KEY': 0,
+      'RAT': 1,
     };
     _moveCount = 0;
     _candleLife = 0;
@@ -671,7 +672,7 @@ class GameState extends ChangeNotifier {
       addMessage('The dog snarls, revealing bloodstained fangs!!');
       return false;
     }
-    if (_currentRoomId == 5 && dir == 'N' && !_inventory.contains('BREAD')) {
+    if (_currentRoomId == 1 && dir == 'N' && !_inventory.contains('KNIFE')) {
       addMessage('What about the rat?');
       return false;
     }

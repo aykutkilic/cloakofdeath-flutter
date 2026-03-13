@@ -56,62 +56,58 @@ class VerbPanel extends StatelessWidget {
               const SizedBox(height: 4),
 
               // Verb buttons
-              Expanded(
-                child: selectedObject == null
-                    ? Center(
-                        child: Text(
-                          'Select an object or\ninventory item first.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.text.withValues(alpha: 0.5),
-                                fontStyle: FontStyle.italic,
-                              ),
-                        ),
-                      )
-                    : Builder(
-                        builder: (context) {
-                          final availableActions = gameState.getAvailableActionsForObject(selectedObject);
-                          // Filter the verbs list based on available actions to avoid empty gaps in the grid
-                          final filteredVerbs = verbs.where((v) => availableActions.contains(v)).toList();
+              if (selectedObject == null)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'Select an object or\ninventory item first.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.text.withValues(alpha: 0.5),
+                            fontStyle: FontStyle.italic,
+                          ),
+                    ),
+                  ),
+                )
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 2.5,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                  ),
+                  itemCount: verbs.length,
+                  itemBuilder: (context, index) {
+                    final verb = verbs[index];
 
-                          return GridView.builder(
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 2.5,
-                              crossAxisSpacing: 4,
-                              mainAxisSpacing: 4,
-                            ),
-                            itemCount: filteredVerbs.length,
-                            itemBuilder: (context, index) {
-                              final verb = filteredVerbs[index];
-
-                              return ElevatedButton(
-                                onPressed: () {
-                                  gameState.executeObjectVerb(verb, selectedObject);
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.highlight,
-                                  foregroundColor: AppTheme.text,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 2),
-                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                  side: BorderSide.none,
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  verb,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppTheme.text,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.normal,
-                                      ),
-                                ),
-                              );
-                            },
-                          );
-                        }
+                    return ElevatedButton(
+                      onPressed: () {
+                        gameState.executeObjectVerb(verb, selectedObject);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.highlight,
+                        foregroundColor: AppTheme.text,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        side: BorderSide.none,
+                        elevation: 0,
                       ),
-              ),
+                      child: Text(
+                        verb,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.text,
+                              fontSize: 10,
+                              fontWeight: FontWeight.normal,
+                            ),
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         );

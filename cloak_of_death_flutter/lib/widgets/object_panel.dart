@@ -62,70 +62,73 @@ class ObjectPanel extends StatelessWidget {
               const SizedBox(height: 4),
 
               // Objects list
-              Expanded(
-                child: objects.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No objects here',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: AppTheme.text.withValues(alpha: 0.5),
-                                fontStyle: FontStyle.italic,
-                              ),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: objects.length,
-                        itemBuilder: (context, index) {
-                          final object = objects[index];
-                          final isSelected = selectedObject == object;
+              if (objects.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No objects here',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.text.withValues(alpha: 0.5),
+                            fontStyle: FontStyle.italic,
+                          ),
+                    ),
+                  ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: objects.length,
+                  itemBuilder: (context, index) {
+                    final object = objects[index];
+                    final isSelected = selectedObject == object;
 
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: ElevatedButton(
-                              onPressed: () => gameState.selectObject(object),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
-                                foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 6,
-                                ),
-                                alignment: Alignment.centerLeft,
-                                shape: const RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.zero,
-                                ),
-                                side: BorderSide.none,
-                                elevation: 0,
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.circle,
-                                    size: 6,
-                                    color: isSelected ? AppTheme.background : AppTheme.text,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      object.toUpperCase(),
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                            fontSize: 10,
-                                            color: isSelected ? AppTheme.background : AppTheme.text,
-                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                          ),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: ElevatedButton(
+                        onPressed: () => gameState.selectObject(object),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
+                          foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
+                          alignment: Alignment.centerLeft,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          side: BorderSide.none,
+                          elevation: 0,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.circle,
+                              size: 6,
+                              color: isSelected ? AppTheme.background : AppTheme.text,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                object.toUpperCase(),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      fontSize: 10,
+                                      color: isSelected ? AppTheme.background : AppTheme.text,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                     ),
-                                  ),
-                                ],
                               ),
                             ),
-                          );
-                        },
+                          ],
+                        ),
                       ),
-              ),
+                    );
+                  },
+                ),
             ],
           ),
         );

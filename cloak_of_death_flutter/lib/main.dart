@@ -377,11 +377,20 @@ class _GameScreenState extends State<GameScreen> {
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              // Verb panel
-                              const Expanded(flex: 3, child: VerbPanel()),
-                              const SizedBox(height: 4),
-                              // Object panel
-                              const Expanded(flex: 2, child: ObjectPanel()),
+                              // Verb and Object panels (Scrollable together)
+                              Expanded(
+                                flex: 5,
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: const [
+                                      VerbPanel(),
+                                      SizedBox(height: 4),
+                                      ObjectPanel(),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
