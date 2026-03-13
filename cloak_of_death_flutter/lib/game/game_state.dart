@@ -609,7 +609,7 @@ class GameState extends ChangeNotifier {
       addMessage("I can see something!");
       return true;
     }
-    if (noun == 'DOG' && _currentRoomId == 26) {
+    if (noun == 'DOG') {
       addMessage("It has eyes like red embers.");
       return true;
     }
@@ -620,6 +620,26 @@ class GameState extends ChangeNotifier {
     if (noun == 'SHELVES' && _currentRoomId == 16) {
       if (_objectLocations['BOOK'] == null || _objectLocations['BOOK'] == 0) _objectLocations['BOOK'] = 16;
       addMessage("I can see something!");
+      return true;
+    }
+    if (noun == 'BIBLE') {
+      addMessage("It falls open at the first page.");
+      return true;
+    }
+    if (noun == 'WINE') {
+      addMessage("French red. Maybe you should try it.");
+      return true;
+    }
+    if (noun == 'PAINTING') {
+      addMessage("It's an oil painting of two horses.");
+      return true;
+    }
+    if (noun == 'CLOCK' || noun == 'GRANDFATHER CLOCK') {
+      addMessage("It's getting terribly late!!");
+      return true;
+    }
+    if (noun == 'BOOK') {
+      addMessage("THE EXORCIST - How apt.");
       return true;
     }
     return false;
