@@ -68,40 +68,48 @@ class VerbPanel extends StatelessWidget {
                               ),
                         ),
                       )
-                    : GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 2.5,
-                          crossAxisSpacing: 4,
-                          mainAxisSpacing: 4,
-                        ),
-                        itemCount: verbs.length,
-                        itemBuilder: (context, index) {
-                          final verb = verbs[index];
+                    : Builder(
+                        builder: (context) {
+                          final availableActions = gameState.getAvailableActionsForObject(selectedObject);
+                          // Filter the verbs list based on available actions to avoid empty gaps in the grid
+                          final filteredVerbs = verbs.where((v) => availableActions.contains(v)).toList();
 
-                          return ElevatedButton(
-                            onPressed: () {
-                              gameState.executeObjectVerb(verb, selectedObject);
+                          return GridView.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 2.5,
+                              crossAxisSpacing: 4,
+                              mainAxisSpacing: 4,
+                            ),
+                            itemCount: filteredVerbs.length,
+                            itemBuilder: (context, index) {
+                              final verb = filteredVerbs[index];
+
+                              return ElevatedButton(
+                                onPressed: () {
+                                  gameState.executeObjectVerb(verb, selectedObject);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.highlight,
+                                  foregroundColor: AppTheme.text,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 2),
+                                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                  side: BorderSide.none,
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  verb,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppTheme.text,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                ),
+                              );
                             },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.highlight,
-                              foregroundColor: AppTheme.text,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 2),
-                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                              side: BorderSide.none,
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              verb,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.text,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.normal,
-                                  ),
-                            ),
                           );
-                        },
+                        }
                       ),
               ),
             ],

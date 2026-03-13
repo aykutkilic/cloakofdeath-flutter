@@ -186,13 +186,70 @@ class GameState extends ChangeNotifier {
 
   void selectObject(String object) {
     _selectedObject = object;
-    addMessage('[$object] selected. Click an action.');
     notifyListeners();
   }
 
   void clearSelectedObject() {
     _selectedObject = null;
     notifyListeners();
+  }
+
+  List<String> getAvailableActionsForObject(String object) {
+    // Default actions available for almost everything
+    final List<String> actions = ['LOOK', 'EXAMINE'];
+
+    // Actions depending on whether we hold it or it's in the room
+    final bool inInventory = _inventory.contains(object);
+    
+    if (inInventory) {
+      actions.add('DROP');
+    } else if (_objectLocations[object] == _currentRoomId || 
+               (object == 'SAFE' && _currentRoomId == 4) ||
+               (object == 'DOOR' && (_currentRoomId == 2 || _currentRoomId == 6)) ||
+               (object == 'GATE' && _currentRoomId == 7)) {
+      actions.add('GET'); // Note: You can't GET doors/safes normally, but GET is a standard action attempt
+    }
+
+    // Specific object actions based on game logic
+    switch (object) {
+      case 'DOOR':
+      case 'GATE':
+      case 'SAFE':
+        actions.addAll(['OPEN', 'UNLOCK', 'PUSH', 'PULL']);
+        break;
+      case 'CANDLE':
+      case 'LIT CANDLE':
+        actions.addAll(['LIGHT', 'EXTINGUISH']);
+        break;
+      case 'MATCHES':
+        actions.add('LIGHT');
+        break;
+      case 'LETTER':
+      case 'BIBLE':
+        actions.add('READ');
+        break;
+      case 'KEY':
+      case 'GATE KEY':
+      case 'HAMMER':
+      case 'SAW':
+      case 'BAR':
+      case 'WIRE':
+      case 'KNIFE':
+      case 'HOLY WATER':
+      case 'WATER':
+      case 'CRUCIFIX':
+        actions.add('USE');
+        break;
+      case 'CHAIR':
+        actions.add('CLIMB');
+        break;
+      case 'BREAD':
+        // No specific verb explicitly handled by logic other than USE or DROP, maybe EAT but it isn't a standard verb. Add USE.
+        actions.add('USE');
+        break;
+    }
+
+    return actions.toSet().toList(); // Ensure uniqueness
   }
 
   void executeObjectVerb(String verb, String object) {

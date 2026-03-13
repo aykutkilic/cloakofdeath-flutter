@@ -107,14 +107,13 @@ class _GameScreenState extends State<GameScreen> {
                           child: Slider(
                             value: gameState.pixelRenderSpeed,
                             min: 1,
-                            max: 500,
+                            max: 5000,
                             divisions: 100,
                             activeColor: AppTheme.text,
                             inactiveColor: AppTheme.panel,
                             label:
                                 '${gameState.pixelRenderSpeed.toStringAsFixed(0)} px/s',
-                            onChanged: (value) {
-                              gameState.setPixelRenderSpeed(value);
+                            onChanged: (value) {                              gameState.setPixelRenderSpeed(value);
                             },
                           ),
                         ),
