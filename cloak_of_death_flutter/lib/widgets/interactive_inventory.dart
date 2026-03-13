@@ -67,7 +67,7 @@ class InteractiveInventory extends StatelessWidget {
     return Consumer<GameState>(
       builder: (context, gameState, child) {
         final inventory = gameState.inventory;
-        final selectedVerb = gameState.selectedVerb;
+        final selectedObject = gameState.selectedObject;
         final inventoryCount = gameState.inventoryCount;
         final maxInventory = GameState.maxInventory;
 
@@ -88,6 +88,22 @@ class InteractiveInventory extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (selectedObject != null && inventory.contains(selectedObject))
+                    TextButton(
+                      onPressed: () => gameState.clearSelectedObject(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        minimumSize: const Size(0, 0),
+                      ),
+                      child: Text(
+                        'CLEAR',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.text,
+                              fontSize: 10,
+                            ),
+                      ),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 4,
@@ -111,6 +127,25 @@ class InteractiveInventory extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 4),
+
+              // Selected object display
+              if (selectedObject != null && inventory.contains(selectedObject))
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.highlight,
+                  ),
+                  child: Text(
+                    '▶ $selectedObject',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.text,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+              if (selectedObject != null && inventory.contains(selectedObject)) 
+                const SizedBox(height: 4),
 
               // Inventory items
               Expanded(
@@ -136,19 +171,13 @@ class InteractiveInventory extends StatelessWidget {
                         itemCount: inventory.length,
                         itemBuilder: (context, index) {
                           final item = inventory[index];
+                          final isSelected = selectedObject == item;
+
                           return ElevatedButton(
-                            onPressed: () {
-                              if (selectedVerb != null) {
-                                gameState.executeVerbObject(selectedVerb, item);
-                              } else {
-                                gameState.addMessage(
-                                  'Select a verb first, then click the item.',
-                                );
-                              }
-                            },
+                            onPressed: () => gameState.selectObject(item),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.panel,
-                              foregroundColor: AppTheme.text,
+                              backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
+                              foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4,
                                 vertical: 2,
@@ -169,12 +198,12 @@ class InteractiveInventory extends StatelessWidget {
                                   _getIconFor(item),
                                   width: 14,
                                   height: 14,
-                                  color: AppTheme.text,
+                                  color: isSelected ? AppTheme.background : AppTheme.text,
                                   errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(
+                                      Icon(
                                         Icons.inventory,
                                         size: 14,
-                                        color: AppTheme.text,
+                                        color: isSelected ? AppTheme.background : AppTheme.text,
                                       ),
                                 ),
                                 const SizedBox(width: 4),
@@ -184,7 +213,8 @@ class InteractiveInventory extends StatelessWidget {
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           fontSize: 9,
-                                          color: AppTheme.text,
+                                          color: isSelected ? AppTheme.background : AppTheme.text,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                         ),
                                     overflow: TextOverflow.ellipsis,
                                   ),

@@ -12,7 +12,7 @@ class GameState extends ChangeNotifier {
   Map<String, bool> _gameFlags = {};
   List<String> _outputMessages = [];
   int _moveCount = 0;
-  String? _selectedVerb;
+  String? _selectedObject;
 
   Map<String, int> _objectLocations = {};
 
@@ -31,7 +31,7 @@ class GameState extends ChangeNotifier {
   List<String> get outputMessages => List.unmodifiable(_outputMessages);
   int get moveCount => _moveCount;
   int get currentRoomId => _currentRoomId;
-  String? get selectedVerb => _selectedVerb;
+  String? get selectedObject => _selectedObject;
   double get pixelRenderSpeed => _pixelRenderSpeed;
   bool get autoAnimateRooms => _autoAnimateRooms;
   bool get showDebugInfo => _showDebugInfo;
@@ -184,20 +184,20 @@ class GameState extends ChangeNotifier {
     return visible;
   }
 
-  void selectVerb(String verb) {
-    _selectedVerb = verb;
-    addMessage('[$verb] selected. Click an object or inventory item.');
+  void selectObject(String object) {
+    _selectedObject = object;
+    addMessage('[$object] selected. Click an action.');
     notifyListeners();
   }
 
-  void clearSelectedVerb() {
-    _selectedVerb = null;
+  void clearSelectedObject() {
+    _selectedObject = null;
     notifyListeners();
   }
 
-  void executeVerbObject(String verb, String object) {
+  void executeObjectVerb(String verb, String object) {
     final command = '$verb $object';
-    _selectedVerb = null;
+    _selectedObject = null;
     processCommand(command);
   }
 

@@ -12,7 +12,7 @@ class ObjectPanel extends StatelessWidget {
     return Consumer<GameState>(
       builder: (context, gameState, child) {
         final objects = gameState.getVisibleObjects();
-        final selectedVerb = gameState.selectedVerb;
+        final selectedObject = gameState.selectedObject;
 
         return Container(
           decoration: const BoxDecoration(color: AppTheme.background),
@@ -21,12 +21,33 @@ class ObjectPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title
-              Text(
-                'OBJECTS HERE',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.text,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'OBJECTS HERE',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.text,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (selectedObject != null && objects.contains(selectedObject))
+                    TextButton(
+                      onPressed: () => gameState.clearSelectedObject(),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
+                        minimumSize: const Size(0, 0),
+                      ),
+                      child: Text(
+                        'CLEAR',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.text,
+                              fontSize: 10,
+                            ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
 
@@ -39,6 +60,25 @@ class ObjectPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
+
+              // Selected object display
+              if (selectedObject != null && objects.contains(selectedObject))
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.highlight,
+                  ),
+                  child: Text(
+                    '▶ $selectedObject',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.text,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+              if (selectedObject != null && objects.contains(selectedObject)) 
+                const SizedBox(height: 4),
 
               // Objects list
               Expanded(
@@ -57,24 +97,15 @@ class ObjectPanel extends StatelessWidget {
                         itemCount: objects.length,
                         itemBuilder: (context, index) {
                           final object = objects[index];
+                          final isSelected = selectedObject == object;
+
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: ElevatedButton(
-                              onPressed: () {
-                                if (selectedVerb != null) {
-                                  gameState.executeVerbObject(
-                                    selectedVerb,
-                                    object,
-                                  );
-                                } else {
-                                  gameState.addMessage(
-                                    'Select a verb first, then click the object.',
-                                  );
-                                }
-                              },
+                              onPressed: () => gameState.selectObject(object),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.panel,
-                                foregroundColor: AppTheme.text,
+                                backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
+                                foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
                                   vertical: 6,
@@ -88,10 +119,10 @@ class ObjectPanel extends StatelessWidget {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.circle,
                                     size: 6,
-                                    color: AppTheme.text,
+                                    color: isSelected ? AppTheme.background : AppTheme.text,
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
@@ -102,16 +133,11 @@ class ObjectPanel extends StatelessWidget {
                                           .bodySmall
                                           ?.copyWith(
                                             fontSize: 10,
-                                            color: AppTheme.text,
+                                            color: isSelected ? AppTheme.background : AppTheme.text,
+                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                           ),
                                     ),
                                   ),
-                                  if (selectedVerb != null)
-                                    const Icon(
-                                      Icons.arrow_forward,
-                                      size: 12,
-                                      color: AppTheme.text,
-                                    ),
                                 ],
                               ),
                             ),
