@@ -613,6 +613,10 @@ class GameState extends ChangeNotifier {
       addMessage("It has eyes like red embers.");
       return true;
     }
+    if (noun == 'RAT' && _currentRoomId == 1) {
+      addMessage("Looks pretty nasty!!");
+      return true;
+    }
     if (noun == 'SHELVES' && _currentRoomId == 16) {
       if (_objectLocations['BOOK'] == null || _objectLocations['BOOK'] == 0) _objectLocations['BOOK'] = 16;
       addMessage("I can see something!");
