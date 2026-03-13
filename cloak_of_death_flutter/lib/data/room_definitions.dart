@@ -27,8 +27,8 @@ final List<RoomDefinition> roomDefinitions = [
   // -----------------------------------------------------------------------
   RoomDefinition(
     id: 1,
-    name: 'Entrance Hall',
-    description: 'in the entrance hall',
+    name: 'Dark Hall',
+    description: 'in a dark hall.',
     exits: ['N', 'W', 'E'],
     connections: {'W': 2, 'E': 8, 'N': 5, 'U': 14},
     bytecode: Uint8List.fromList([
