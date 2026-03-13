@@ -61,25 +61,6 @@ class ObjectPanel extends StatelessWidget {
               ),
               const SizedBox(height: 4),
 
-              // Selected object display
-              if (selectedObject != null && objects.contains(selectedObject))
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.highlight,
-                  ),
-                  child: Text(
-                    '▶ $selectedObject',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.text,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-              if (selectedObject != null && objects.contains(selectedObject)) 
-                const SizedBox(height: 4),
-
               // Objects list
               Expanded(
                 child: objects.isEmpty

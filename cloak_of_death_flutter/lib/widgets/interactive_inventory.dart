@@ -128,25 +128,6 @@ class InteractiveInventory extends StatelessWidget {
               ),
               const SizedBox(height: 4),
 
-              // Selected object display
-              if (selectedObject != null && inventory.contains(selectedObject))
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.highlight,
-                  ),
-                  child: Text(
-                    '▶ $selectedObject',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.text,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                ),
-              if (selectedObject != null && inventory.contains(selectedObject)) 
-                const SizedBox(height: 4),
-
               // Inventory items
               Expanded(
                 child: inventory.isEmpty
