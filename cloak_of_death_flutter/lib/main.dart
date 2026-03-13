@@ -278,27 +278,6 @@ class _GameScreenState extends State<GameScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Room name
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.panel,
-                                  border: Border.all(
-                                    color: AppTheme.highlight,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Text(
-                                  room.name.toUpperCase(),
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: AppTheme.text,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
                               // Room visualization
                               Expanded(
                                 flex: 3,
@@ -440,7 +419,11 @@ class _GameScreenState extends State<GameScreen> {
 
                 // Command input
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.panel,
+                    border: Border.all(color: AppTheme.highlight, width: 2),
+                  ),
                   child: Row(
                     children: [
                       const Text(
@@ -456,37 +439,39 @@ class _GameScreenState extends State<GameScreen> {
                         child: TextField(
                           controller: _commandController,
                           autofocus: true,
+                          textCapitalization: TextCapitalization.characters,
                           style: const TextStyle(
                             color: AppTheme.text,
                             fontSize: 16,
                           ),
+                          cursorColor: AppTheme.text,
+                          cursorWidth: 10,
+                          cursorRadius: const Radius.circular(0),
                           decoration: InputDecoration(
                             fillColor: AppTheme.panel,
                             filled: true,
-                            border: const OutlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.highlight),
-                              borderRadius: BorderRadius.zero,
-                            ),
-                            enabledBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(color: AppTheme.highlight),
-                              borderRadius: BorderRadius.zero,
-                            ),
-                            focusedBorder: const OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: AppTheme.text,
-                                width: 2,
-                              ),
-                              borderRadius: BorderRadius.zero,
-                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                            isDense: true,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             hintText: 'Enter command...',
                             hintStyle: TextStyle(
                               color: AppTheme.text.withValues(alpha: 0.5),
                               fontStyle: FontStyle.italic,
                             ),
                           ),
+                          onChanged: (value) {
+                            if (value != value.toUpperCase()) {
+                              _commandController.value = _commandController.value.copyWith(
+                                text: value.toUpperCase(),
+                                selection: TextSelection.collapsed(offset: value.length),
+                              );
+                            }
+                          },
                           onSubmitted: (value) {
                             if (value.trim().isNotEmpty) {
-                              gameState.processCommand(value);
+                              gameState.processCommand(value.toUpperCase());
                               _commandController.clear();
                             }
                           },

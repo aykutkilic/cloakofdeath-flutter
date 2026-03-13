@@ -128,8 +128,8 @@ class InteractiveInventory extends StatelessWidget {
                     : GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              childAspectRatio: 2.0,
+                              crossAxisCount: 2,
+                              childAspectRatio: 2.5,
                               crossAxisSpacing: 4,
                               mainAxisSpacing: 4,
                             ),
@@ -153,25 +153,27 @@ class InteractiveInventory extends StatelessWidget {
                                 horizontal: 4,
                                 vertical: 2,
                               ),
-                              alignment: Alignment.center,
+                              alignment: Alignment.centerLeft,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.zero,
                               ),
-                              side: BorderSide.none,
+                              side: BorderSide(
+                                color: AppTheme.highlight.withValues(alpha: 0.5),
+                                width: 1,
+                              ),
                               elevation: 0,
                             ),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Image.asset(
                                   _getIconFor(item),
-                                  width: 16,
-                                  height: 16,
+                                  width: 14,
+                                  height: 14,
                                   color: AppTheme.text,
                                   errorBuilder: (context, error, stackTrace) =>
                                       const Icon(
                                         Icons.inventory,
-                                        size: 16,
+                                        size: 14,
                                         color: AppTheme.text,
                                       ),
                                 ),
