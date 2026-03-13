@@ -264,7 +264,7 @@ class _GameScreenState extends State<GameScreen> {
               children: [
                 // Main game area: Unified Minimap, Room view, and Interactive panels
                 Expanded(
-                  flex: 3,
+                  flex: 11,
                   child: Container(
                     margin: const EdgeInsets.all(8),
                     child: Row(
@@ -401,7 +401,7 @@ class _GameScreenState extends State<GameScreen> {
 
                 // Game output text
                 Expanded(
-                  flex: 1,
+                  flex: 5,
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
@@ -455,24 +455,26 @@ class _GameScreenState extends State<GameScreen> {
                             UppercaseTextFormatter(),
                           ],
                           style: const TextStyle(
-                            color: AppTheme.text,
+                            color: AppTheme.panel,
                             fontSize: 16,
+                            backgroundColor: AppTheme.text,
                           ),
-                          cursorColor: AppTheme.text,
+                          cursorColor: AppTheme.panel,
                           cursorWidth: 10,
                           cursorRadius: const Radius.circular(0),
                           decoration: InputDecoration(
-                            fillColor: AppTheme.panel,
+                            fillColor: AppTheme.text,
                             filled: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                             isDense: true,
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
                             focusedBorder: InputBorder.none,
-                            hintText: 'Enter command...',
+                            hintText: 'What shall I do?',
                             hintStyle: TextStyle(
-                              color: AppTheme.text.withValues(alpha: 0.5),
+                              color: AppTheme.panel.withValues(alpha: 0.7),
                               fontStyle: FontStyle.italic,
+                              backgroundColor: AppTheme.text,
                             ),
                           ),
                           onSubmitted: (value) {
