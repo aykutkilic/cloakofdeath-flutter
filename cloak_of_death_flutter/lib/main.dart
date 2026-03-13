@@ -475,15 +475,6 @@ class _GameScreenState extends State<GameScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Text(
-                        '>',
-                        style: TextStyle(
-                          color: AppTheme.text,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Expanded(
                         child: ValueListenableBuilder<TextEditingValue>(
                           valueListenable: _commandController,

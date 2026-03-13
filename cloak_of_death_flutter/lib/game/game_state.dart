@@ -117,10 +117,13 @@ class GameState extends ChangeNotifier {
       'WINE': 21,
       'WATER': 0,
       'BREAD': 3,
+      'KNIFE': 3,
       'PAINTING': 13,
       'SAFE': 0,
       'GATE KEY': 0,
       'RAT': 1,
+      'CUPBOARD': 0,
+      'SINK': 3,
     };
     _moveCount = 0;
     _candleLife = 0;
@@ -160,12 +163,6 @@ class GameState extends ChangeNotifier {
       if (room == _currentRoomId) visible.add(obj);
     });
 
-    if (_currentRoomId == 3) {
-      visible.add('CUPBOARD');
-    }
-    if (_currentRoomId == 3) {
-      visible.add('SINK');
-    }
     if (_currentRoomId == 8) {
       visible.add('FIREPLACE');
     }
@@ -306,7 +303,7 @@ class GameState extends ChangeNotifier {
     if (isTooDarkToSee) {
       addMessage('► IT\'S TOO DARK TO SEE');
     } else {
-      addMessage('You are ${room.description}');
+      addMessage('You are ${room.description}.');
       final exits = getAvailableExits();
       if (exits.isNotEmpty) {
         final mappedExits = exits.keys.map((e) {
@@ -368,7 +365,7 @@ class GameState extends ChangeNotifier {
   void processCommand(String command) {
     if (command.trim().isEmpty) return;
 
-    addMessage('> $command');
+    addMessage('What shall I do?$command');
     _moveCount++;
     if (_candleLife > 0 && hasLitCandle) {
       _candleLife--;
@@ -647,11 +644,24 @@ class GameState extends ChangeNotifier {
   }
 
   bool _handleExamine(String noun) {
+    if (noun == 'AROUND') {
+      if (_currentRoomId == 1 && _objectLocations['CORRIDOR'] == null) {
+        _objectLocations['CORRIDOR'] = 1;
+        addMessage("I can see something!");
+        return true;
+      }
+      if (_currentRoomId == 3 && _objectLocations['CUPBOARD'] == 0) {
+        _objectLocations['CUPBOARD'] = 3;
+        addMessage("I can see something!");
+        return true;
+      }
+      addMessage("I can see something!");
+      return true;
+    }
     if (noun == 'CUPBOARD' &&
         _currentRoomId == 3 &&
         _gameFlags['cupboard_open'] == true) {
       if (_objectLocations['MATCHES'] == 0) _objectLocations['MATCHES'] = 3;
-      if (_objectLocations['KNIFE'] == 0) _objectLocations['KNIFE'] = 3;
       addMessage("I can see something!");
       return true;
     }
