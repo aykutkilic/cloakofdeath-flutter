@@ -13,7 +13,7 @@ class GameState extends ChangeNotifier {
   String? _selectedVerb;
 
   // Pixel renderer configuration
-  double _pixelRenderSpeed = 10000.0; // pixels per second
+  double _pixelRenderSpeed = 2000.0; // pixels per second
   bool _autoAnimateRooms = true;
 
   // Game constants
@@ -252,7 +252,9 @@ class GameState extends ChangeNotifier {
         break;
 
       case 'HELP':
-        addMessage('Available commands: LOOK, INVENTORY, NORTH, SOUTH, EAST, WEST, UP, DOWN');
+        addMessage(
+          'Available commands: LOOK, INVENTORY, NORTH, SOUTH, EAST, WEST, UP, DOWN',
+        );
         addMessage('More commands to be implemented...');
         break;
 

@@ -27,8 +27,7 @@ class AtariBytecodeCommand {
 
 enum BytecodeCommandType {
   polyline,       // C8, CD, CE, CF, D0 - draw polyline
-  closedPolyline, // C9, CA - close last polyline (used as marker)
-  floodFill,      // (unused - kept for compatibility)
+  closedPolyline, // C9, CA - close last polyline + flood fill (single op)
   floodFillAt,    // CB, CC - flood fill at specific point
 }
 
@@ -249,17 +248,11 @@ class AtariBytecodeParser {
           final fillX = lastPolylineVertex0.dx + offsetX;
           final fillY = lastPolylineVertex0.dy + offsetY;
 
-          // Add closed polyline command (last polyline gets closed)
+          // Single command: close polyline + flood fill
           commands.add(AtariBytecodeCommand(
             type: BytecodeCommandType.closedPolyline,
             colorIndex: currentColor,
             points: [], // Points come from previous polyline
-            hexBytes: _getHexString(buffer, cmdStart, 3),
-          ));
-
-          // Add flood fill at absolute position
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.floodFill,
             fillPattern: fillColor,
             fillSeed: Offset(fillX, fillY),
             hexBytes: _getHexString(buffer, cmdStart, 3),
@@ -316,17 +309,11 @@ class AtariBytecodeParser {
           final fillX = lastPolylineVertex0.dx + offsetX;
           final fillY = lastPolylineVertex0.dy + offsetY;
 
-          // Add closed polyline command (last polyline gets closed)
+          // Single command: close polyline + flood fill
           commands.add(AtariBytecodeCommand(
             type: BytecodeCommandType.closedPolyline,
             colorIndex: currentColor,
             points: [], // Points come from previous polyline
-            hexBytes: _getHexString(buffer, cmdStart, 2),
-          ));
-
-          // Add flood fill at absolute position
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.floodFill,
             fillPattern: currentColor,
             fillSeed: Offset(fillX, fillY),
             hexBytes: _getHexString(buffer, cmdStart, 2),

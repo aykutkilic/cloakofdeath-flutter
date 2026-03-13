@@ -78,7 +78,8 @@ class AtariPixelRenderer extends CustomPainter {
 
       switch (cmd.type) {
         case BytecodeCommandType.polyline:
-          final shouldClose = i + 1 < roomData.commands.length &&
+          final shouldClose =
+              i + 1 < roomData.commands.length &&
               roomData.commands[i + 1].type ==
                   BytecodeCommandType.closedPolyline;
           polyState = _drawPolyline(
@@ -90,6 +91,7 @@ class AtariPixelRenderer extends CustomPainter {
           break;
 
         case BytecodeCommandType.closedPolyline:
+          // Close the polygon (draw closing line segment)
           if (cmd.points.isEmpty) {
             final fp = polyState.firstPoint;
             final lp = polyState.lastPoint;
@@ -101,7 +103,8 @@ class AtariPixelRenderer extends CustomPainter {
                 fp.dx.toInt(),
                 fp.dy.toInt(),
                 AtariScreenBuffer.colorToArgb(
-                    roomData.palette[cmd.colorIndex ?? 0]),
+                  roomData.palette[cmd.colorIndex ?? 0],
+                ),
               );
             }
           } else {
@@ -112,14 +115,23 @@ class AtariPixelRenderer extends CustomPainter {
               true,
             );
           }
+          // Polygon fill: border color = polyline color, fill color from pattern byte
+          if (cmd.fillSeed != null && cmd.fillPattern != null) {
+            final borderColor = AtariScreenBuffer.colorToArgb(
+              roomData.palette[cmd.colorIndex ?? 0],
+            );
+            final fillColor = AtariScreenBuffer.colorToArgb(
+              roomData.palette[cmd.fillPattern!],
+            );
+            _drawPolygonFill(buffer, cmd.fillSeed!, borderColor, fillColor);
+          }
           break;
 
-        case BytecodeCommandType.floodFill:
         case BytecodeCommandType.floodFillAt:
           final fillSeed = cmd.fillSeed;
           final fillPattern = cmd.fillPattern;
           if (fillSeed != null && fillPattern != null) {
-            _drawFloodFillAt(buffer, fillSeed, fillPattern, roomData.palette);
+            _drawFillAtXY(buffer, fillSeed, fillPattern, roomData.palette);
           }
           break;
       }
@@ -198,7 +210,26 @@ class AtariPixelRenderer extends CustomPainter {
     }
   }
 
-  static void _drawFloodFillAt(
+  /// C9/CA polygon fill: stop at [borderColor] boundaries, fill with [fillColor].
+  static void _drawPolygonFill(
+    AtariScreenBuffer buffer,
+    Offset seed,
+    int borderColor,
+    int fillColor,
+  ) {
+    _drawScanlineFillSolid(
+      buffer,
+      seed.dx.toInt(),
+      seed.dy.toInt(),
+      borderColor,
+      fillColor,
+    );
+  }
+
+  /// CB/CC fill at x,y: compare against the empty (background) color.
+  /// Solid fill replaces empty pixels with fill color.
+  /// Pattern fill replaces empty pixels with the pattern.
+  static void _drawFillAtXY(
     AtariScreenBuffer buffer,
     Offset seed,
     int pattern,
@@ -206,59 +237,104 @@ class AtariPixelRenderer extends CustomPainter {
   ) {
     final seedX = seed.dx.toInt();
     final seedY = seed.dy.toInt();
-
-    final targetColor = buffer.peek(seedX, seedY);
-    if (targetColor == 0) return; // out of bounds
-
-    int solidFillColor = 0;
-    List<int>? patternColors;
+    final emptyColor = buffer.peek(seedX, seedY);
+    if (emptyColor == 0) return;
 
     if (pattern <= 3) {
-      solidFillColor = AtariScreenBuffer.colorToArgb(palette[pattern]);
+      final fillColor = AtariScreenBuffer.colorToArgb(palette[pattern]);
+      if (emptyColor == fillColor) return;
+      _drawScanlineFillEmpty(buffer, seedX, seedY, emptyColor, fillColor, null);
     } else {
-      patternColors = AtariScreenBuffer.decodePattern(pattern, palette);
+      final patternColors = AtariScreenBuffer.decodePattern(pattern, palette);
+      _drawScanlineFillEmpty(
+        buffer,
+        seedX,
+        seedY,
+        emptyColor,
+        0,
+        patternColors,
+      );
     }
-
-    if (patternColors == null && targetColor == solidFillColor) return;
-
-    _drawScanlineFill(
-      buffer,
-      seedX,
-      seedY,
-      targetColor,
-      solidFillColor,
-      patternColors,
-    );
   }
 
-  static void _drawScanlineFill(
+  /// Fill at x,y: replace [emptyColor] pixels with [fillColor] or [patternColors].
+  /// Stops at non-empty (boundary) pixels.
+  static void _drawScanlineFillEmpty(
     AtariScreenBuffer buffer,
     int startX,
     int startY,
-    int targetColor,
+    int emptyColor,
     int fillColor,
     List<int>? patternColors,
   ) {
-    if (buffer.peek(startX, startY) != targetColor) return;
-
+    bool shouldScanLeft = false;
+    int left = startX;
     for (int y = startY; y < AtariScreenBuffer.height; y++) {
-      if (buffer.peek(startX, y) != targetColor) break;
-
-      int left = startX;
-      while (left > 0 && buffer.peek(left - 1, y) == targetColor) {
-        left--;
+      if (shouldScanLeft) {
+        while (left > 0 && buffer.peek(left - 1, y) == emptyColor) {
+          left--;
+        }
       }
 
-      int right = startX;
-      while (right < AtariScreenBuffer.width - 1 &&
-          buffer.peek(right + 1, y) == targetColor) {
-        right++;
-      }
-
-      for (int x = left; x <= right; x++) {
+      shouldScanLeft = true;
+      int? nextLeft;
+      for (
+        int x = left;
+        x < AtariScreenBuffer.width && buffer.peek(x, y) == emptyColor;
+        x++
+      ) {
         final c = patternColors != null ? patternColors[x % 4] : fillColor;
         buffer.plot(x, y, c);
+        if (nextLeft == null && y < AtariScreenBuffer.height - 1) {
+          if (buffer.peek(x, y + 1) == emptyColor) {
+            nextLeft = x;
+          } else {
+            shouldScanLeft = false;
+          }
+        }
       }
+
+      if (nextLeft == null) break;
+      left = nextLeft;
+    }
+  }
+
+  /// Polygon fill: stop at [borderColor] boundaries, fill with [fillColor].
+  static void _drawScanlineFillSolid(
+    AtariScreenBuffer buffer,
+    int startX,
+    int startY,
+    int borderColor,
+    int fillColor,
+  ) {
+    bool shouldScanLeft = false;
+    int left = startX;
+    for (int y = startY; y < AtariScreenBuffer.height; y++) {
+      if (shouldScanLeft) {
+        while (left > 0 && buffer.peek(left - 1, y) != borderColor) {
+          left--;
+        }
+      }
+
+      shouldScanLeft = true;
+      int? nextLeft;
+      for (
+        int x = left;
+        x < AtariScreenBuffer.width && buffer.peek(x, y) != borderColor;
+        x++
+      ) {
+        buffer.plot(x, y, fillColor);
+        if (nextLeft == null && y < AtariScreenBuffer.height - 1) {
+          if (buffer.peek(x, y + 1) != borderColor) {
+            nextLeft = x;
+          } else {
+            shouldScanLeft = false;
+          }
+        }
+      }
+
+      if (nextLeft == null) break;
+      left = nextLeft;
     }
   }
 }

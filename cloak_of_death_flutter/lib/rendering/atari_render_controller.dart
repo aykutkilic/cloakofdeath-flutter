@@ -5,42 +5,46 @@ import 'atari_screen_buffer.dart';
 
 /// Controller for progressive Atari rendering animation.
 ///
-/// All bytecode commands are rendered into the [AtariScreenBuffer]'s plot queue
-/// up front, then played back at a configurable pixel rate. The buffer's
-/// two-buffer architecture (truth + display) ensures drawing correctness while
-/// allowing progressive pixel reveal.
+/// Rendering and playback run in parallel on each animation frame:
+/// the producer renders bytecode commands into the [AtariScreenBuffer]'s
+/// plot queue, while the consumer drains queued pixels to the display
+/// buffer at a configurable rate.
 class AtariRenderController extends ChangeNotifier {
   final AtariRoomBytecode roomData;
 
   final AtariScreenBuffer screenBuffer = AtariScreenBuffer();
   bool _isAnimating = false;
-  bool _isRendered = false;
-  double _pixelsPerSecond = 1000.0;
+  double _pixelsPerSecond = 2000.0;
   DateTime? _lastFrameTime;
+
+  // Producer state
+  int _nextCommandToRender = 0;
+  bool _screenFilled = false;
+  PolylineState _polyState = PolylineState();
 
   AtariRenderController({
     required this.roomData,
-    double pixelsPerSecond = 1000.0,
+    double pixelsPerSecond = 2000.0,
   }) : _pixelsPerSecond = pixelsPerSecond;
 
   bool get isAnimating => _isAnimating;
   double get pixelsPerSecond => _pixelsPerSecond;
   int get currentCommandIndex => screenBuffer.currentCommandIndex;
-  int get totalCommands => screenBuffer.totalCommands;
+  int get totalCommands => roomData.commands.length;
   int get cursor => screenBuffer.cursor;
   int get totalPlots => screenBuffer.totalPlots;
-  bool get isComplete => screenBuffer.pendingCount == 0 && _isRendered;
+  bool get isComplete =>
+      _nextCommandToRender >= roomData.commands.length &&
+      screenBuffer.pendingCount == 0;
 
   void setPixelsPerSecond(double pps) {
     _pixelsPerSecond = pps.clamp(100.0, 100000.0);
     notifyListeners();
   }
 
-  /// Render all commands into the queue (if not already done) and start
-  /// draining pixels at the configured rate.
   void startAnimation() {
     if (_isAnimating) return;
-    _ensureRendered();
+    _ensureScreenFilled();
 
     _isAnimating = true;
     _lastFrameTime = DateTime.now();
@@ -55,7 +59,9 @@ class AtariRenderController extends ChangeNotifier {
 
   void reset() {
     _isAnimating = false;
-    _isRendered = false;
+    _screenFilled = false;
+    _nextCommandToRender = 0;
+    _polyState = PolylineState();
     _lastFrameTime = null;
     screenBuffer.clear();
     notifyListeners();
@@ -63,7 +69,8 @@ class AtariRenderController extends ChangeNotifier {
 
   /// Render and display everything instantly.
   void renderAll() {
-    _ensureRendered();
+    _ensureScreenFilled();
+    _renderAllRemaining();
     screenBuffer.flushAllPending();
     _isAnimating = false;
     notifyListeners();
@@ -71,9 +78,18 @@ class AtariRenderController extends ChangeNotifier {
 
   /// Advance one bytecode command worth of pixels.
   void stepToNextCommand() {
-    _ensureRendered();
+    _ensureScreenFilled();
     _isAnimating = false;
-    screenBuffer.drainToNextCommand();
+
+    // If current queue has pending pixels from prior commands, drain to
+    // the next command boundary first.
+    if (screenBuffer.pendingCount > 0) {
+      screenBuffer.drainToNextCommand();
+    } else {
+      // Render the next command and immediately show its pixels.
+      _renderNextCommand();
+      screenBuffer.flushAllPending();
+    }
     notifyListeners();
   }
 
@@ -86,17 +102,46 @@ class AtariRenderController extends ChangeNotifier {
     return null;
   }
 
-  /// Render all bytecode commands into the buffer's plot queue.
-  void _ensureRendered() {
-    if (_isRendered) return;
+  void _ensureScreenFilled() {
+    if (_screenFilled) return;
     screenBuffer.fillScreenPattern(roomData.screenFillByte, roomData.palette);
-    AtariPixelRenderer.renderCommands(
+    _screenFilled = true;
+  }
+
+  /// Render one command into the queue.
+  void _renderNextCommand() {
+    if (_nextCommandToRender >= roomData.commands.length) return;
+    _polyState = AtariPixelRenderer.renderCommands(
       screenBuffer,
       roomData,
-      0,
-      roomData.commands.length,
+      _nextCommandToRender,
+      _nextCommandToRender + 1,
+      state: _polyState,
     );
-    _isRendered = true;
+    _nextCommandToRender++;
+  }
+
+  /// Render all remaining commands into the queue.
+  void _renderAllRemaining() {
+    if (_nextCommandToRender >= roomData.commands.length) return;
+    _polyState = AtariPixelRenderer.renderCommands(
+      screenBuffer,
+      roomData,
+      _nextCommandToRender,
+      roomData.commands.length,
+      state: _polyState,
+    );
+    _nextCommandToRender = roomData.commands.length;
+  }
+
+  /// Render enough commands to keep the queue fed ahead of playback.
+  void _renderAhead(int pixelBudget) {
+    // Keep at least two frames' worth of pixels queued ahead of the cursor.
+    final target = pixelBudget * 2;
+    while (_nextCommandToRender < roomData.commands.length &&
+        screenBuffer.pendingCount < target) {
+      _renderNextCommand();
+    }
   }
 
   void _animate() {
@@ -112,10 +157,15 @@ class AtariRenderController extends ChangeNotifier {
       1,
       100000,
     );
+
+    // Produce: render commands to keep the queue fed.
+    _renderAhead(budget);
+
+    // Consume: drain queued pixels to the display buffer.
     screenBuffer.drainPending(budget);
     notifyListeners();
 
-    if (screenBuffer.pendingCount == 0) {
+    if (isComplete) {
       _isAnimating = false;
     } else {
       Future.delayed(const Duration(milliseconds: 16), _animate);
@@ -173,7 +223,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   void _initController() {
     _controller = AtariRenderController(
       roomData: widget.roomData,
-      pixelsPerSecond: widget.pixelsPerSecond ?? 1000.0,
+      pixelsPerSecond: widget.pixelsPerSecond ?? 2000.0,
     );
     _listenable = Listenable.merge([_controller, _controller.screenBuffer]);
   }
@@ -528,9 +578,8 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
       case BytecodeCommandType.polyline:
         return 'POLY color=${cmd.colorIndex} pts=${cmd.points.length}';
       case BytecodeCommandType.closedPolyline:
-        return 'CLOSED_POLY color=${cmd.colorIndex} pts=${cmd.points.length}';
-      case BytecodeCommandType.floodFill:
-        return 'FILL color=${cmd.colorIndex}';
+        final fill = cmd.fillSeed != null ? ' fill@${cmd.fillSeed}' : '';
+        return 'CLOSE+FILL color=${cmd.colorIndex}$fill';
       case BytecodeCommandType.floodFillAt:
         final pat = cmd.fillPattern ?? 0;
         if (pat <= 3) {
