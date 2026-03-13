@@ -567,6 +567,18 @@ class GameState extends ChangeNotifier {
       return true;
     }
 
+    // Scenery objects cannot be picked up (Noun IDs > 28 in original code)
+    final nonPortableObjects = [
+      'WATER', 'CLOAK', 'CLOCK', 'CORD', 'CORRIDOR', 'CUPBOARD', 'DESK',
+      'DOG', 'DOOR', 'EMBERS', 'FIREPLACE', 'GATE', 'HATCH', 'PASSAGEWAY',
+      'RAT', 'SAFE', 'SHELVES', 'SINK', 'TABLE', 'ANNEXE'
+    ];
+
+    if (nonPortableObjects.contains(noun)) {
+      addMessage("Not a very good idea.");
+      return true;
+    }
+
     if (noun == 'WATER' && _currentRoomId == 3) {
       if (_inventory.contains('GOBLET')) {
         _inventory.remove('GOBLET');
