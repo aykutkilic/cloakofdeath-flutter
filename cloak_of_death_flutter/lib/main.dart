@@ -50,6 +50,7 @@ class _GameScreenState extends State<GameScreen> {
   final TextEditingController _commandController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _commandFocusNode = FocusNode();
+  bool _isFullScreen = false;
 
   @override
   void dispose() {
@@ -263,43 +264,85 @@ class _GameScreenState extends State<GameScreen> {
             return Column(
               children: [
                 // Main game area: Unified Minimap, Room view, and Interactive panels
-                Expanded(
-                  flex: 11,
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                if (_isFullScreen)
+                  Expanded(
+                    flex: 11,
+                    child: Stack(
                       children: [
-                        // Left: Unified minimap (navigation integrated)
-                        const SizedBox(width: 120, child: UnifiedMinimap()),
-                        const SizedBox(width: 8),
-
-                        // Center: Room name, Room visualization, Inventory
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Room visualization
-                              Expanded(
-                                flex: 4,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                  ),
-                                  child: RoomView(room: room),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              // Interactive inventory
-                              const Expanded(
-                                flex: 1,
-                                child: InteractiveInventory(),
-                              ),
-                            ],
+                        SizedBox.expand(
+                          child: RoomView(room: room),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton(
+                            icon: const Icon(Icons.fullscreen_exit, color: AppTheme.text),
+                            onPressed: () {
+                              setState(() {
+                                _isFullScreen = false;
+                              });
+                            },
                           ),
                         ),
-                        const SizedBox(width: 8),
+                      ],
+                    ),
+                  )
+                else
+                  Expanded(
+                    flex: 11,
+                    child: Container(
+                      margin: const EdgeInsets.all(8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Left: Unified minimap (navigation integrated)
+                          const SizedBox(width: 120, child: UnifiedMinimap()),
+                          const SizedBox(width: 8),
+
+                          // Center: Room name, Room visualization, Inventory
+                          Expanded(
+                            flex: 2,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Room visualization
+                                Expanded(
+                                  flex: 4,
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        decoration: const BoxDecoration(
+                                          color: Colors.transparent,
+                                        ),
+                                        child: RoomView(room: room),
+                                      ),
+                                      Positioned(
+                                        top: 0,
+                                        right: 0,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.fullscreen, color: AppTheme.text, size: 20),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          onPressed: () {
+                                            setState(() {
+                                              _isFullScreen = true;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                // Interactive inventory
+                                const Expanded(
+                                  flex: 1,
+                                  child: InteractiveInventory(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
 
                         // Right: Interactive panels (verbs, objects)
                         SizedBox(
