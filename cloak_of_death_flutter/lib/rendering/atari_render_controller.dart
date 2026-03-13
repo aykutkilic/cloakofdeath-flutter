@@ -234,7 +234,8 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   void didUpdateWidget(AtariAnimatedRoomView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.roomData.roomId != widget.roomData.roomId || oldWidget.showDebugInfo != widget.showDebugInfo) {
+    if (oldWidget.roomData.roomId != widget.roomData.roomId ||
+        oldWidget.showDebugInfo != widget.showDebugInfo) {
       _controller.dispose();
       _initController();
 
@@ -309,7 +310,8 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                                 ),
                               ),
                             ),
-                            if (_hoverAtariCoord != null && widget.showDebugInfo) ...[
+                            if (_hoverAtariCoord != null &&
+                                widget.showDebugInfo) ...[
                               Positioned(
                                 left: _hoverAtariCoord!.dx * pxW,
                                 top: _hoverAtariCoord!.dy * pxH,
@@ -356,7 +358,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                                       style: const TextStyle(
                                         color: Colors.green,
                                         fontSize: 10,
-                                        fontFamily: 'monospace',
+                                        fontFamily: 'Atari',
                                       ),
                                     ),
                                   ),
@@ -379,134 +381,136 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.9),
-                  border: Border.all(color: Colors.green),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Command ${_controller.currentCommandIndex + 1} / ${_controller.totalCommands}  |  Plot ${_controller.cursor} / ${_controller.totalPlots}',
-                      style: const TextStyle(
-                        color: Colors.green,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        fontWeight: FontWeight.bold,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.9),
+                    border: Border.all(color: Colors.green),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Command ${_controller.currentCommandIndex + 1} / ${_controller.totalCommands}  |  Plot ${_controller.cursor} / ${_controller.totalPlots}',
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontSize: 11,
+                          fontFamily: 'Atari',
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 4),
-                    _buildCurrentCommandInfo(),
-                    const SizedBox(height: 8),
-
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        _buildSmallButton(
-                          _controller.isAnimating ? 'Pause' : 'Play',
-                          _controller.isAnimating
-                              ? _controller.stopAnimation
-                              : _controller.startAnimation,
-                        ),
-                        _buildSmallButton('Step', () {
-                          _controller.stopAnimation();
-                          _controller.stepToNextCommand();
-                        }),
-                        _buildSmallButton('Reset', _controller.reset),
-                      ],
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Row(
-                      children: [
-                        const Text(
-                          'Speed:',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontSize: 10,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Slider(
-                            value: _controller.pixelsPerSecond,
-                            min: 10,
-                            max: 5000,
-                            divisions: 200,
-                            activeColor: Colors.green,
-                            inactiveColor: Colors.green.withValues(alpha: 0.3),
-                            onChanged: (value) {
-                              _controller.setPixelsPerSecond(value);
-                            },
-                          ),
-                        ),
-                        SizedBox(
-                          width: 70,
-                          child: Text(
-                            '${_controller.pixelsPerSecond.toInt()} px/s',
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontSize: 9,
-                              fontFamily: 'monospace',
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    if (_showCommands) ...[
-                      const SizedBox(height: 8),
-                      const Divider(color: Colors.green),
                       const SizedBox(height: 4),
-                      Container(
-                        constraints: const BoxConstraints(maxHeight: 150),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: widget.roomData.commands
-                                .asMap()
-                                .entries
-                                .map((entry) {
-                                  final idx = entry.key;
-                                  final cmd = entry.value;
-                                  final isCurrentCommand =
-                                      idx == _controller.currentCommandIndex;
-                                  return Container(
-                                    padding: const EdgeInsets.only(bottom: 2),
-                                    color: isCurrentCommand
-                                        ? Colors.green.withValues(alpha: 0.3)
-                                        : Colors.transparent,
-                                    child: Text(
-                                      '${idx + 1}. ${_describeCommand(cmd)}',
-                                      style: TextStyle(
-                                        color: isCurrentCommand
-                                            ? Colors.white
-                                            : Colors.green,
-                                        fontSize: 9,
-                                        fontWeight: isCurrentCommand
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                        fontFamily: 'monospace',
+                      _buildCurrentCommandInfo(),
+                      const SizedBox(height: 8),
+
+                      Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          _buildSmallButton(
+                            _controller.isAnimating ? 'Pause' : 'Play',
+                            _controller.isAnimating
+                                ? _controller.stopAnimation
+                                : _controller.startAnimation,
+                          ),
+                          _buildSmallButton('Step', () {
+                            _controller.stopAnimation();
+                            _controller.stepToNextCommand();
+                          }),
+                          _buildSmallButton('Reset', _controller.reset),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Row(
+                        children: [
+                          const Text(
+                            'Speed:',
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 10,
+                              fontFamily: 'Atari',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Slider(
+                              value: _controller.pixelsPerSecond,
+                              min: 10,
+                              max: 5000,
+                              divisions: 200,
+                              activeColor: Colors.green,
+                              inactiveColor: Colors.green.withValues(
+                                alpha: 0.3,
+                              ),
+                              onChanged: (value) {
+                                _controller.setPixelsPerSecond(value);
+                              },
+                            ),
+                          ),
+                          SizedBox(
+                            width: 70,
+                            child: Text(
+                              '${_controller.pixelsPerSecond.toInt()} px/s',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontSize: 9,
+                                fontFamily: 'Atari',
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (_showCommands) ...[
+                        const SizedBox(height: 8),
+                        const Divider(color: Colors.green),
+                        const SizedBox(height: 4),
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 150),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: widget.roomData.commands
+                                  .asMap()
+                                  .entries
+                                  .map((entry) {
+                                    final idx = entry.key;
+                                    final cmd = entry.value;
+                                    final isCurrentCommand =
+                                        idx == _controller.currentCommandIndex;
+                                    return Container(
+                                      padding: const EdgeInsets.only(bottom: 2),
+                                      color: isCurrentCommand
+                                          ? Colors.green.withValues(alpha: 0.3)
+                                          : Colors.transparent,
+                                      child: Text(
+                                        '${idx + 1}. ${_describeCommand(cmd)}',
+                                        style: TextStyle(
+                                          color: isCurrentCommand
+                                              ? Colors.white
+                                              : Colors.green,
+                                          fontSize: 9,
+                                          fontWeight: isCurrentCommand
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          fontFamily: 'Atari',
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                })
-                                .toList(),
+                                    );
+                                  })
+                                  .toList(),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
           ],
         );
       },
@@ -518,11 +522,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
     if (cmd == null) {
       return const Text(
         'No command',
-        style: TextStyle(
-          color: Colors.green,
-          fontSize: 9,
-          fontFamily: 'monospace',
-        ),
+        style: TextStyle(color: Colors.green, fontSize: 9, fontFamily: 'Atari'),
       );
     }
 
@@ -544,7 +544,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
             style: const TextStyle(
               color: Colors.greenAccent,
               fontSize: 10,
-              fontFamily: 'monospace',
+              fontFamily: 'Atari',
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -554,7 +554,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
             style: const TextStyle(
               color: Colors.green,
               fontSize: 9,
-              fontFamily: 'monospace',
+              fontFamily: 'Atari',
             ),
           ),
         ],

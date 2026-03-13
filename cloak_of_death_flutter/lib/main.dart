@@ -7,6 +7,7 @@ import 'widgets/verb_panel.dart';
 import 'widgets/object_panel.dart';
 import 'widgets/interactive_inventory.dart';
 import 'rendering/room_bytecode_loader.dart';
+import 'app_theme.dart';
 
 void main() async {
   // Ensure Flutter is initialized before loading assets
@@ -30,18 +31,7 @@ class CloakOfDeathApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cloak of Death',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: Colors.green,
-        scaffoldBackgroundColor: Colors.black,
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(
-            fontFamily: 'Courier',
-            color: Colors.green,
-            fontSize: 14,
-          ),
-        ),
-      ),
+      theme: AppTheme.themeData,
       home: const GameScreen(),
       debugShowCheckedModeBanner: false,
     );
@@ -85,16 +75,15 @@ class _GameScreenState extends State<GameScreen> {
         return Consumer<GameState>(
           builder: (context, gameState, child) {
             return AlertDialog(
-              backgroundColor: Colors.black,
+              backgroundColor: AppTheme.background,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
-                side: const BorderSide(color: Colors.green, width: 2),
+                side: const BorderSide(color: AppTheme.highlight, width: 2),
               ),
               title: const Text(
                 'PIXEL RENDERER SETTINGS',
                 style: TextStyle(
-                  fontFamily: 'Courier',
-                  color: Colors.green,
+                  color: AppTheme.text,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -106,11 +95,7 @@ class _GameScreenState extends State<GameScreen> {
                   children: [
                     const Text(
                       'Render Speed',
-                      style: TextStyle(
-                        fontFamily: 'Courier',
-                        color: Colors.green,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: AppTheme.text, fontSize: 14),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -121,9 +106,10 @@ class _GameScreenState extends State<GameScreen> {
                             min: 1,
                             max: 500,
                             divisions: 100,
-                            activeColor: Colors.green,
-                            inactiveColor: Colors.green.shade900,
-                            label: '${gameState.pixelRenderSpeed.toStringAsFixed(0)} px/s',
+                            activeColor: AppTheme.text,
+                            inactiveColor: AppTheme.panel,
+                            label:
+                                '${gameState.pixelRenderSpeed.toStringAsFixed(0)} px/s',
                             onChanged: (value) {
                               gameState.setPixelRenderSpeed(value);
                             },
@@ -134,8 +120,7 @@ class _GameScreenState extends State<GameScreen> {
                           child: Text(
                             '${gameState.pixelRenderSpeed.toStringAsFixed(0)} px/s',
                             style: const TextStyle(
-                              fontFamily: 'Courier',
-                              color: Colors.green,
+                              color: AppTheme.text,
                               fontSize: 12,
                             ),
                             textAlign: TextAlign.right,
@@ -147,24 +132,22 @@ class _GameScreenState extends State<GameScreen> {
                     SwitchListTile(
                       title: const Text(
                         'Auto-animate rooms',
-                        style: TextStyle(
-                          fontFamily: 'Courier',
-                          color: Colors.green,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: AppTheme.text, fontSize: 14),
                       ),
                       value: gameState.autoAnimateRooms,
-                      activeThumbColor: Colors.green,
+                      activeThumbColor: AppTheme.text,
+                      activeTrackColor: AppTheme.highlight,
+                      inactiveThumbColor: AppTheme.mutedColor,
+                      inactiveTrackColor: AppTheme.panel,
                       onChanged: (value) {
                         gameState.setAutoAnimateRooms(value);
                       },
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Authentic Atari speed: 20 px/s\nFast rendering: 200+ px/s',
                       style: TextStyle(
-                        fontFamily: 'Courier',
-                        color: Colors.green,
+                        color: AppTheme.text.withValues(alpha: 0.7),
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
                       ),
@@ -180,8 +163,7 @@ class _GameScreenState extends State<GameScreen> {
                   child: const Text(
                     'CLOSE',
                     style: TextStyle(
-                      fontFamily: 'Courier',
-                      color: Colors.green,
+                      color: AppTheme.text,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -194,251 +176,364 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  void _showAboutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: const BorderSide(color: AppTheme.highlight, width: 2),
+          ),
+          title: const Text(
+            'ABOUT',
+            style: TextStyle(color: AppTheme.text, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Cloak of Death\n\nOriginally written for 8-bit Atari computers by David Cockram.\n\nFlutter Implementation.',
+            style: TextStyle(color: AppTheme.text),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'CLOSE',
+                style: TextStyle(color: AppTheme.text),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showStatsDialog(BuildContext context, GameState gameState) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.background,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: const BorderSide(color: AppTheme.highlight, width: 2),
+          ),
+          title: const Text(
+            'STATS',
+            style: TextStyle(color: AppTheme.text, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            'Moves: ${gameState.moveCount}\nInventory Items: ${gameState.inventoryCount}/${GameState.maxInventory}',
+            style: const TextStyle(color: AppTheme.text),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text(
+                'CLOSE',
+                style: TextStyle(color: AppTheme.text),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'CLOAK OF DEATH',
-          style: TextStyle(
-            fontFamily: 'Courier',
-            fontWeight: FontWeight.bold,
-            color: Colors.green,
-          ),
-        ),
-        backgroundColor: Colors.black,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.green),
-            onPressed: () {
-              _showSettingsDialog(context);
-            },
-            tooltip: 'Render Settings',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.green),
-            onPressed: () {
-              context.read<GameState>().reset();
-            },
-            tooltip: 'Reset Game',
-          ),
-        ],
-      ),
-      body: Consumer<GameState>(
-        builder: (context, gameState, child) {
-          final room = gameState.currentRoom;
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Consumer<GameState>(
+          builder: (context, gameState, child) {
+            final room = gameState.currentRoom;
 
-          if (room == null) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.green),
-            );
-          }
+            if (room == null) {
+              return const Center(
+                child: CircularProgressIndicator(color: AppTheme.text),
+              );
+            }
 
-          // Scroll to bottom when messages update
-          _scrollToBottom();
+            // Scroll to bottom when messages update
+            _scrollToBottom();
 
-          return Column(
-            children: [
-              // Main game area: Unified Minimap, Room view, and Interactive panels
-              Container(
-                height: 400,
-                margin: const EdgeInsets.all(8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Left: Unified minimap (navigation integrated)
-                    const SizedBox(
-                      width: 120,
-                      child: UnifiedMinimap(),
-                    ),
-                    const SizedBox(width: 8),
+            return Column(
+              children: [
+                // Main game area: Unified Minimap, Room view, and Interactive panels
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    margin: const EdgeInsets.all(8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Left: Unified minimap (navigation integrated)
+                        const SizedBox(width: 120, child: UnifiedMinimap()),
+                        const SizedBox(width: 8),
 
-                    // Center: Room name and vector view
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Room name
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF001100),
-                              border: Border.all(color: Colors.green, width: 2),
-                            ),
-                            child: Text(
-                              room.name.toUpperCase(),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontFamily: 'Courier',
-                                color: Colors.green,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                        // Center: Room name, Room visualization, Inventory
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Room name
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.panel,
+                                  border: Border.all(
+                                    color: AppTheme.highlight,
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Text(
+                                  room.name.toUpperCase(),
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: AppTheme.text,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
+                              const SizedBox(height: 4),
+                              // Room visualization
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.black,
+                                    border: Border.all(
+                                      color: AppTheme.highlight,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: RoomView(room: room),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              // Interactive inventory
+                              const Expanded(
+                                flex: 2,
+                                child: InteractiveInventory(),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+
+                        // Right: Interactive panels (verbs, objects)
+                        SizedBox(
+                          width: 180,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // Top Right Menus
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.settings,
+                                      color: AppTheme.text,
+                                    ),
+                                    onPressed: () {
+                                      _showSettingsDialog(context);
+                                    },
+                                    tooltip: 'Settings',
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(
+                                      Icons.menu,
+                                      color: AppTheme.text,
+                                    ),
+                                    color: AppTheme.panel,
+                                    onSelected: (value) {
+                                      if (value == 'restart') {
+                                        context.read<GameState>().reset();
+                                      } else if (value == 'about') {
+                                        _showAboutDialog(context);
+                                      } else if (value == 'stats') {
+                                        _showStatsDialog(context, gameState);
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext context) =>
+                                        <PopupMenuEntry<String>>[
+                                          const PopupMenuItem<String>(
+                                            value: 'restart',
+                                            child: Text(
+                                              'Restart',
+                                              style: TextStyle(
+                                                color: AppTheme.text,
+                                                fontFamily: 'Atari',
+                                              ),
+                                            ),
+                                          ),
+                                          const PopupMenuItem<String>(
+                                            value: 'about',
+                                            child: Text(
+                                              'About',
+                                              style: TextStyle(
+                                                color: AppTheme.text,
+                                                fontFamily: 'Atari',
+                                              ),
+                                            ),
+                                          ),
+                                          const PopupMenuItem<String>(
+                                            value: 'stats',
+                                            child: Text(
+                                              'Stats',
+                                              style: TextStyle(
+                                                color: AppTheme.text,
+                                                fontFamily: 'Atari',
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              // Verb panel
+                              const Expanded(flex: 3, child: VerbPanel()),
+                              const SizedBox(height: 4),
+                              // Object panel
+                              const Expanded(flex: 2, child: ObjectPanel()),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Game output text
+                Expanded(
+                  flex: 1,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.panel,
+                      border: Border.all(color: AppTheme.highlight, width: 2),
+                    ),
+                    child: ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(8),
+                      itemCount: gameState.outputMessages.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            gameState.outputMessages[index],
+                            style: const TextStyle(
+                              color: AppTheme.text,
+                              fontSize: 14,
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          // Room visualization
-                          Expanded(
-                            child: RoomView(room: room),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(width: 8),
-
-                    // Right: Interactive panels (verbs, objects, inventory)
-                    SizedBox(
-                      width: 180,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Verb panel
-                          const Expanded(
-                            flex: 3,
-                            child: VerbPanel(),
-                          ),
-                          const SizedBox(height: 4),
-                          // Object panel
-                          const Expanded(
-                            flex: 2,
-                            child: ObjectPanel(),
-                          ),
-                          const SizedBox(height: 4),
-                          // Interactive inventory
-                          const Expanded(
-                            flex: 2,
-                            child: InteractiveInventory(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Game output text
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    border: Border.all(color: Colors.green, width: 2),
                   ),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(8),
-                    itemCount: gameState.outputMessages.length,
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(
-                          gameState.outputMessages[index],
+                ),
+
+                // Command input
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(
+                    children: [
+                      const Text(
+                        '>',
+                        style: TextStyle(
+                          color: AppTheme.text,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _commandController,
+                          autofocus: true,
                           style: const TextStyle(
-                            fontFamily: 'Courier',
-                            color: Colors.green,
-                            fontSize: 14,
+                            color: AppTheme.text,
+                            fontSize: 16,
                           ),
+                          decoration: InputDecoration(
+                            fillColor: AppTheme.panel,
+                            filled: true,
+                            border: const OutlineInputBorder(
+                              borderSide: BorderSide(color: AppTheme.highlight),
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            enabledBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(color: AppTheme.highlight),
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            focusedBorder: const OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: AppTheme.text,
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            hintText: 'Enter command...',
+                            hintStyle: TextStyle(
+                              color: AppTheme.text.withValues(alpha: 0.5),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                          onSubmitted: (value) {
+                            if (value.trim().isNotEmpty) {
+                              gameState.processCommand(value);
+                              _commandController.clear();
+                            }
+                          },
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-              ),
 
-              // Command input
-              Container(
-                padding: const EdgeInsets.all(8),
-                child: Row(
-                  children: [
-                    const Text(
-                      '>',
-                      style: TextStyle(
-                        fontFamily: 'Courier',
-                        color: Colors.green,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: _commandController,
-                        autofocus: true,
+                // Status bar
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.panel,
+                    border: Border(top: BorderSide(color: AppTheme.highlight)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Room ${room.id}',
                         style: const TextStyle(
-                          fontFamily: 'Courier',
-                          color: Colors.green,
-                          fontSize: 16,
+                          color: AppTheme.text,
+                          fontSize: 12,
                         ),
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.green),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                BorderSide(color: Colors.green, width: 2),
-                          ),
-                          hintText: 'Enter command...',
-                          hintStyle: TextStyle(
-                            color: Colors.green,
-                            fontStyle: FontStyle.italic,
-                          ),
+                      ),
+                      Text(
+                        'Inventory: ${gameState.inventoryCount}/${GameState.maxInventory}',
+                        style: const TextStyle(
+                          color: AppTheme.text,
+                          fontSize: 12,
                         ),
-                        onSubmitted: (value) {
-                          if (value.trim().isNotEmpty) {
-                            gameState.processCommand(value);
-                            _commandController.clear();
-                          }
-                        },
                       ),
-                    ),
-                  ],
+                      Text(
+                        'Moves: ${gameState.moveCount}',
+                        style: const TextStyle(
+                          color: AppTheme.text,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-
-              // Status bar
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF001100),
-                  border: Border(top: BorderSide(color: Colors.green)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Room ${room.id}',
-                      style: const TextStyle(
-                        fontFamily: 'Courier',
-                        color: Colors.green,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      'Inventory: ${gameState.inventoryCount}/${GameState.maxInventory}',
-                      style: const TextStyle(
-                        fontFamily: 'Courier',
-                        color: Colors.green,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      'Moves: ${gameState.moveCount}',
-                      style: const TextStyle(
-                        fontFamily: 'Courier',
-                        color: Colors.green,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

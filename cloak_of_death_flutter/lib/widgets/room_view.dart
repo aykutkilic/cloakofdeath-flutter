@@ -53,18 +53,22 @@ class _RoomViewState extends State<RoomView> {
 
   @override
   Widget build(BuildContext context) {
-    // Only watch specific fields to avoid full rebuilds if possible, 
+    // Only watch specific fields to avoid full rebuilds if possible,
     // but AtariAnimatedRoomView already prevents internal restart.
-    final autoAnimateRooms = context.select<GameState, bool>((s) => s.autoAnimateRooms);
-    final showDebugInfo = context.select<GameState, bool>((s) => s.showDebugInfo);
-    final isTooDarkToSee = context.select<GameState, bool>((s) => s.isTooDarkToSee);
+    final autoAnimateRooms = context.select<GameState, bool>(
+      (s) => s.autoAnimateRooms,
+    );
+    final showDebugInfo = context.select<GameState, bool>(
+      (s) => s.showDebugInfo,
+    );
+    final isTooDarkToSee = context.select<GameState, bool>(
+      (s) => s.isTooDarkToSee,
+    );
 
     if (isTooDarkToSee) {
       return Container(
         decoration: const BoxDecoration(color: AppTheme.panel),
-        child: const Center(
-          child: Text('► IT\'S TOO DARK TO SEE'),
-        ),
+        child: const Center(child: Text('► IT\'S TOO DARK TO SEE')),
       );
     }
 
@@ -82,15 +86,11 @@ class _RoomViewState extends State<RoomView> {
 
   Widget _buildErrorView(String message) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppTheme.background,
-      ),
+      decoration: const BoxDecoration(color: AppTheme.background),
       child: Center(
         child: Text(
           message,
-          style: const TextStyle(
-            color: AppTheme.warningColor,
-          ),
+          style: const TextStyle(color: AppTheme.warningColor),
           textAlign: TextAlign.center,
         ),
       ),

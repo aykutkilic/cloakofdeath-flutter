@@ -33,9 +33,7 @@ class VerbPanel extends StatelessWidget {
         final selectedVerb = gameState.selectedVerb;
 
         return Container(
-          decoration: const BoxDecoration(
-            color: AppTheme.background,
-          ),
+          decoration: const BoxDecoration(color: AppTheme.background),
           padding: const EdgeInsets.all(8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,24 +45,26 @@ class VerbPanel extends StatelessWidget {
                   Text(
                     'VERBS',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.text,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: AppTheme.text,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (selectedVerb != null)
                     TextButton(
                       onPressed: () => gameState.clearSelectedVerb(),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
                         minimumSize: const Size(0, 0),
                       ),
                       child: Text(
                         'CLEAR',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.text,
-                              fontSize: 10,
-                            ),
+                          color: AppTheme.text,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
                 ],
@@ -76,15 +76,13 @@ class VerbPanel extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppTheme.highlight,
-                  ),
+                  decoration: const BoxDecoration(color: AppTheme.highlight),
                   child: Text(
                     '▶ $selectedVerb',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.text,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: AppTheme.text,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               if (selectedVerb != null) const SizedBox(height: 4),
@@ -109,21 +107,30 @@ class VerbPanel extends StatelessWidget {
                         backgroundColor: isSelected
                             ? AppTheme.text
                             : AppTheme.highlight,
-                        foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
+                        foregroundColor: isSelected
+                            ? AppTheme.background
+                            : AppTheme.text,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                          horizontal: 4,
+                          vertical: 2,
+                        ),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
                         side: BorderSide.none,
                         elevation: 0,
                       ),
                       child: Text(
                         verb,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: isSelected ? AppTheme.background : AppTheme.text,
-                              fontSize: 10,
-                              fontWeight:
-                                  isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
+                          color: isSelected
+                              ? AppTheme.background
+                              : AppTheme.text,
+                          fontSize: 10,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
                       ),
                     );
                   },

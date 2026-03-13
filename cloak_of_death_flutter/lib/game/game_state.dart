@@ -222,7 +222,8 @@ class GameState extends ChangeNotifier {
         addMessage('Exits are ${exits.keys.join(", ")}.');
       }
 
-      final visible = getVisibleObjects();      if (visible.isNotEmpty) {
+      final visible = getVisibleObjects();
+      if (visible.isNotEmpty) {
         addMessage('Visible items: ${visible.join(", ")}');
       }
     }
