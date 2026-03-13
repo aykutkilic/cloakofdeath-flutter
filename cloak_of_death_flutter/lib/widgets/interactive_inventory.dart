@@ -141,13 +141,13 @@ class InteractiveInventory extends StatelessWidget {
                               ),
                         ),
                       )
-                    : GridView.builder(
+                            : GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 4.5,
-                              crossAxisSpacing: 4,
-                              mainAxisSpacing: 4,
+                              crossAxisCount: 6,
+                              mainAxisExtent: 22,
+                              crossAxisSpacing: 2,
+                              mainAxisSpacing: 2,
                             ),
                         itemCount: inventory.length,
                         itemBuilder: (context, index) {
@@ -159,11 +159,8 @@ class InteractiveInventory extends StatelessWidget {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
                               foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 2,
-                              ),
-                              alignment: Alignment.centerLeft,
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.center,
                               shape: const RoundedRectangleBorder(
                                 borderRadius: BorderRadius.zero,
                               ),
@@ -174,26 +171,27 @@ class InteractiveInventory extends StatelessWidget {
                               elevation: 0,
                             ),
                             child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Image.asset(
                                   _getIconFor(item),
-                                  width: 14,
-                                  height: 14,
+                                  width: 12,
+                                  height: 12,
                                   color: isSelected ? AppTheme.background : AppTheme.text,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Icon(
                                         Icons.inventory,
-                                        size: 14,
+                                        size: 12,
                                         color: isSelected ? AppTheme.background : AppTheme.text,
                                       ),
                                 ),
-                                const SizedBox(width: 4),
-                                Expanded(
+                                const SizedBox(width: 2),
+                                Flexible(
                                   child: Text(
                                     item.toUpperCase(),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          fontSize: 9,
+                                          fontSize: 7,
                                           color: isSelected ? AppTheme.background : AppTheme.text,
                                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                         ),
