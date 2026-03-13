@@ -64,6 +64,9 @@ class _RoomViewState extends State<RoomView> {
     final isTooDarkToSee = context.select<GameState, bool>(
       (s) => s.isTooDarkToSee,
     );
+    final pixelRenderSpeed = context.select<GameState, double>(
+      (s) => s.pixelRenderSpeed,
+    );
 
     if (isTooDarkToSee) {
       return Container(
@@ -81,6 +84,7 @@ class _RoomViewState extends State<RoomView> {
       roomData: _cachedRoomData!,
       autoStart: autoAnimateRooms,
       showDebugInfo: showDebugInfo,
+      pixelsPerSecond: pixelRenderSpeed,
     );
   }
 
