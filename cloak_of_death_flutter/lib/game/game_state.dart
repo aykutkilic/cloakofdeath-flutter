@@ -126,7 +126,7 @@ class GameState extends ChangeNotifier {
     _candleLife = 0;
     _outputMessages = [
       'Welcome to CLOAK OF DEATH',
-      'by David Cockram. Remember,in the dead',
+      'by David Cockram. Remember, in the dead',
       'of night,no-one will hear your SCREAMS!!',
       '',
     ];
