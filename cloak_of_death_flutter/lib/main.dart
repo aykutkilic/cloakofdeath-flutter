@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'game/game_state.dart';
 import 'widgets/room_view.dart';
@@ -48,11 +49,13 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   final TextEditingController _commandController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _commandFocusNode = FocusNode();
 
   @override
   void dispose() {
     _commandController.dispose();
     _scrollController.dispose();
+    _commandFocusNode.dispose();
     super.dispose();
   }
 
@@ -437,8 +440,12 @@ class _GameScreenState extends State<GameScreen> {
                       Expanded(
                         child: TextField(
                           controller: _commandController,
+                          focusNode: _commandFocusNode,
                           autofocus: true,
                           textCapitalization: TextCapitalization.characters,
+                          inputFormatters: [
+                            UppercaseTextFormatter(),
+                          ],
                           style: const TextStyle(
                             color: AppTheme.text,
                             fontSize: 16,
@@ -460,18 +467,11 @@ class _GameScreenState extends State<GameScreen> {
                               fontStyle: FontStyle.italic,
                             ),
                           ),
-                          onChanged: (value) {
-                            if (value != value.toUpperCase()) {
-                              _commandController.value = _commandController.value.copyWith(
-                                text: value.toUpperCase(),
-                                selection: TextSelection.collapsed(offset: value.length),
-                              );
-                            }
-                          },
                           onSubmitted: (value) {
                             if (value.trim().isNotEmpty) {
                               gameState.processCommand(value.toUpperCase());
                               _commandController.clear();
+                              _commandFocusNode.requestFocus();
                             }
                           },
                         ),
@@ -484,6 +484,17 @@ class _GameScreenState extends State<GameScreen> {
           },
         ),
       ),
+    );
+  }
+}
+
+class UppercaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
     );
   }
 }
