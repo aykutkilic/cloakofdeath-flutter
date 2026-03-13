@@ -303,7 +303,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                             SizedBox.expand(
                               child: Container(
                                 decoration: const BoxDecoration(
-                                  color: Colors.black,
+                                  color: Colors.transparent,
                                 ),
                                 child: CustomPaint(
                                   painter: _controller.createPainter(),

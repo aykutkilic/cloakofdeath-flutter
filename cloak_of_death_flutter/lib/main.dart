@@ -285,11 +285,7 @@ class _GameScreenState extends State<GameScreen> {
                                 flex: 4,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    border: Border.all(
-                                      color: AppTheme.highlight,
-                                      width: 2,
-                                    ),
+                                    color: Colors.transparent,
                                   ),
                                   child: RoomView(room: room),
                                 ),
@@ -446,43 +442,49 @@ class _GameScreenState extends State<GameScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: TextField(
-                          controller: _commandController,
-                          focusNode: _commandFocusNode,
-                          autofocus: true,
-                          textCapitalization: TextCapitalization.characters,
-                          inputFormatters: [
-                            UppercaseTextFormatter(),
-                          ],
-                          style: const TextStyle(
-                            color: AppTheme.panel,
-                            fontSize: 16,
-                            backgroundColor: AppTheme.text,
-                          ),
-                          cursorColor: AppTheme.panel,
-                          cursorWidth: 10,
-                          cursorRadius: const Radius.circular(0),
-                          decoration: InputDecoration(
-                            fillColor: AppTheme.text,
-                            filled: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                            isDense: true,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            hintText: 'What shall I do?',
-                            hintStyle: TextStyle(
-                              color: AppTheme.panel.withValues(alpha: 0.7),
-                              fontStyle: FontStyle.italic,
-                              backgroundColor: AppTheme.text,
-                            ),
-                          ),
-                          onSubmitted: (value) {
-                            if (value.trim().isNotEmpty) {
-                              gameState.processCommand(value.toUpperCase());
-                              _commandController.clear();
-                              _commandFocusNode.requestFocus();
-                            }
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _commandController,
+                          builder: (context, value, child) {
+                            final isEmpty = value.text.isEmpty;
+                            return TextField(
+                              controller: _commandController,
+                              focusNode: _commandFocusNode,
+                              autofocus: true,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: [
+                                UppercaseTextFormatter(),
+                              ],
+                              style: TextStyle(
+                                color: isEmpty ? AppTheme.text : AppTheme.panel,
+                                fontSize: 16,
+                                backgroundColor: isEmpty ? Colors.transparent : AppTheme.text,
+                              ),
+                              cursorColor: isEmpty ? AppTheme.text : AppTheme.panel,
+                              cursorWidth: 10,
+                              cursorRadius: const Radius.circular(0),
+                              decoration: InputDecoration(
+                                fillColor: isEmpty ? Colors.transparent : AppTheme.text,
+                                filled: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                                isDense: true,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                hintText: 'What shall I do?',
+                                hintStyle: TextStyle(
+                                  color: AppTheme.text.withValues(alpha: 0.5),
+                                  fontStyle: FontStyle.italic,
+                                  backgroundColor: Colors.transparent,
+                                ),
+                              ),
+                              onSubmitted: (submitValue) {
+                                if (submitValue.trim().isNotEmpty) {
+                                  gameState.processCommand(submitValue.toUpperCase());
+                                  _commandController.clear();
+                                  _commandFocusNode.requestFocus();
+                                }
+                              },
+                            );
                           },
                         ),
                       ),
