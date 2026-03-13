@@ -33,6 +33,7 @@ dependencies:
 
   # State management
   provider: ^6.1.1
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
@@ -56,9 +57,15 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  fonts:
+    - family: Atari
+      fonts:
+        - asset: assets/fonts/Atari-Regular.ttf
+
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/rooms.bin
+    - assets/images/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

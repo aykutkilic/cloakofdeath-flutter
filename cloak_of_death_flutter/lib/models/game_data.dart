@@ -5,18 +5,21 @@ import '../data/room_definitions.dart';
 class GameData {
   final List<Room> rooms;
 
-  GameData({
-    required this.rooms,
-  });
+  GameData({required this.rooms});
 
   /// Load game data from compiled room definitions.
   static Future<GameData> loadFromAssets() async {
-    final roomsList = roomDefinitions.map((def) => Room(
-      id: def.id,
-      name: def.name,
-      description: def.description,
-      exits: def.exits,
-    )).toList();
+    final roomsList = roomDefinitions
+        .map(
+          (def) => Room(
+            id: def.id,
+            name: def.name,
+            description: def.description,
+            exits: def.exits,
+            connections: def.connections,
+          ),
+        )
+        .toList();
 
     return GameData(rooms: roomsList);
   }

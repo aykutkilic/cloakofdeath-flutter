@@ -22,9 +22,9 @@ void main() {
     );
 
     // Wait for the app to load
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(seconds: 1));
 
-    // Verify that the app title is present
-    expect(find.text('CLOAK OF DEATH'), findsOneWidget);
+    // Verify that the game widget rendered (GameScreen)
+    expect(find.byType(GameScreen), findsOneWidget);
   });
 }

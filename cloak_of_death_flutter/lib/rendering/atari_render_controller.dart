@@ -189,12 +189,14 @@ class AtariAnimatedRoomView extends StatefulWidget {
   final AtariRoomBytecode roomData;
   final bool autoStart;
   final double? pixelsPerSecond;
+  final bool showDebugInfo;
 
   const AtariAnimatedRoomView({
     super.key,
     required this.roomData,
     this.autoStart = true,
     this.pixelsPerSecond,
+    this.showDebugInfo = false,
   });
 
   @override
@@ -232,7 +234,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   void didUpdateWidget(AtariAnimatedRoomView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.roomData != widget.roomData) {
+    if (oldWidget.roomData.roomId != widget.roomData.roomId || oldWidget.showDebugInfo != widget.showDebugInfo) {
       _controller.dispose();
       _initController();
 
@@ -241,6 +243,8 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
           _controller.startAnimation();
         });
       }
+    } else if (oldWidget.pixelsPerSecond != widget.pixelsPerSecond) {
+      _controller.setPixelsPerSecond(widget.pixelsPerSecond ?? 2000.0);
     }
   }
 
@@ -305,7 +309,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                                 ),
                               ),
                             ),
-                            if (_hoverAtariCoord != null) ...[
+                            if (_hoverAtariCoord != null && widget.showDebugInfo) ...[
                               Positioned(
                                 left: _hoverAtariCoord!.dx * pxW,
                                 top: _hoverAtariCoord!.dy * pxH,
@@ -371,9 +375,10 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
             const SizedBox(height: 8),
 
             // Controls
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Container(
+            if (widget.showDebugInfo)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.9),
@@ -431,9 +436,9 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                         Expanded(
                           child: Slider(
                             value: _controller.pixelsPerSecond,
-                            min: 100,
-                            max: 10000,
-                            divisions: 99,
+                            min: 10,
+                            max: 5000,
+                            divisions: 200,
                             activeColor: Colors.green,
                             inactiveColor: Colors.green.withValues(alpha: 0.3),
                             onChanged: (value) {

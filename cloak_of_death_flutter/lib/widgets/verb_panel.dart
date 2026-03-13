@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../app_theme.dart';
 import '../game/game_state.dart';
 
 /// Panel with clickable verb buttons
@@ -32,9 +33,8 @@ class VerbPanel extends StatelessWidget {
         final selectedVerb = gameState.selectedVerb;
 
         return Container(
-          decoration: BoxDecoration(
-            color: Colors.black,
-            border: Border.all(color: Colors.green, width: 2),
+          decoration: const BoxDecoration(
+            color: AppTheme.background,
           ),
           padding: const EdgeInsets.all(8),
           child: Column(
@@ -44,14 +44,12 @@ class VerbPanel extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'VERBS',
-                    style: TextStyle(
-                      fontFamily: 'Courier',
-                      color: Colors.green,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.text,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   if (selectedVerb != null)
                     TextButton(
@@ -61,13 +59,12 @@ class VerbPanel extends StatelessWidget {
                             horizontal: 4, vertical: 2),
                         minimumSize: const Size(0, 0),
                       ),
-                      child: const Text(
+                      child: Text(
                         'CLEAR',
-                        style: TextStyle(
-                          fontFamily: 'Courier',
-                          color: Colors.green,
-                          fontSize: 8,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: AppTheme.text,
+                              fontSize: 10,
+                            ),
                       ),
                     ),
                 ],
@@ -79,18 +76,15 @@ class VerbPanel extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF003300),
-                    border: Border.all(color: Colors.green),
+                  decoration: const BoxDecoration(
+                    color: AppTheme.highlight,
                   ),
                   child: Text(
                     '▶ $selectedVerb',
-                    style: const TextStyle(
-                      fontFamily: 'Courier',
-                      color: Colors.green,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.text,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ),
               if (selectedVerb != null) const SizedBox(height: 4),
@@ -113,27 +107,23 @@ class VerbPanel extends StatelessWidget {
                       onPressed: () => gameState.selectVerb(verb),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isSelected
-                            ? const Color(0xFF00AA00)
-                            : const Color(0xFF003300),
-                        foregroundColor: Colors.green,
+                            ? AppTheme.text
+                            : AppTheme.highlight,
+                        foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 4, vertical: 2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          side: BorderSide(
-                            color: isSelected ? Colors.greenAccent : Colors.green,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
+                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        side: BorderSide.none,
+                        elevation: 0,
                       ),
                       child: Text(
                         verb,
-                        style: TextStyle(
-                          fontFamily: 'Courier',
-                          fontSize: 9,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.normal,
-                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isSelected ? AppTheme.background : AppTheme.text,
+                              fontSize: 10,
+                              fontWeight:
+                                  isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
                       ),
                     );
                   },

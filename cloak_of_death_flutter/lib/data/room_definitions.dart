@@ -8,6 +8,7 @@ class RoomDefinition {
   final String name;
   final String description;
   final List<String> exits;
+  final Map<String, int> connections;
   final Uint8List bytecode;
 
   RoomDefinition({
@@ -15,6 +16,7 @@ class RoomDefinition {
     required this.name,
     required this.description,
     required this.exits,
+    required this.connections,
     required this.bytecode,
   });
 }
@@ -28,6 +30,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Entrance Hall',
     description: 'in the entrance hall',
     exits: ['N', 'W', 'E'],
+    connections: {'W': 2, 'E': 8, 'N': 5, 'U': 14},
     bytecode: Uint8List.fromList([
       // Header: room 1, screenFill=0x55, colors=[0x04, 0x08, 0xE2]
       0xA1, 0x55, 0x04, 0x08, 0xE2,
@@ -139,6 +142,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Dining Room',
     description: 'in a large dining room',
     exits: ['S', 'N', 'E'],
+    connections: {'N': 3, 'E': 1},
     bytecode: Uint8List.fromList([
       // Header: room 2, screenFill=0x55, colors=[0xF5, 0x0F, 0x94]
       0xA2, 0x55, 0xF5, 0x0F, 0x94,
@@ -246,6 +250,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Kitchen',
     description: 'in the kitchen',
     exits: ['E', 'N', 'W'],
+    connections: {'S': 2},
     bytecode: Uint8List.fromList([
       // Header: room 3, screenFill=0x55, colors=[0x19, 0x0F, 0xD4]
       0xA3, 0x55, 0x19, 0x0F, 0xD4,
@@ -391,6 +396,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Pantry',
     description: 'standing in the pantry',
     exits: ['W', 'N', 'E'],
+    connections: {'E': 5},
     bytecode: Uint8List.fromList([
       // Header: room 4, screenFill=0x00, colors=[0x82, 0xE8, 0xD2]
       0xA4, 0x00, 0x82, 0xE8, 0xD2,
@@ -482,6 +488,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Dark Corridor',
     description: 'in a dark eerie corridor',
     exits: ['S', 'N', 'E'],
+    connections: {'W': 4, 'S': 1, 'N': 21},
     bytecode: Uint8List.fromList([
       // Header: room 5, screenFill=0x00, colors=[0x90, 0x04, 0x02]
       0xA5, 0x00, 0x90, 0x04, 0x02,
@@ -566,6 +573,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Conservatory',
     description: 'in a conservatory',
     exits: ['W', 'S', 'N'],
+    connections: {'S': 1, 'E': 7},
     bytecode: Uint8List.fromList([
       // Header: room 6, screenFill=0x00, colors=[0x0F, 0x06, 0x94]
       0xA6, 0x00, 0x0F, 0x06, 0x94,
@@ -684,6 +692,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Oak Panelled Study',
     description: 'in an oak panelled study',
     exits: ['S', 'E', 'N'],
+    connections: {'W': 6, 'S': 8},
     bytecode: Uint8List.fromList([
       // Header: room 7, screenFill=0x55, colors=[0xE4, 0xF4, 0x08]
       0xA7, 0x55, 0xE4, 0xF4, 0x08,
@@ -769,8 +778,8 @@ final List<RoomDefinition> roomDefinitions = [
       0x18, 0x00, 0x18, 0x15,
       // Polyline color=3, 4 pts
       0xC8, 0x88, 0x44, 0x9F, 0x53, 0x9F, 0x5F, 0x88, 0x4E,
-      // Close+Fill color=3, offset=(1,1)
-      0xC9, 0x11,
+      // Close+Fill color=3, offset=(2,2)
+      0xC9, 0x12,
     ]),
   ),
   // -----------------------------------------------------------------------
@@ -781,6 +790,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Sitting Room',
     description: 'in a large sitting room',
     exits: ['E', 'W', 'N'],
+    connections: {'N': 7, 'W': 1},
     bytecode: Uint8List.fromList([
       // Header: room 8, screenFill=0x55, colors=[0x18, 0x04, 0x08]
       0xA8, 0x55, 0x18, 0x04, 0x08,
@@ -892,6 +902,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Guest Bedroom',
     description: 'in a guest bedroom',
     exits: ['W', 'S', 'N'],
+    connections: {'E': 14},
     bytecode: Uint8List.fromList([
       // Header: room 10, screenFill=0xFF, colors=[0x0A, 0xE4, 0x26]
       0xAA, 0xFF, 0x0A, 0xE4, 0x26,
@@ -1018,6 +1029,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Dressing Room',
     description: 'in a dressing room',
     exits: ['S', 'N', 'E'],
+    connections: {'D': 1},
     bytecode: Uint8List.fromList([
       // Header: room 11, screenFill=0x55, colors=[0x06, 0x0F, 0x94]
       0xAB, 0x55, 0x06, 0x0F, 0x94,
@@ -1117,6 +1129,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Annexe',
     description: 'in a small annexe',
     exits: ['W', 'S', 'N'],
+    connections: {'E': 15},
     bytecode: Uint8List.fromList([
       // Header: room 12, screenFill=0x55, colors=[0xE6, 0x0A, 0x94]
       0xAC, 0x55, 0xE6, 0x0A, 0x94,
@@ -1184,6 +1197,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Master Bedroom',
     description: 'in the master bedroom',
     exits: ['S', 'E', 'N'],
+    connections: {'S': 11, 'W': 15},
     bytecode: Uint8List.fromList([
       // Header: room 13, screenFill=0x55, colors=[0xF2, 0x0A, 0x94]
       0xAD, 0x55, 0xF2, 0x0A, 0x94,
@@ -1297,6 +1311,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Icy Corridor',
     description: 'standing in an icy corridor',
     exits: ['W', 'S', 'N'],
+    connections: {'N': 15, 'D': 1, 'W': 10},
     bytecode: Uint8List.fromList([
       // Header: room 14, screenFill=0xFF, colors=[0x06, 0x8A, 0xE4]
       0xAE, 0xFF, 0x06, 0x8A, 0xE4,
@@ -1386,6 +1401,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Haunted Room',
     description: 'in a haunted room',
     exits: ['S', 'E', 'N'],
+    connections: {'N': 16, 'S': 14, 'W': 12, 'E': 13},
     bytecode: Uint8List.fromList([
       // Header: room 15, screenFill=0x55, colors=[0x02, 0x04, 0x94]
       0xAF, 0x55, 0x02, 0x04, 0x94,
@@ -1467,6 +1483,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Library',
     description: 'in the library',
     exits: ['W', 'S', 'N'],
+    connections: {'S': 15, 'U': 17},
     bytecode: Uint8List.fromList([
       // Header: room 16, screenFill=0xFF, colors=[0xE4, 0x18, 0x06]
       0xB0, 0xFF, 0xE4, 0x18, 0x06,
@@ -1550,6 +1567,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Secret Passageway',
     description: 'in a secret passageway',
     exits: ['S', 'E', 'N'],
+    connections: {'U': 18, 'D': 16},
     bytecode: Uint8List.fromList([
       // Header: room 17, screenFill=0x00, colors=[0xDC, 0xE4, 0x94]
       0xB1, 0x00, 0xDC, 0xE4, 0x94,
@@ -1638,6 +1656,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Old Attic',
     description: 'in an old attic',
     exits: ['W', 'S', 'N'],
+    connections: {'E': 19, 'W': 17},
     bytecode: Uint8List.fromList([
       // Header: room 18, screenFill=0x55, colors=[0x0A, 0x41, 0x20]
       0xB2, 0x55, 0x0A, 0x41, 0x20,
@@ -1753,6 +1772,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Tower',
     description: 'in a tower',
     exits: ['W', 'E', 'N'],
+    connections: {},
     bytecode: Uint8List.fromList([
       // Header: room 19, screenFill=0x00, colors=[0xF0, 0xE4, 0xDC]
       0xB3, 0x00, 0xF0, 0xE4, 0xDC,
@@ -1828,6 +1848,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Cellar',
     description: 'in the cellar',
     exits: ['E', 'S', 'W'],
+    connections: {'E': 24, 'U': 5, 'W': 21},
     bytecode: Uint8List.fromList([
       // Header: room 20, screenFill=0x56, colors=[0xE6, 0xE2, 0xE0]
       0xB4, 0x56, 0xE6, 0xE2, 0xE0,
@@ -1944,6 +1965,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Wine Cellar',
     description: 'in the wine cellar',
     exits: ['S', 'E', 'W'],
+    connections: {'E': 20},
     bytecode: Uint8List.fromList([
       // Header: room 21, screenFill=0x55, colors=[0xE6, 0xD2, 0x10]
       0xB5, 0x55, 0xE6, 0xD2, 0x10,
@@ -2033,6 +2055,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Store Room',
     description: 'in a store room',
     exits: ['E', 'S', 'W'],
+    connections: {'S': 18},
     bytecode: Uint8List.fromList([
       // Header: room 22, screenFill=0x55, colors=[0x02, 0xE2, 0x04]
       0xB6, 0x55, 0x02, 0xE2, 0x04,
@@ -2064,6 +2087,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Crypt',
     description: 'in a crypt',
     exits: ['E', 'S', 'W'],
+    connections: {},
     bytecode: Uint8List.fromList([
       // Header: room 23, screenFill=0x00, colors=[0xF0, 0xDC, 0xE4]
       0xB7, 0x00, 0xF0, 0xDC, 0xE4,
@@ -2167,6 +2191,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Underground Chamber',
     description: 'in an underground chamber',
     exits: ['E', 'S', 'W'],
+    connections: {'S': 25, 'E': 26, 'W': 20},
     bytecode: Uint8List.fromList([
       // Header: room 24, screenFill=0xFF, colors=[0xF0, 0x08, 0x04]
       0xB8, 0xFF, 0xF0, 0x08, 0x04,
@@ -2286,6 +2311,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Torture Chamber',
     description: 'in a torture chamber',
     exits: ['E', 'S', 'W'],
+    connections: {'N': 24},
     bytecode: Uint8List.fromList([
       // Header: room 25, screenFill=0x55, colors=[0x04, 0x08, 0xF0]
       0xB9, 0x55, 0x04, 0x08, 0xF0,
@@ -2401,6 +2427,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Dark Passage',
     description: 'in a dark passage',
     exits: ['E', 'S', 'W'],
+    connections: {'W': 24, 'E': 27},
     bytecode: Uint8List.fromList([
       // Header: room 26, screenFill=0xFF, colors=[0x06, 0x04, 0x02]
       0xBA, 0xFF, 0x06, 0x04, 0x02,
@@ -2502,6 +2529,7 @@ final List<RoomDefinition> roomDefinitions = [
     name: 'Exit',
     description: 'outside the house!',
     exits: ['E', 'S'],
+    connections: {},
     bytecode: Uint8List.fromList([
       // Header: room 27, screenFill=0x55, colors=[0x04, 0x06, 0x08]
       0xBB, 0x55, 0x04, 0x06, 0x08,

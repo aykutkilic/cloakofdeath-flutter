@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(flutter create:*)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(flutter test:*)",
+      "Bash(flutter run:*)",
+      "WebFetch(domain:atariwiki.org)",
+      "Bash(head:*)",
+      "Bash(flutter build:*)",
+      "Bash(dart run:*)",
+      "Bash(nc localhost 64464)",
+      "Bash(osascript:*)",
+      "Bash(pkill:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(dart:*)",
+      "Read(//private/tmp/**)",
+      "Bash(nc localhost 61442)",
+      "WebSearch",
+      "Read(//Users/aykutkilic/git/**)",
+      "Read(///**)",
+      "Bash(xxd:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(cd /Users/aykutkilic/git/cloakofdeathmobile/cloak_of_death_flutter/macos && pod install 2>&1)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

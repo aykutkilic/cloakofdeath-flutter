@@ -4,6 +4,7 @@ class Room {
   final String name;
   final String description;
   final List<String> exits;
+  final Map<String, int> connections;
   final List<String> objects;
 
   Room({
@@ -11,6 +12,7 @@ class Room {
     required this.name,
     required this.description,
     required this.exits,
+    this.connections = const {},
     this.objects = const [],
   });
 

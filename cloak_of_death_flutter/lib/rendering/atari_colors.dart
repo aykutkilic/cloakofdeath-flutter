@@ -17,7 +17,7 @@ class AtariColors {
     }
 
     final hue = (atariColor >> 4) & 0x0F; // Upper 4 bits
-    final luminance = atariColor & 0x0F;  // Lower 4 bits
+    final luminance = atariColor & 0x0F; // Lower 4 bits
 
     return _atariPalette[atariColor] ?? _generateColor(hue, luminance);
   }
@@ -170,22 +170,18 @@ class AtariColors {
     0x04: const Color(0xFF404040), // Dark gray
     0x08: const Color(0xFF808080), // Medium gray
     0x0C: const Color(0xFFC0C0C0), // Light gray
-
     // Common browns (Hue 1)
     0x14: const Color(0xFF3B2414), // Dark brown
     0x18: const Color(0xFF5A3A1A), // Brown
     0x1C: const Color(0xFF8B5A2B), // Light brown
-
     // Common reds (Hue 4)
     0x44: const Color(0xFF8B0000), // Dark red
     0x48: const Color(0xFFB22222), // Firebrick
     0x4C: const Color(0xFFDC143C), // Crimson
-
     // Common blues (Hue 9)
     0x94: const Color(0xFF4169E1), // Royal blue
     0x98: const Color(0xFF5F9EA0), // Cadet blue
     0x9C: const Color(0xFF87CEEB), // Sky blue
-
     // Specific known colors from analysis
     0x55: const Color(0xFF8B43E1), // Violet/lavender (Room 1)
     0xE2: const Color(0xFFFFA500), // Orange (Room 1)

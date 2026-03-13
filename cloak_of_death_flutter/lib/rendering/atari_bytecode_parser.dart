@@ -26,9 +26,9 @@ class AtariBytecodeCommand {
 }
 
 enum BytecodeCommandType {
-  polyline,       // C8, CD, CE, CF, D0 - draw polyline
+  polyline, // C8, CD, CE, CF, D0 - draw polyline
   closedPolyline, // C9, CA - close last polyline + flood fill (single op)
-  floodFillAt,    // CB, CC - flood fill at specific point
+  floodFillAt, // CB, CC - flood fill at specific point
 }
 
 /// Room data parsed from Atari bytecode format
@@ -85,11 +85,18 @@ class AtariBytecodeParser {
   /// Get hex string from buffer
   static String _getHexString(Uint8List buffer, int pos, int length) {
     final bytes = buffer.sublist(pos, (pos + length).clamp(0, buffer.length));
-    return bytes.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+    return bytes
+        .map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0'))
+        .join(' ');
   }
 
   /// Log compact command with hex bytes
-  static void _logCommand(Uint8List buffer, int pos, int length, String description) {
+  static void _logCommand(
+    Uint8List buffer,
+    int pos,
+    int length,
+    String description,
+  ) {
     final hex = _getHexString(buffer, pos, length);
     _log('$hex  $description');
   }
@@ -106,27 +113,38 @@ class AtariBytecodeParser {
     // Previous 8 bytes
     if (prevChunkStart < alignedCurrent) {
       final chunk = buffer.sublist(prevChunkStart, alignedCurrent);
-      chunks.add('-8: ${chunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}');
+      chunks.add(
+        '-8: ${chunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}',
+      );
     }
 
     // Current 8 bytes
     final currentEnd = (alignedCurrent + 8).clamp(0, buffer.length);
     final currentChunk = buffer.sublist(alignedCurrent, currentEnd);
-    chunks.add(' 8: ${currentChunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}');
+    chunks.add(
+      ' 8: ${currentChunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}',
+    );
 
     // Next 8 bytes
     if (nextChunkStart < buffer.length) {
       final nextEnd = (nextChunkStart + 8).clamp(0, buffer.length);
       final nextChunk = buffer.sublist(nextChunkStart, nextEnd);
-      chunks.add('+8: ${nextChunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}');
+      chunks.add(
+        '+8: ${nextChunk.map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ')}',
+      );
     }
 
     for (final chunk in chunks) {
       _log(chunk);
     }
   }
+
   /// Parse room data from raw bytecode buffer
-  static AtariRoomBytecode? parseRoom(Uint8List buffer, int roomId, {bool enableLogging = false}) {
+  static AtariRoomBytecode? parseRoom(
+    Uint8List buffer,
+    int roomId, {
+    bool enableLogging = false,
+  }) {
     // Find room marker (roomId + 0xA0)
     final marker = roomId + 0xA0;
     int startPos = -1;
@@ -140,7 +158,9 @@ class AtariBytecodeParser {
 
     if (startPos == -1 || startPos + 5 > buffer.length) {
       if (enableLogging) {
-        _log('Room $roomId (0x${marker.toRadixString(16).toUpperCase()}): Not found or incomplete header');
+        _log(
+          'Room $roomId (0x${marker.toRadixString(16).toUpperCase()}): Not found or incomplete header',
+        );
       }
       return null; // Room not found or incomplete header
     }
@@ -152,16 +172,22 @@ class AtariBytecodeParser {
     final screenFillByte = buffer[startPos + 1];
     final colorBytes = buffer.sublist(startPos + 2, startPos + 5);
     final palette = <Color>[
-      const Color(0xFF000000),          // Index 0: COLBK = black (OS default)
-      _atariColorToRgb(colorBytes[0]),  // Index 1: COLOR0 (pixel value 1)
-      _atariColorToRgb(colorBytes[1]),  // Index 2: COLOR1 (pixel value 2)
-      _atariColorToRgb(colorBytes[2]),  // Index 3: COLOR2 (pixel value 3)
+      const Color(0xFF000000), // Index 0: COLBK = black (OS default)
+      _atariColorToRgb(colorBytes[0]), // Index 1: COLOR0 (pixel value 1)
+      _atariColorToRgb(colorBytes[1]), // Index 2: COLOR1 (pixel value 2)
+      _atariColorToRgb(colorBytes[2]), // Index 3: COLOR2 (pixel value 3)
     ];
 
     if (enableLogging) {
       // Compact header: show room marker, fill byte, and color bytes
-      final headerHex = [marker, screenFillByte, ...colorBytes].map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
-      _log('$headerHex  Starting room ${roomId.toRadixString(16).toUpperCase()}');
+      final headerHex = [
+        marker,
+        screenFillByte,
+        ...colorBytes,
+      ].map((b) => b.toRadixString(16).toUpperCase().padLeft(2, '0')).join(' ');
+      _log(
+        '$headerHex  Starting room ${roomId.toRadixString(16).toUpperCase()}',
+      );
     }
 
     // Find end position (next room marker or explicit end marker)
@@ -177,13 +203,21 @@ class AtariBytecodeParser {
       } else if (b >= 0xA0 && b <= 0xBB) {
         endPos = i;
         final nextRoomId = b - 0xA0;
-        stopReason = 'next room marker 0x${b.toRadixString(16).toUpperCase()} (room $nextRoomId)';
+        stopReason =
+            'next room marker 0x${b.toRadixString(16).toUpperCase()} (room $nextRoomId)';
         break;
       }
     }
 
     // Parse commands
-    final commands = _parseCommands(buffer, startPos + 5, endPos, roomId, stopReason, enableLogging);
+    final commands = _parseCommands(
+      buffer,
+      startPos + 5,
+      endPos,
+      roomId,
+      stopReason,
+      enableLogging,
+    );
 
     return AtariRoomBytecode(
       roomId: roomId,
@@ -206,7 +240,8 @@ class AtariBytecodeParser {
     final commands = <AtariBytecodeCommand>[];
     int i = start;
     int currentColor = 1; // DRAW routine initializes $06F2 to 1 at $488A
-    Offset? lastPolylineVertex0; // Track first vertex of last polyline for C9/CA offsets
+    Offset?
+    lastPolylineVertex0; // Track first vertex of last polyline for C9/CA offsets
 
     while (i < end) {
       final byte = buffer[i];
@@ -219,14 +254,21 @@ class AtariBytecodeParser {
         if (points.isNotEmpty) {
           lastPolylineVertex0 = points[0]; // Track first vertex for C9/CA
           final cmdLength = 1 + (points.length * 2);
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.polyline,
-            colorIndex: currentColor,
-            points: points,
-            hexBytes: _getHexString(buffer, cmdStart, cmdLength),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.polyline,
+              colorIndex: currentColor,
+              points: points,
+              hexBytes: _getHexString(buffer, cmdStart, cmdLength),
+            ),
+          );
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, cmdLength, 'Polyline color=$currentColor, ${points.length} pts');
+            _logCommand(
+              buffer,
+              cmdStart,
+              cmdLength,
+              'Polyline color=$currentColor, ${points.length} pts',
+            );
           }
           i += points.length * 2;
         }
@@ -249,17 +291,24 @@ class AtariBytecodeParser {
           final fillY = lastPolylineVertex0.dy + offsetY;
 
           // Single command: close polyline + flood fill
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.closedPolyline,
-            colorIndex: currentColor,
-            points: [], // Points come from previous polyline
-            fillPattern: fillColor,
-            fillSeed: Offset(fillX, fillY),
-            hexBytes: _getHexString(buffer, cmdStart, 3),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.closedPolyline,
+              colorIndex: currentColor,
+              points: [], // Points come from previous polyline
+              fillPattern: fillColor,
+              fillSeed: Offset(fillX, fillY),
+              hexBytes: _getHexString(buffer, cmdStart, 3),
+            ),
+          );
 
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, 3, 'CA: Close+Fill color=$fillColor vertex0=$lastPolylineVertex0 offset=($offsetX,$offsetY) → fill@($fillX,$fillY)');
+            _logCommand(
+              buffer,
+              cmdStart,
+              3,
+              'CA: Close+Fill color=$fillColor vertex0=$lastPolylineVertex0 offset=($offsetX,$offsetY) → fill@($fillX,$fillY)',
+            );
           }
 
           i += 2;
@@ -277,15 +326,22 @@ class AtariBytecodeParser {
           final xx = buffer[i + 1];
           final yy = buffer[i + 2];
 
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.floodFillAt,
-            fillPattern: currentColor,
-            fillSeed: Offset(xx.toDouble(), yy.toDouble()),
-            hexBytes: _getHexString(buffer, cmdStart, 3),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.floodFillAt,
+              fillPattern: currentColor,
+              fillSeed: Offset(xx.toDouble(), yy.toDouble()),
+              hexBytes: _getHexString(buffer, cmdStart, 3),
+            ),
+          );
 
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, 3, 'CB: Flood fill current color=$currentColor x,y=$xx,$yy');
+            _logCommand(
+              buffer,
+              cmdStart,
+              3,
+              'CB: Flood fill current color=$currentColor x,y=$xx,$yy',
+            );
           }
 
           i += 3;
@@ -310,17 +366,24 @@ class AtariBytecodeParser {
           final fillY = lastPolylineVertex0.dy + offsetY;
 
           // Single command: close polyline + flood fill
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.closedPolyline,
-            colorIndex: currentColor,
-            points: [], // Points come from previous polyline
-            fillPattern: currentColor,
-            fillSeed: Offset(fillX, fillY),
-            hexBytes: _getHexString(buffer, cmdStart, 2),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.closedPolyline,
+              colorIndex: currentColor,
+              points: [], // Points come from previous polyline
+              fillPattern: currentColor,
+              fillSeed: Offset(fillX, fillY),
+              hexBytes: _getHexString(buffer, cmdStart, 2),
+            ),
+          );
 
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, 2, 'C9: Close+Fill color=$currentColor vertex0=$lastPolylineVertex0 offset=($offsetX,$offsetY) → fill@($fillX,$fillY)');
+            _logCommand(
+              buffer,
+              cmdStart,
+              2,
+              'C9: Close+Fill color=$currentColor vertex0=$lastPolylineVertex0 offset=($offsetX,$offsetY) → fill@($fillX,$fillY)',
+            );
           }
 
           i += 1;
@@ -338,19 +401,26 @@ class AtariBytecodeParser {
           final xx = buffer[i + 2];
           final yy = buffer[i + 3];
 
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.floodFillAt,
-            fillPattern: ab,
-            fillSeed: Offset(xx.toDouble(), yy.toDouble()),
-            hexBytes: _getHexString(buffer, cmdStart, 4),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.floodFillAt,
+              fillPattern: ab,
+              fillSeed: Offset(xx.toDouble(), yy.toDouble()),
+              hexBytes: _getHexString(buffer, cmdStart, 4),
+            ),
+          );
 
           if (enableLogging) {
             // Decode pattern for display
             final pattern = ab <= 3
                 ? 'solid color $ab'
                 : '${(ab >> 6) & 3},${(ab >> 4) & 3},${(ab >> 2) & 3},${ab & 3}';
-            _logCommand(buffer, cmdStart, 4, 'Flood fill pattern $pattern x,y=$xx,$yy');
+            _logCommand(
+              buffer,
+              cmdStart,
+              4,
+              'Flood fill pattern $pattern x,y=$xx,$yy',
+            );
           }
 
           i += 4;
@@ -366,14 +436,21 @@ class AtariBytecodeParser {
         if (points.isNotEmpty) {
           lastPolylineVertex0 = points[0]; // Track first vertex for C9/CA
           final cmdLength = 1 + (points.length * 2);
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.polyline,
-            colorIndex: 0,
-            points: points,
-            hexBytes: _getHexString(buffer, cmdStart, cmdLength),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.polyline,
+              colorIndex: 0,
+              points: points,
+              hexBytes: _getHexString(buffer, cmdStart, cmdLength),
+            ),
+          );
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, cmdLength, 'Polyline color=0, ${points.length} pts');
+            _logCommand(
+              buffer,
+              cmdStart,
+              cmdLength,
+              'Polyline color=0, ${points.length} pts',
+            );
           }
           i += points.length * 2;
         }
@@ -386,14 +463,21 @@ class AtariBytecodeParser {
         if (points.isNotEmpty) {
           lastPolylineVertex0 = points[0]; // Track first vertex for C9/CA
           final cmdLength = 1 + (points.length * 2);
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.polyline,
-            colorIndex: 1,
-            points: points,
-            hexBytes: _getHexString(buffer, cmdStart, cmdLength),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.polyline,
+              colorIndex: 1,
+              points: points,
+              hexBytes: _getHexString(buffer, cmdStart, cmdLength),
+            ),
+          );
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, cmdLength, 'Polyline color=1, ${points.length} pts');
+            _logCommand(
+              buffer,
+              cmdStart,
+              cmdLength,
+              'Polyline color=1, ${points.length} pts',
+            );
           }
           i += points.length * 2;
         }
@@ -406,14 +490,21 @@ class AtariBytecodeParser {
         if (points.isNotEmpty) {
           lastPolylineVertex0 = points[0]; // Track first vertex for C9/CA
           final cmdLength = 1 + (points.length * 2);
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.polyline,
-            colorIndex: 2,
-            points: points,
-            hexBytes: _getHexString(buffer, cmdStart, cmdLength),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.polyline,
+              colorIndex: 2,
+              points: points,
+              hexBytes: _getHexString(buffer, cmdStart, cmdLength),
+            ),
+          );
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, cmdLength, 'Polyline color=2, ${points.length} pts');
+            _logCommand(
+              buffer,
+              cmdStart,
+              cmdLength,
+              'Polyline color=2, ${points.length} pts',
+            );
           }
           i += points.length * 2;
         }
@@ -426,14 +517,21 @@ class AtariBytecodeParser {
         if (points.isNotEmpty) {
           lastPolylineVertex0 = points[0]; // Track first vertex for C9/CA
           final cmdLength = 1 + (points.length * 2);
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.polyline,
-            colorIndex: 3,
-            points: points,
-            hexBytes: _getHexString(buffer, cmdStart, cmdLength),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.polyline,
+              colorIndex: 3,
+              points: points,
+              hexBytes: _getHexString(buffer, cmdStart, cmdLength),
+            ),
+          );
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, cmdLength, 'Polyline color=3, ${points.length} pts');
+            _logCommand(
+              buffer,
+              cmdStart,
+              cmdLength,
+              'Polyline color=3, ${points.length} pts',
+            );
           }
           i += points.length * 2;
         }
@@ -445,21 +543,30 @@ class AtariBytecodeParser {
         if (points.isNotEmpty) {
           lastPolylineVertex0 = points[0]; // Track first vertex for C9/CA
           final cmdLength = points.length * 2;
-          commands.add(AtariBytecodeCommand(
-            type: BytecodeCommandType.polyline,
-            colorIndex: currentColor,
-            points: points,
-            hexBytes: _getHexString(buffer, cmdStart, cmdLength),
-          ));
+          commands.add(
+            AtariBytecodeCommand(
+              type: BytecodeCommandType.polyline,
+              colorIndex: currentColor,
+              points: points,
+              hexBytes: _getHexString(buffer, cmdStart, cmdLength),
+            ),
+          );
           if (enableLogging) {
-            _logCommand(buffer, cmdStart, cmdLength, 'Implicit Polyline color=$currentColor, ${points.length} pts');
+            _logCommand(
+              buffer,
+              cmdStart,
+              cmdLength,
+              'Implicit Polyline color=$currentColor, ${points.length} pts',
+            );
           }
           i += points.length * 2;
         } else {
           // No valid points - skip this byte and continue
           // This can happen with orphaned bytes after C9 commands or data padding
           if (enableLogging) {
-            _log('${byte.toRadixString(16).toUpperCase()} - Skipping invalid/orphaned byte');
+            _log(
+              '${byte.toRadixString(16).toUpperCase()} - Skipping invalid/orphaned byte',
+            );
           }
           i++;
         }
@@ -469,9 +576,13 @@ class AtariBytecodeParser {
           // Check if this is a room marker
           if (byte >= 0xA0 && byte <= 0xBB) {
             final nextRoom = byte - 0xA0;
-            _log('${byte.toRadixString(16).toUpperCase()} - Stopping as room ${nextRoom.toRadixString(16).toUpperCase()} starts');
+            _log(
+              '${byte.toRadixString(16).toUpperCase()} - Stopping as room ${nextRoom.toRadixString(16).toUpperCase()} starts',
+            );
           } else {
-            _log('${byte.toRadixString(16).toUpperCase()} - Stopping ($stopReason)');
+            _log(
+              '${byte.toRadixString(16).toUpperCase()} - Stopping ($stopReason)',
+            );
           }
           _dumpStopContext(buffer, i);
         }
@@ -486,7 +597,9 @@ class AtariBytecodeParser {
         final stopByte = buffer[end];
         if (stopByte >= 0xA0 && stopByte <= 0xBB) {
           final nextRoom = stopByte - 0xA0;
-          _log('${stopByte.toRadixString(16).toUpperCase()} - Stopping as room ${nextRoom.toRadixString(16).toUpperCase()} starts');
+          _log(
+            '${stopByte.toRadixString(16).toUpperCase()} - Stopping as room ${nextRoom.toRadixString(16).toUpperCase()} starts',
+          );
         } else if (stopByte == 0xFF) {
           _log('FF - Stopping (explicit end marker 0xFF)');
         } else {
@@ -579,12 +692,7 @@ class AtariBytecodeParser {
         );
 
       case 0x4: // Red
-        return Color.fromARGB(
-          255,
-          (139 * brightness).round(),
-          0,
-          0,
-        );
+        return Color.fromARGB(255, (139 * brightness).round(), 0, 0);
 
       case 0x5: // Violet/Lavender
         return Color.fromARGB(
@@ -595,12 +703,7 @@ class AtariBytecodeParser {
         );
 
       case 0x6: // Blue
-        return Color.fromARGB(
-          255,
-          0,
-          0,
-          (139 * brightness).round(),
-        );
+        return Color.fromARGB(255, 0, 0, (139 * brightness).round());
 
       case 0x7: // Light Blue
         return Color.fromARGB(
@@ -635,12 +738,7 @@ class AtariBytecodeParser {
         );
 
       case 0xB: // Green
-        return Color.fromARGB(
-          255,
-          0,
-          (139 * brightness).round(),
-          0,
-        );
+        return Color.fromARGB(255, 0, (139 * brightness).round(), 0);
 
       case 0xC: // Yellow-Green
         return Color.fromARGB(

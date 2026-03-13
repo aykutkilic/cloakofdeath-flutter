@@ -38,8 +38,10 @@ class InteractiveInventory extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: inventoryCount >= maxInventory
                           ? const Color(0xFF330000)
@@ -91,28 +93,38 @@ class InteractiveInventory extends StatelessWidget {
                               onPressed: () {
                                 if (selectedVerb != null) {
                                   gameState.executeVerbObject(
-                                      selectedVerb, item);
+                                    selectedVerb,
+                                    item,
+                                  );
                                 } else {
                                   gameState.addMessage(
-                                      'Select a verb first, then click the item.');
+                                    'Select a verb first, then click the item.',
+                                  );
                                 }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF004400),
                                 foregroundColor: Colors.green,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 6),
+                                  horizontal: 8,
+                                  vertical: 6,
+                                ),
                                 alignment: Alignment.centerLeft,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(4),
                                   side: const BorderSide(
-                                      color: Colors.green, width: 1),
+                                    color: Colors.green,
+                                    width: 1,
+                                  ),
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.inventory,
-                                      size: 12, color: Colors.green),
+                                  const Icon(
+                                    Icons.inventory,
+                                    size: 12,
+                                    color: Colors.green,
+                                  ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
@@ -124,8 +136,11 @@ class InteractiveInventory extends StatelessWidget {
                                     ),
                                   ),
                                   if (selectedVerb != null)
-                                    const Icon(Icons.arrow_forward,
-                                        size: 12, color: Colors.green),
+                                    const Icon(
+                                      Icons.arrow_forward,
+                                      size: 12,
+                                      color: Colors.green,
+                                    ),
                                 ],
                               ),
                             ),
