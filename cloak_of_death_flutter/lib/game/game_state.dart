@@ -358,12 +358,12 @@ class GameState extends ChangeNotifier {
       handled = _handleBurn(noun);
     } else if (verb == 'READ') {
       if (noun == 'LETTER' && _inventory.contains('LETTER')) {
-        addMessage("3 CEMETARY WAY, GOOLE... One for free through heaven...?");
+        addMessage("3 CEMETARY WAY, GOOLE....One free through heaven.....?");
         handled = true;
       }
     } else if (verb == 'KICK') {
       if (noun == 'CHEST' && _currentRoomId == _objectLocations['CHEST']) {
-        addMessage("CRASH!!");
+        addMessage("The lid flew open!");
         _gameFlags['chest_broken'] = true;
         _objectLocations['KEY'] = _currentRoomId;
         handled = true;
@@ -371,7 +371,7 @@ class GameState extends ChangeNotifier {
     } else if (verb == 'UNLOCK') {
       if (noun == 'DOOR' && _inventory.contains('KEY')) {
         _gameFlags['door_unlocked'] = true;
-        addMessage("It's OPEN.");
+        addMessage("Ok");
         handled = true;
       } else if (noun == 'GATES' &&
           _inventory.contains('GATE KEY') &&
@@ -413,7 +413,7 @@ class GameState extends ChangeNotifier {
       }
     } else if (verb == 'PUSH') {
       if (noun == 'BOOK' && _currentRoomId == 16) {
-        addMessage("A strange rumbling noise...");
+        addMessage("Something happened!");
         _gameFlags['bookshelf_moved'] = true;
         handled = true;
       } else if (noun == 'TABLE' && _currentRoomId == 18) {
@@ -543,7 +543,11 @@ class GameState extends ChangeNotifier {
     if (_inventory.contains(noun)) {
       _inventory.remove(noun);
       _objectLocations[noun] = _currentRoomId;
-      addMessage('Ok');
+      if (noun == 'CHAIR' || noun == 'CHEST') {
+        addMessage('CRASH!!!');
+      } else {
+        addMessage('Ok');
+      }
       return true;
     }
     addMessage("You aren't carrying it!!");
@@ -553,7 +557,7 @@ class GameState extends ChangeNotifier {
   bool _handleOpen(String noun) {
     if (noun == 'CUPBOARD' && _currentRoomId == 3) {
       _gameFlags['cupboard_open'] = true;
-      addMessage("It's OPEN.");
+      addMessage("Ok");
       return true;
     }
     if (noun == 'SAFE' &&
@@ -571,22 +575,23 @@ class GameState extends ChangeNotifier {
         _gameFlags['cupboard_open'] == true) {
       if (_objectLocations['MATCHES'] == 0) _objectLocations['MATCHES'] = 3;
       if (_objectLocations['KNIFE'] == 0) _objectLocations['KNIFE'] = 3;
-      addMessage("I can see something!!");
+      addMessage("I can see something!");
       return true;
     }
     if (noun == 'SINK' && _currentRoomId == 3) {
-      addMessage("I can see something!!");
+      if (_objectLocations['WATER'] == 0) _objectLocations['WATER'] = 3;
+      addMessage("I can see something!");
       return true;
     }
     if (noun == 'FIREPLACE' && _currentRoomId == 8) {
       if (_objectLocations['COAL'] == 0) _objectLocations['COAL'] = 8;
-      addMessage("I can see something!!");
+      addMessage("I can see something!");
       return true;
     }
     if (noun == 'DESK' && _currentRoomId == 7) {
       if (_objectLocations['BIBLE'] == 0) _objectLocations['BIBLE'] = 7;
       if (_objectLocations['LETTER'] == 0) _objectLocations['LETTER'] = 7;
-      addMessage("I can see something!!");
+      addMessage("I can see something!");
       return true;
     }
     if (noun == 'CHEST' &&
@@ -595,13 +600,13 @@ class GameState extends ChangeNotifier {
       if (_objectLocations['KEY'] == 0) {
         _objectLocations['KEY'] = _currentRoomId;
       }
-      addMessage("I can see something!!");
+      addMessage("I can see something!");
       return true;
     }
     if (noun == 'SAFE' &&
         _currentRoomId == 13 &&
         _gameFlags['safe_open'] == true) {
-      addMessage("I can see something!!");
+      addMessage("I can see something!");
       return true;
     }
     if (noun == 'DOG' && _currentRoomId == 26) {
@@ -609,7 +614,8 @@ class GameState extends ChangeNotifier {
       return true;
     }
     if (noun == 'SHELVES' && _currentRoomId == 16) {
-      addMessage("I can see something!!");
+      if (_objectLocations['BOOK'] == null || _objectLocations['BOOK'] == 0) _objectLocations['BOOK'] = 16;
+      addMessage("I can see something!");
       return true;
     }
     return false;
@@ -657,7 +663,7 @@ class GameState extends ChangeNotifier {
       _objectLocations['COAL'] = 0;
       _objectLocations['RAG'] = 0;
       addMessage(
-        "The coals glow like the dog's eyes, and he runs away, terrified!!",
+        "The coals glow like the dog's eyes, and he runs away, terrified!",
       );
       return true;
     }
