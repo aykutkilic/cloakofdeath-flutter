@@ -455,15 +455,15 @@ class _GameScreenState extends State<GameScreen> {
                                 UppercaseTextFormatter(),
                               ],
                               style: TextStyle(
-                                color: isEmpty ? AppTheme.text : AppTheme.panel,
+                                color: isEmpty ? AppTheme.panel : AppTheme.text,
                                 fontSize: 16,
-                                backgroundColor: isEmpty ? Colors.transparent : AppTheme.text,
+                                backgroundColor: isEmpty ? AppTheme.text : Colors.transparent,
                               ),
-                              cursorColor: isEmpty ? AppTheme.text : AppTheme.panel,
+                              cursorColor: isEmpty ? AppTheme.panel : AppTheme.text,
                               cursorWidth: 10,
                               cursorRadius: const Radius.circular(0),
                               decoration: InputDecoration(
-                                fillColor: isEmpty ? Colors.transparent : AppTheme.text,
+                                fillColor: isEmpty ? AppTheme.text : Colors.transparent,
                                 filled: true,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                                 isDense: true,
@@ -472,9 +472,9 @@ class _GameScreenState extends State<GameScreen> {
                                 focusedBorder: InputBorder.none,
                                 hintText: 'What shall I do?',
                                 hintStyle: TextStyle(
-                                  color: AppTheme.text.withValues(alpha: 0.5),
+                                  color: AppTheme.panel.withValues(alpha: 0.8),
                                   fontStyle: FontStyle.italic,
-                                  backgroundColor: Colors.transparent,
+                                  backgroundColor: AppTheme.text,
                                 ),
                               ),
                               onSubmitted: (submitValue) {
