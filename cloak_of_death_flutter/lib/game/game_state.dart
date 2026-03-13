@@ -277,12 +277,57 @@ class GameState extends ChangeNotifier {
       addMessage('You are ${room.description}');
       final exits = getAvailableExits();
       if (exits.isNotEmpty) {
-        addMessage('Exits are ${exits.keys.join(", ")}.');
+        final mappedExits = exits.keys.map((e) {
+          switch (e) {
+            case 'N': return 'North';
+            case 'S': return 'South';
+            case 'E': return 'East';
+            case 'W': return 'West';
+            case 'U': return 'Up';
+            case 'D': return 'Down';
+            default: return e;
+          }
+        }).join(",");
+        addMessage('Exits are $mappedExits.');
       }
 
       final visible = getVisibleObjects();
       if (visible.isNotEmpty) {
-        addMessage('Visible items: ${visible.join(", ")}');
+        final mappedItems = visible.map((obj) {
+          switch (obj) {
+            case 'RAT': return 'Hungry looking rat.';
+            case 'CHAIR': return 'Wicker chair.';
+            case 'BREAD': return 'Half eaten loaf of bread.';
+            case 'KNIFE': return 'Carving knife.';
+            case 'CUPBOARD': return 'Tall cupboard.';
+            case 'SINK': return 'Sink.';
+            case 'FIREPLACE': return 'Fireplace.';
+            case 'COAL': return 'Lumps of coal.';
+            case 'CLOCK': return 'Grandfather clock.';
+            case 'DESK': return 'Writing desk.';
+            case 'BIBLE': return 'Leather bound BIBLE.';
+            case 'LETTER': return 'Letter.';
+            case 'CHEST': return 'Old wooden chest.';
+            case 'DOOR': return 'Cellar door.';
+            case 'KEY': return 'Small key.';
+            case 'CANDLE': return 'Candle.';
+            case 'IRON': return 'Huge lump of iron.';
+            case 'SAW': return 'Rusty saw.';
+            case 'HAMMER': return 'Claw hammer.';
+            case 'BAR': return 'SILVER BAR.';
+            case 'RAG': return 'Oil soaked rag.';
+            case 'DOG': return 'Ferocious dog.';
+            case 'GATE': return 'Heavy iron gates.';
+            case 'EMBERS': return 'Burning embers.';
+            case 'BOOK': return 'Book.';
+            case 'SHELVES': return 'Shelves full of books.';
+            case 'PASSAGEWAY': return 'Secret passageway.';
+            case 'WATER': return 'Water.';
+            case 'WINE': return 'Bottle of wine.';
+            default: return '${obj[0]}${obj.substring(1).toLowerCase()}.';
+          }
+        }).join(" ");
+        addMessage('Visible items: $mappedItems');
       }
     }
     addMessage('');
