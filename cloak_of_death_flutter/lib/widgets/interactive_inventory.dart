@@ -145,7 +145,7 @@ class InteractiveInventory extends StatelessWidget {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 6,
-                              mainAxisExtent: 22,
+                              mainAxisExtent: 44,
                               crossAxisSpacing: 2,
                               mainAxisSpacing: 2,
                             ),
@@ -175,13 +175,13 @@ class InteractiveInventory extends StatelessWidget {
                               children: [
                                 Image.asset(
                                   _getIconFor(item),
-                                  width: 12,
-                                  height: 12,
+                                  width: 24,
+                                  height: 24,
                                   color: isSelected ? AppTheme.background : AppTheme.text,
                                   errorBuilder: (context, error, stackTrace) =>
                                       Icon(
                                         Icons.inventory,
-                                        size: 12,
+                                        size: 24,
                                         color: isSelected ? AppTheme.background : AppTheme.text,
                                       ),
                                 ),
@@ -191,7 +191,7 @@ class InteractiveInventory extends StatelessWidget {
                                     item.toUpperCase(),
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
-                                          fontSize: 7,
+                                          fontSize: 14,
                                           color: isSelected ? AppTheme.background : AppTheme.text,
                                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                         ),
