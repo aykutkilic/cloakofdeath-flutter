@@ -193,10 +193,7 @@ class GameState extends ChangeNotifier {
   }
 
   List<String> getAvailableActionsForObject(String object) {
-    // Default actions available for almost everything
     final List<String> actions = ['LOOK', 'EXAMINE'];
-
-    // Actions depending on whether we hold it or it's in the room
     final bool inInventory = _inventory.contains(object);
     
     if (inInventory) {
@@ -205,49 +202,19 @@ class GameState extends ChangeNotifier {
                (object == 'SAFE' && _currentRoomId == 4) ||
                (object == 'DOOR' && (_currentRoomId == 2 || _currentRoomId == 6)) ||
                (object == 'GATE' && _currentRoomId == 7)) {
-      actions.add('GET'); // Note: You can't GET doors/safes normally, but GET is a standard action attempt
+      actions.add('GET');
     }
 
-    // Specific object actions based on game logic
     switch (object) {
-      case 'DOOR':
-      case 'GATE':
-      case 'SAFE':
-        actions.addAll(['OPEN', 'UNLOCK', 'PUSH', 'PULL']);
-        break;
-      case 'CANDLE':
-      case 'LIT CANDLE':
-        actions.addAll(['LIGHT', 'EXTINGUISH']);
-        break;
-      case 'MATCHES':
-        actions.add('LIGHT');
-        break;
-      case 'LETTER':
-      case 'BIBLE':
-        actions.add('READ');
-        break;
-      case 'KEY':
-      case 'GATE KEY':
-      case 'HAMMER':
-      case 'SAW':
-      case 'BAR':
-      case 'WIRE':
-      case 'KNIFE':
-      case 'HOLY WATER':
-      case 'WATER':
-      case 'CRUCIFIX':
-        actions.add('USE');
-        break;
-      case 'CHAIR':
-        actions.add('CLIMB');
-        break;
-      case 'BREAD':
-        // No specific verb explicitly handled by logic other than USE or DROP, maybe EAT but it isn't a standard verb. Add USE.
-        actions.add('USE');
-        break;
+      case 'DOOR': case 'GATE': case 'SAFE': actions.addAll(['OPEN', 'UNLOCK', 'PUSH', 'PULL']); break;
+      case 'CANDLE': case 'LIT CANDLE': actions.addAll(['LIGHT', 'EXTINGUISH']); break;
+      case 'MATCHES': actions.add('LIGHT'); break;
+      case 'LETTER': case 'BIBLE': actions.add('READ'); break;
+      case 'KEY': case 'GATE KEY': case 'HAMMER': case 'SAW': case 'BAR': case 'WIRE': case 'KNIFE': case 'HOLY WATER': case 'WATER': case 'CRUCIFIX': actions.add('USE'); break;
+      case 'CHAIR': actions.add('CLIMB'); break;
+      case 'BREAD': actions.add('USE'); break;
     }
-
-    return actions.toSet().toList(); // Ensure uniqueness
+    return actions.toSet().toList();
   }
 
   void executeObjectVerb(String verb, String object) {
@@ -265,7 +232,6 @@ class GameState extends ChangeNotifier {
 
     for (final word in words) {
       if (word.isEmpty) continue;
-
       if (currentLine.isEmpty) {
         currentLine = word;
       } else if (currentLine.length + 1 + word.length <= width) {
@@ -279,7 +245,6 @@ class GameState extends ChangeNotifier {
     if (currentLine.isNotEmpty) {
       lines.add(currentLine);
     }
-
     return lines;
   }
 
@@ -362,10 +327,108 @@ class GameState extends ChangeNotifier {
     addMessage('');
   }
 
+  int _getVerbId(String verb) {
+    switch (verb) {
+      case 'WALK': case 'GO': case 'N': case 'S': case 'E': case 'W': case 'U': case 'D':
+      case 'NORT': case 'NORTH': case 'SOUT': case 'SOUTH': case 'EAST': case 'WEST': case 'UP': case 'DOWN': return 1;
+      case 'LOOK': case 'EXAM': case 'EXAMINE': case 'L': case 'X': return 2;
+      case 'SEAR': case 'SEARCH': case 'TAKE': case 'GRAB': case 'LIFT': case 'GET': case 'PICK': return 3;
+      case 'LEAV': case 'LEAVE': case 'DROP': case 'THRO': case 'THROW': case 'TOSS': return 4;
+      case 'OPEN': return 5;
+      case 'UNLO': case 'UNLOCK': return 6;
+      case 'CLOS': case 'CLOSE': case 'LOCK': return 7;
+      case 'BURN': case 'LIGH': case 'LIGHT': return 8;
+      case 'EXTI': case 'EXTINGUISH': case 'SNUF': case 'SNUFF': return 9;
+      case 'READ': return 10;
+      case 'HELP': return 11;
+      case 'POUR': case 'EMPT': case 'EMPTY': return 12;
+      case 'CHOP': case 'SMAS': case 'SMASH': case 'BREA': case 'BREAK': return 13;
+      case 'QUIT': return 14;
+      case 'INVE': case 'INVENTORY': case 'I': return 15;
+      case 'DRIN': case 'DRINK': return 16;
+      case 'EAT': return 17;
+      case 'SLEE': case 'SLEEP': return 18;
+      case 'FEED': case 'OFFE': case 'OFFER': return 19;
+      case 'GIVE': return 20;
+      case 'PUNC': case 'PUNCH': case 'STRI': case 'STRIKE': case 'HAMM': return 21;
+      case 'WAIT': return 22;
+      case 'KICK': return 23;
+      case 'PUSH': case 'PULL': case 'PRES': case 'PRESS': return 24;
+      case 'TOUC': case 'TOUCH': case 'CLIM': case 'CLIMB': return 25;
+      case 'STAN': case 'STAND': return 26;
+      case 'EXOR': case 'EXORCISE': return 27;
+      case 'MAKE': return 28;
+      case 'SAVE': return 29;
+      case 'FUCK': case 'PISS': return 30; // Original ATARI easter eggs
+      case 'JUMP': return 31;
+      case 'KILL': return 32;
+      case 'FILL': return 33;
+      case 'SCOR': case 'SCORE': return 34;
+      case 'WAVE': return 35;
+      case 'SHAK': case 'SHAKE': return 36;
+      case 'WEAR': return 37;
+      case 'TIE': return 38;
+      case 'SHOU': case 'SHOUT': return 39;
+      case 'USE': case 'REMO': case 'REMOVE': case 'CUT': return 100;
+      default: return 0;
+    }
+  }
+
+  int _getNounId(String noun) {
+    switch (noun) {
+      case 'BALL': return 1;
+      case 'BOOK': return 4;
+      case 'BIBL': case 'BIBLE': return 5;
+      case 'WINE': return 6;
+      case 'BOTT': case 'BOTTLE': return 7;
+      case 'BREA': case 'BREAD': return 8;
+      case 'CAND': case 'CANDLE': case 'LIT CANDLE': return 10;
+      case 'CHAI': case 'CHAIR': return 11;
+      case 'CHES': case 'CHEST': return 12;
+      case 'COAL': return 13;
+      case 'CRUC': case 'CRUCIFIX': return 14;
+      case 'GOBL': case 'GOBLET': return 15;
+      case 'HAMM': case 'HAMMER': return 18;
+      case 'SAW': return 19;
+      case 'IRON': return 20;
+      case 'KNIF': case 'KNIFE': return 21;
+      case 'LETT': case 'LETTER': return 23;
+      case 'MATC': case 'MATCHES': return 24;
+      case 'PAIN': case 'PAINTING': return 25;
+      case 'WIRE': return 27;
+      case 'WATE': case 'WATER': return 28;
+      case 'BAR': return 9;
+      case 'RAG': return 20;
+      case 'CLOA': case 'CLOAK': return 30;
+      case 'CLOC': case 'CLOCK': case 'GRANDFATHER CLOCK': return 32;
+      case 'CORD': return 33;
+      case 'CORR': case 'CORRIDOR': return 35;
+      case 'CUPB': case 'CUPBOARD': return 36;
+      case 'DESK': return 37;
+      case 'DOG': return 38;
+      case 'DOOR': return 39;
+      case 'EMBE': case 'EMBERS': return 41;
+      case 'FIRE': case 'FIREPLACE': return 42;
+      case 'GATE': case 'GATES': return 43;
+      case 'HATC': case 'HATCH': return 44;
+      case 'PASS': case 'PASSAGEWAY': return 46;
+      case 'RAT': return 47;
+      case 'SAFE': return 48;
+      case 'SHEL': case 'SHELVES': return 50;
+      case 'SINK': return 51;
+      case 'TABL': case 'TABLE': return 52;
+      case 'ANNE': case 'ANNEXE': return 53;
+      case 'SKEL': case 'SKELETON KEY': case 'KEY': return 16;
+      case 'GATE KEY': return 17;
+      case 'NAIL': case 'NAILS': return 82;
+      default: return 0;
+    }
+  }
+
   void processCommand(String command) {
     if (command.trim().isEmpty) return;
 
-    addMessage('What shall I do?$command');
+    addMessage('What shall I do?${command.toUpperCase()}');
     _moveCount++;
     if (_candleLife > 0 && hasLitCandle) {
       _candleLife--;
@@ -378,419 +441,273 @@ class GameState extends ChangeNotifier {
       }
     }
 
-    final words = command.trim().toUpperCase().split(' ');
-    final verb = words[0];
-    final noun = words.length > 1 ? words.skip(1).join(' ') : '';
-
-    bool handled = false;
-
-    if ([
-      'N',
-      'S',
-      'E',
-      'W',
-      'U',
-      'D',
-      'NORTH',
-      'SOUTH',
-      'EAST',
-      'WEST',
-      'UP',
-      'DOWN',
-    ].contains(verb)) {
-      moveInDirection(verb[0]);
-      handled = true;
-    } else if (verb == 'LOOK' || verb == 'L') {
-      describeCurrentRoom();
-      handled = true;
-    } else if (verb == 'INVENTORY' || verb == 'I') {
-      if (_inventory.isEmpty) {
-        addMessage('You are carrying nothing whatsoever.');
-      } else {
-        addMessage('You are carrying: ${_inventory.join(", ")}');
-      }
-      handled = true;
-    } else if (verb == 'GET' || verb == 'TAKE') {
-      if (noun.isNotEmpty) {
-        handled = _handleGet(noun);
-      }
-    } else if (verb == 'DROP' || verb == 'LEAVE') {
-      if (noun.isNotEmpty) {
-        handled = _handleDrop(noun);
-      }
-    } else if (verb == 'OPEN') {
-      handled = _handleOpen(noun);
-    } else if (verb == 'EXAMINE' || verb == 'X') {
-      handled = _handleExamine(noun);
-    } else if (verb == 'CLIMB') {
-      handled = _handleClimb(noun);
-    } else if (verb == 'LIGHT') {
-      handled = _handleLight(noun);
-    } else if (verb == 'EXTINGUISH') {
-      handled = _handleExtinguish(noun);
-    } else if (verb == 'BURN') {
-      handled = _handleBurn(noun);
-    } else if (verb == 'READ') {
-      if (noun == 'LETTER' && _inventory.contains('LETTER')) {
-        addMessage("3 CEMETARY WAY, GOOLE....One free through heaven.....?");
-        handled = true;
-      }
-    } else if (verb == 'KICK') {
-      if (noun == 'CHEST' && _currentRoomId == _objectLocations['CHEST']) {
-        addMessage("The lid flew open!");
-        _gameFlags['chest_broken'] = true;
-        _objectLocations['KEY'] = _currentRoomId;
-        handled = true;
-      }
-    } else if (verb == 'UNLOCK') {
-      if (noun == 'DOOR' && _inventory.contains('KEY')) {
-        _gameFlags['door_unlocked'] = true;
-        addMessage("Ok");
-        handled = true;
-      } else if (noun == 'GATES' &&
-          _inventory.contains('GATE KEY') &&
-          _currentRoomId == 26) {
-        addMessage(
-          "CONGRATULATIONS!! You have escaped into an open courtyard. Evil forces try to",
-        );
-        addMessage("force you back, but freedom is just a few steps away...");
-        _gameFlags['gates_unlocked'] = true;
-        handled = true;
-      }
-    } else if (verb == 'GO') {
-      if (noun == 'DOOR' &&
-          _gameFlags['door_unlocked'] == true &&
-          _currentRoomId == 5) {
-        _currentRoomId = 20; // Move to Cellar
-        _moveCount++;
-        describeCurrentRoom();
-        handled = true;
-      } else if (noun == 'CORRIDOR' || noun == 'CORR') {
-        moveInDirection('N');
-        handled = true;
-      } else if (noun == 'PASSAGEWAY' &&
-          _gameFlags['bookshelf_moved'] == true) {
-        moveInDirection('U');
-        handled = true;
-      } else if (noun == 'HATCH' &&
-          _gameFlags['hatch_open'] == true &&
-          _currentRoomId == 19) {
-        _currentRoomId = 22; // Move to Store Room (Hatch destination)
-        _moveCount++;
-        describeCurrentRoom();
-        handled = true;
-      } else if (noun == 'ANNEXE' && _gameFlags['annexe_open'] == true) {
-        _currentRoomId = 12;
-        _moveCount++;
-        describeCurrentRoom();
-        handled = true;
-      }
-    } else if (verb == 'PUSH') {
-      if (noun == 'BOOK' && _currentRoomId == 16) {
-        addMessage("Something happened!");
-        _gameFlags['bookshelf_moved'] = true;
-        handled = true;
-      } else if (noun == 'TABLE' && _currentRoomId == 18) {
-        addMessage("Ok");
-        handled = true;
-      }
-    } else if (verb == 'REMOVE') {
-      if (noun == 'NAILS' &&
-          _inventory.contains('HAMMER') &&
-          _currentRoomId == 19) {
-        addMessage("Ok");
-        _gameFlags['hatch_open'] = true;
-        handled = true;
-      }
-    } else if (verb == 'CUT') {
-      if (noun == 'BAR' &&
-          _inventory.contains('SAW') &&
-          _inventory.contains('BAR')) {
-        addMessage("Ok");
-        handled = true;
-      }
-    } else if (verb == 'MAKE') {
-      if (noun == 'CRUCIFIX' &&
-          _inventory.contains('SAW') &&
-          _inventory.contains('BAR')) {
-        _inventory.remove('BAR');
-        _inventory.add('CRUCIFIX');
-        addMessage("That should prove useful.");
-        handled = true;
-      }
-    } else if (verb == 'PULL') {
-      if (noun == 'CORD' &&
-          _currentRoomId == 10 &&
-          _inventory.contains('IRON')) {
-        addMessage("Ok");
-        _gameFlags['annexe_open'] = true;
-        handled = true;
-      }
-    } else if (verb == 'EXORCISE') {
-      if (noun == 'CLOAK' &&
-          _inventory.contains('BIBLE') &&
-          _inventory.contains('CRUCIFIX') &&
-          _inventory.contains('HOLY WATER')) {
-        addMessage("Something happened in a BLINDING flash of light!!");
-        _gameFlags['cloak_exorcised'] = true;
-        handled = true;
-      }
-    } else if (verb == '1327') {
+    if (command == '1327') {
       if (_currentRoomId == 13 && _gameFlags['painting_moved'] == true) {
         addMessage("You've cracked it!");
         _gameFlags['safe_open'] = true;
         _objectLocations['GATE KEY'] = 13;
-        handled = true;
-      }
-    }
-
-    if (!handled) {
-      if (noun.isEmpty && verb.length > 1) {
+        saveState();
+        notifyListeners();
+        return;
+      } else {
         addMessage("I don't understand you.");
-      } else if (!handled) {
-        addMessage("Ok. Nothing happens.");
+        saveState();
+        notifyListeners();
+        return;
       }
     }
 
+    final words = command.trim().toUpperCase().split(RegExp(r'\s+'));
+    final verbString = words[0];
+    final nounString = words.length > 1 ? words.skip(1).join(' ') : '';
+
+    int v = _getVerbId(verbString);
+    if (v == 0) {
+      addMessage("I don't recognise that VERB.");
+      saveState();
+      notifyListeners();
+      return;
+    }
+
+    int o = 0;
+    if (nounString.isNotEmpty) {
+      if (['N', 'S', 'E', 'W', 'U', 'D', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'UP', 'DOWN'].contains(verbString)) {
+        // Just movement
+      } else {
+        o = _getNounId(nounString);
+        if (o == 0 && nounString != 'AROUND') {
+           addMessage("I don't recognise that NOUN.");
+           saveState();
+           notifyListeners();
+           return;
+        }
+      }
+    } else if (['N', 'S', 'E', 'W', 'U', 'D', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'UP', 'DOWN'].contains(verbString)) {
+       // Single letter movement
+    } else if (v != 15 && v != 2 && v != 11 && v != 14 && v != 34) { // Commands that don't need nouns
+       addMessage("I don't understand you.");
+       saveState();
+       notifyListeners();
+       return;
+    }
+
+    _dispatchLogic(v, o, verbString, nounString);
+    
     saveState();
     notifyListeners();
   }
 
-  bool _handleGet(String noun) {
-    if (isTooDarkToSee) {
-      addMessage("I can't see anything significant.");
-      return true;
+  void _dispatchLogic(int v, int o, String verbString, String nounString) {
+    if (v == 1) { // GO / MOVE
+       if (['N', 'S', 'E', 'W', 'U', 'D', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'UP', 'DOWN'].contains(verbString)) {
+         moveInDirection(verbString[0]);
+       } else if (o == 39 && _gameFlags['door_unlocked'] == true && _currentRoomId == 5) {
+         _currentRoomId = 20;
+         _moveCount++;
+         describeCurrentRoom();
+       } else if (o == 35) { // CORRIDOR
+         moveInDirection('N');
+       } else if (o == 46 && _gameFlags['bookshelf_moved'] == true) { // PASSAGEWAY
+         moveInDirection('U');
+       } else if (o == 44 && _gameFlags['hatch_open'] == true && _currentRoomId == 19) {
+         _currentRoomId = 22;
+         _moveCount++;
+         describeCurrentRoom();
+       } else {
+         addMessage("You can't go that way.");
+       }
+    } else if (v == 2) { // EXAMINE / LOOK
+       if (nounString == 'AROUND' || nounString.isEmpty) {
+         describeCurrentRoom();
+       } else if (o == 51 && _currentRoomId == 3) {
+         if (_objectLocations['WATER'] == 0) _objectLocations['WATER'] = 3;
+         addMessage("I can see something!");
+       } else if (o == 36 && _currentRoomId == 3 && _gameFlags['cupboard_open'] == true) {
+         if (_objectLocations['MATCHES'] == 0) _objectLocations['MATCHES'] = 3;
+         if (_objectLocations['KNIFE'] == 0) _objectLocations['KNIFE'] = 3;
+         addMessage("I can see something!");
+       } else if (o == 42 && _currentRoomId == 8) {
+         if (_objectLocations['COAL'] == 0) _objectLocations['COAL'] = 8;
+         addMessage("I can see something!");
+       } else if (o == 37 && _currentRoomId == 7) {
+         if (_objectLocations['BIBLE'] == 0) _objectLocations['BIBLE'] = 7;
+         if (_objectLocations['LETTER'] == 0) _objectLocations['LETTER'] = 7;
+         addMessage("I can see something!");
+       } else if (o == 12 && _currentRoomId == _objectLocations['CHEST'] && _gameFlags['chest_broken'] == true) {
+         if (_objectLocations['KEY'] == 0) _objectLocations['KEY'] = _currentRoomId;
+         addMessage("I can see something!");
+       } else if (o == 48 && _currentRoomId == 13 && _gameFlags['safe_open'] == true) {
+         addMessage("I can see something!");
+       } else if (o == 50 && _currentRoomId == 16) {
+         if (_objectLocations['BOOK'] == null || _objectLocations['BOOK'] == 0) _objectLocations['BOOK'] = 16;
+         addMessage("I can see something!");
+       } else if (o == 5) {
+         addMessage("It falls open at the first page.");
+       } else if (o == 6) {
+         addMessage("French red. Maybe you should try it.");
+       } else if (o == 25) {
+         addMessage("It's an oil painting of two horses.");
+       } else if (o == 32) {
+         addMessage("It's getting terribly late!!");
+       } else if (o == 4) {
+         addMessage("THE EXORCIST - How apt.");
+       } else if (o == 38) {
+         addMessage("It has eyes like red embers.");
+       } else if (o == 47) {
+         addMessage("Looks pretty nasty!!");
+       } else {
+         addMessage("I don't notice anything in particular.");
+       }
+    } else if (v == 3) { // GET / TAKE
+       if (o > 28) { // EXACT emulation of ATARI line 1400/14
+         addMessage("Not a very good idea.");
+       } else if (_inventory.length >= maxInventory) {
+         addMessage("You are carrying too much.");
+       } else if (o == 28 && _currentRoomId == 3) { // WATER
+         if (_inventory.contains('GOBLET')) {
+           _inventory.remove('GOBLET');
+           if (_inventory.contains('BIBLE') && _inventory.contains('CRUCIFIX')) {
+             _inventory.add('HOLY WATER');
+             addMessage("HOLY WATER!!");
+           } else {
+             _inventory.add('WATER');
+             addMessage("Ok");
+           }
+         } else {
+           addMessage("You don't have anything to put it in.");
+         }
+       } else if (_objectLocations[nounString] == _currentRoomId || getVisibleObjects().contains(nounString)) {
+         _objectLocations[nounString] = -1;
+         _inventory.add(nounString);
+         addMessage("Ok");
+       } else {
+         addMessage("I don't see it here.");
+       }
+    } else if (v == 4) { // DROP / LEAVE
+       if (_inventory.contains(nounString)) {
+         _inventory.remove(nounString);
+         _objectLocations[nounString] = _currentRoomId;
+         if (o == 11 || o == 12) {
+           addMessage("CRASH!!!");
+         } else if (o == 25) {
+           _gameFlags['painting_moved'] = true;
+           addMessage("Ok");
+         } else {
+           addMessage("Ok");
+         }
+       } else {
+         addMessage("You aren't carrying it!!");
+       }
+    } else if (v == 5) { // OPEN
+       if (o == 36 && _currentRoomId == 3) {
+         _gameFlags['cupboard_open'] = true;
+         addMessage("Ok");
+       } else if (o == 48 && _currentRoomId == 13 && _gameFlags['painting_moved'] == true) {
+         addMessage("Enter the 4 digit combination");
+       } else {
+         addMessage("Sorry, but I can't do that.");
+       }
+    } else if (v == 6) { // UNLOCK
+       if (o == 39 && _inventory.contains('KEY')) {
+         _gameFlags['door_unlocked'] = true;
+         addMessage("Ok");
+       } else if (o == 43 && _inventory.contains('GATE KEY') && _currentRoomId == 26) {
+         addMessage("CONGRATULATIONS!! You have escaped into an open courtyard. Evil forces try to");
+         addMessage("force you back, but freedom is just a few steps away...");
+         _gameFlags['gates_unlocked'] = true;
+       } else {
+         addMessage("The door is locked.");
+       }
+    } else if (v == 8) { // BURN / LIGHT
+       if (o == 10 && _inventory.contains('MATCHES') && _inventory.contains('CANDLE')) {
+         _inventory.remove('CANDLE');
+         _inventory.add('LIT CANDLE');
+         _candleLife = 300;
+         addMessage("Ok");
+       } else if (o == 13 && _currentRoomId == 26 && _objectLocations['COAL'] == 26 && _objectLocations['RAG'] == 26) {
+         _gameFlags['dog_terrified'] = true;
+         _objectLocations['COAL'] = 0;
+         _objectLocations['RAG'] = 0;
+         addMessage("The coals glow like the dog's eyes, and he runs away, terrified!");
+       } else {
+         addMessage("It's already lit!!");
+       }
+    } else if (v == 9) { // EXTINGUISH
+       if (o == 10 && _inventory.contains('LIT CANDLE')) {
+         _inventory.remove('LIT CANDLE');
+         _inventory.add('CANDLE');
+         addMessage("It went out!!");
+       } else {
+         addMessage("Ok. Nothing happens.");
+       }
+    } else if (v == 10) { // READ
+       if (o == 23 && _inventory.contains('LETTER')) {
+         addMessage("3 CEMETARY WAY, GOOLE....One free through heaven.....?");
+       } else {
+         addMessage("I don't understand you.");
+       }
+    } else if (v == 15) { // INVENTORY
+       if (_inventory.isEmpty) {
+         addMessage("You are carrying nothing whatsoever.");
+       } else {
+         addMessage("You are carrying: ${_inventory.join(", ")}");
+       }
+    } else if (v == 23) { // KICK
+       if (o == 12 && _currentRoomId == _objectLocations['CHEST']) {
+         addMessage("The lid flew open!");
+         _gameFlags['chest_broken'] = true;
+         _objectLocations['KEY'] = _currentRoomId;
+       } else {
+         addMessage("Temper!!");
+       }
+    } else if (v == 24) { // PUSH / PULL
+       if (o == 4 && _currentRoomId == 16) {
+         addMessage("Something happened!");
+         _gameFlags['bookshelf_moved'] = true;
+       } else if (o == 52 && _currentRoomId == 18) {
+         addMessage("Ok");
+       } else {
+         addMessage("Ok. Nothing happens.");
+       }
+    } else if (v == 25) { // CLIMB
+       if (o == 11 && _currentRoomId == 3 && _objectLocations['CHAIR'] == 3) {
+         addMessage("Ok, you're standing on the chair.");
+       } else {
+         addMessage("You must be joking!!");
+       }
+    } else if (v == 27) { // EXORCISE
+       if (o == 30 && _inventory.contains('BIBLE') && _inventory.contains('CRUCIFIX') && _inventory.contains('HOLY WATER')) {
+         addMessage("Something happened in a BLINDING flash of light!!");
+         _gameFlags['cloak_exorcised'] = true;
+       } else {
+         addMessage("I don't understand you.");
+       }
+    } else if (v == 28) { // MAKE
+       if (o == 14 && _inventory.contains('SAW') && _inventory.contains('BAR')) {
+         _inventory.remove('BAR');
+         _inventory.add('CRUCIFIX');
+         addMessage("That should prove useful.");
+       } else {
+         addMessage("What with?");
+       }
+    } else if (v == 38) { // TIE
+       addMessage("I don't understand you.");
+    } else if (v == 100) { // Custom logic for USE/REMOVE/CUT
+       if (verbString == 'REMOVE' && o == 82 && _inventory.contains('HAMMER') && _currentRoomId == 19) {
+         addMessage("Ok");
+         _gameFlags['hatch_open'] = true;
+       } else if (verbString == 'CUT' && o == 28 && _inventory.contains('SAW') && _inventory.contains('BAR')) {
+         addMessage("Ok");
+       } else {
+         addMessage("Sorry, but I can't do that.");
+       }
+    } else {
+       if (nounString.isNotEmpty) {
+         addMessage("Sorry, but I can't do that.");
+       } else {
+         addMessage("I don't understand you.");
+       }
     }
-
-    if (_inventory.length >= maxInventory) {
-      addMessage('You are carrying too much.');
-      return true;
-    }
-
-    // Scenery objects cannot be picked up (Noun IDs > 28 in original code)
-    final nonPortableObjects = [
-      'WATER', 'CLOAK', 'CLOCK', 'CORD', 'CORRIDOR', 'CUPBOARD', 'DESK',
-      'DOG', 'DOOR', 'EMBERS', 'FIREPLACE', 'GATE', 'HATCH', 'PASSAGEWAY',
-      'RAT', 'SAFE', 'SHELVES', 'SINK', 'TABLE', 'ANNEXE'
-    ];
-
-    if (nonPortableObjects.contains(noun)) {
-      addMessage("Not a very good idea.");
-      return true;
-    }
-
-    if (noun == 'WATER' && _currentRoomId == 3) {
-      if (_inventory.contains('GOBLET')) {
-        _inventory.remove('GOBLET');
-        if (_inventory.contains('BIBLE') && _inventory.contains('CRUCIFIX')) {
-          _inventory.add('HOLY WATER');
-          addMessage('HOLY WATER!!');
-        } else {
-          _inventory.add('WATER');
-          addMessage('Ok');
-        }
-      } else {
-        addMessage("You don't have anything to put it in.");
-      }
-      return true;
-    }
-
-    if (noun == 'KEY') {
-      if (getVisibleObjects().contains('KEY')) {
-        _objectLocations['KEY'] = -1;
-        _inventory.add('KEY');
-        addMessage('Ok');
-        return true;
-      } else if (getVisibleObjects().contains('GATE KEY')) {
-        _objectLocations['GATE KEY'] = -1;
-        _inventory.add('GATE KEY');
-        addMessage('Ok');
-        return true;
-      }
-    }
-
-    if (getVisibleObjects().contains(noun)) {
-      _objectLocations[noun] = -1;
-      _inventory.add(noun);
-      addMessage('Ok');
-      return true;
-    }
-    addMessage("I don't see it here.");
-    return true;
-  }
-
-  bool _handleDrop(String noun) {
-    if (noun == 'PAINTING' && _inventory.contains('PAINTING')) {
-      _inventory.remove('PAINTING');
-      _gameFlags['painting_moved'] = true;
-      addMessage("Ok");
-      return true;
-    }
-    if (_inventory.contains(noun)) {
-      _inventory.remove(noun);
-      _objectLocations[noun] = _currentRoomId;
-      if (noun == 'CHAIR' || noun == 'CHEST') {
-        addMessage('CRASH!!!');
-      } else {
-        addMessage('Ok');
-      }
-      return true;
-    }
-    addMessage("You aren't carrying it!!");
-    return true;
-  }
-
-  bool _handleOpen(String noun) {
-    if (noun == 'CUPBOARD' && _currentRoomId == 3) {
-      _gameFlags['cupboard_open'] = true;
-      addMessage("Ok");
-      return true;
-    }
-    if (noun == 'SAFE' &&
-        _currentRoomId == 13 &&
-        _gameFlags['painting_moved'] == true) {
-      addMessage("Enter the 4 digit combination");
-      return true;
-    }
-    return false;
-  }
-
-  bool _handleExamine(String noun) {
-    if (noun == 'AROUND') {
-      if (_currentRoomId == 1 && _objectLocations['CORRIDOR'] == null) {
-        _objectLocations['CORRIDOR'] = 1;
-        addMessage("I can see something!");
-        return true;
-      }
-      if (_currentRoomId == 3 && _objectLocations['CUPBOARD'] == 0) {
-        _objectLocations['CUPBOARD'] = 3;
-        addMessage("I can see something!");
-        return true;
-      }
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'CUPBOARD' &&
-        _currentRoomId == 3 &&
-        _gameFlags['cupboard_open'] == true) {
-      if (_objectLocations['MATCHES'] == 0) _objectLocations['MATCHES'] = 3;
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'SINK' && _currentRoomId == 3) {
-      if (_objectLocations['WATER'] == 0) _objectLocations['WATER'] = 3;
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'FIREPLACE' && _currentRoomId == 8) {
-      if (_objectLocations['COAL'] == 0) _objectLocations['COAL'] = 8;
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'DESK' && _currentRoomId == 7) {
-      if (_objectLocations['BIBLE'] == 0) _objectLocations['BIBLE'] = 7;
-      if (_objectLocations['LETTER'] == 0) _objectLocations['LETTER'] = 7;
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'CHEST' &&
-        _currentRoomId == _objectLocations['CHEST'] &&
-        _gameFlags['chest_broken'] == true) {
-      if (_objectLocations['KEY'] == 0) {
-        _objectLocations['KEY'] = _currentRoomId;
-      }
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'SAFE' &&
-        _currentRoomId == 13 &&
-        _gameFlags['safe_open'] == true) {
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'DOG') {
-      addMessage("It has eyes like red embers.");
-      return true;
-    }
-    if (noun == 'RAT' && _currentRoomId == 1) {
-      addMessage("Looks pretty nasty!!");
-      return true;
-    }
-    if (noun == 'SHELVES' && _currentRoomId == 16) {
-      if (_objectLocations['BOOK'] == null || _objectLocations['BOOK'] == 0) _objectLocations['BOOK'] = 16;
-      addMessage("I can see something!");
-      return true;
-    }
-    if (noun == 'BIBLE') {
-      addMessage("It falls open at the first page.");
-      return true;
-    }
-    if (noun == 'WINE') {
-      addMessage("French red. Maybe you should try it.");
-      return true;
-    }
-    if (noun == 'PAINTING') {
-      addMessage("It's an oil painting of two horses.");
-      return true;
-    }
-    if (noun == 'CLOCK' || noun == 'GRANDFATHER CLOCK') {
-      addMessage("It's getting terribly late!!");
-      return true;
-    }
-    if (noun == 'BOOK') {
-      addMessage("THE EXORCIST - How apt.");
-      return true;
-    }
-    return false;
-  }
-
-  bool _handleClimb(String noun) {
-    if (noun == 'CHAIR') {
-      if (_currentRoomId == 3 && _objectLocations['CHAIR'] == 3) {
-        addMessage("Ok, you're standing on the chair.");
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool _handleLight(String noun) {
-    if (noun == 'CANDLE' &&
-        _inventory.contains('CANDLE') &&
-        _inventory.contains('MATCHES')) {
-      _inventory.remove('CANDLE');
-      _inventory.add('LIT CANDLE');
-      _candleLife = 100;
-      addMessage("Ok");
-      return true;
-    }
-    return false;
-  }
-
-  bool _handleExtinguish(String noun) {
-    if (noun == 'CANDLE' && _inventory.contains('LIT CANDLE')) {
-      _inventory.remove('LIT CANDLE');
-      _inventory.add('CANDLE');
-      addMessage("It went out!!");
-      return true;
-    }
-    return false;
-  }
-
-  bool _handleBurn(String noun) {
-    if (noun == 'COAL' &&
-        _currentRoomId == 26 &&
-        _objectLocations['COAL'] == 26 &&
-        _objectLocations['RAG'] == 26) {
-      _gameFlags['dog_terrified'] = true;
-      _objectLocations['COAL'] = 0;
-      _objectLocations['RAG'] = 0;
-      addMessage(
-        "The coals glow like the dog's eyes, and he runs away, terrified!",
-      );
-      return true;
-    }
-    return false;
   }
 
   bool moveInDirection(String direction) {

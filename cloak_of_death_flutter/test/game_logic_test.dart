@@ -279,7 +279,7 @@ void main() {
     exec('OPEN SAFE'); // 1327
     exec('1327');
     exec('EXAMINE SAFE');
-    exec('GET KEY'); // Gets GATE KEY
+    exec('GET GATE KEY'); // Gets GATE KEY
     expectInv('GATE KEY');
 
     // Sequence 10: Escape
