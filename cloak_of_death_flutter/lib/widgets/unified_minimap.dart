@@ -8,7 +8,6 @@ import '../game/game_state.dart';
 /// Set [floating] to true for transparent overlay mode (portrait).
 /// In floating mode, the widget starts collapsed as a single player icon
 /// and expands on tap, auto-collapsing after 3 seconds of inactivity.
-/// Collapse uses a cubic ease-in-out animation.
 class UnifiedMinimap extends StatefulWidget {
   final bool floating;
 
@@ -18,43 +17,27 @@ class UnifiedMinimap extends StatefulWidget {
   State<UnifiedMinimap> createState() => _UnifiedMinimapState();
 }
 
-class _UnifiedMinimapState extends State<UnifiedMinimap>
-    with SingleTickerProviderStateMixin {
+class _UnifiedMinimapState extends State<UnifiedMinimap> {
+  bool _expanded = false;
   Timer? _collapseTimer;
-  late final AnimationController _animController;
-  late final Animation<double> _animation;
 
   double get _buttonSize => widget.floating ? 44 : 48;
   double get _spacing => 6.0;
 
   @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _animation = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeInOut,
-    );
-  }
-
-  @override
   void dispose() {
     _collapseTimer?.cancel();
-    _animController.dispose();
     super.dispose();
   }
 
   void _expand() {
-    _animController.forward();
+    setState(() => _expanded = true);
     _resetCollapseTimer();
   }
 
   void _collapse() {
     _collapseTimer?.cancel();
-    _animController.reverse();
+    setState(() => _expanded = false);
   }
 
   void _resetCollapseTimer() {
@@ -69,7 +52,7 @@ class _UnifiedMinimapState extends State<UnifiedMinimap>
 
   @override
   Widget build(BuildContext context) {
-    // Non-floating mode: always show full nav, no animation
+    // Non-floating mode: always show full nav
     if (!widget.floating) {
       return Consumer<GameState>(
         builder: (context, gameState, child) {
@@ -83,50 +66,29 @@ class _UnifiedMinimapState extends State<UnifiedMinimap>
       );
     }
 
-    // Floating mode: animated expand/collapse
+    // Floating mode: expand/collapse with outside-tap dismiss
     return TapRegion(
       onTapOutside: (_) {
-        if (_animController.isCompleted || _animController.isAnimating) {
-          _collapse();
-        }
+        if (_expanded) _collapse();
       },
       child: Consumer<GameState>(
         builder: (context, gameState, child) {
           final exits = gameState.getAvailableExits();
 
-          return AnimatedBuilder(
-            animation: _animation,
-            builder: (context, child) {
-              final expanded = _animation.value > 0;
-
-              return Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.background.withAlpha(100),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.all(8),
-                child: expanded
-                    ? _buildAnimatedFloatingNav(exits, gameState)
-                    : GestureDetector(
-                        onTap: _expand,
-                        child: _buildCenterIcon(),
-                      ),
-              );
-            },
+          return Container(
+            decoration: BoxDecoration(
+              color: AppTheme.background.withAlpha(100),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.all(8),
+            child: _expanded
+                ? _buildFullNav(exits, gameState)
+                : GestureDetector(
+                    onTap: _expand,
+                    child: _buildCenterIcon(),
+                  ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildAnimatedFloatingNav(
-      Map<String, dynamic> exits, GameState gameState) {
-    return FadeTransition(
-      opacity: _animation,
-      child: SizeTransition(
-        sizeFactor: _animation,
-        fixedCrossAxisSizeFactor: 1.0,
-        child: _buildFullNav(exits, gameState),
       ),
     );
   }
@@ -138,7 +100,6 @@ class _UnifiedMinimapState extends State<UnifiedMinimap>
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Left side: UP/DOWN stack
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -148,7 +109,6 @@ class _UnifiedMinimapState extends State<UnifiedMinimap>
             ],
           ),
           const SizedBox(width: 20),
-          // Right side: Compass cross
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
