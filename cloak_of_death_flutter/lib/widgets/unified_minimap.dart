@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
@@ -5,19 +6,70 @@ import '../game/game_state.dart';
 
 /// Unified minimap widget with integrated navigation controls.
 /// Set [floating] to true for transparent overlay mode (portrait).
-class UnifiedMinimap extends StatelessWidget {
+/// In floating mode, the widget starts collapsed as a single player icon
+/// and expands on tap, auto-collapsing after 5 seconds of inactivity.
+class UnifiedMinimap extends StatefulWidget {
   final bool floating;
 
   const UnifiedMinimap({super.key, this.floating = false});
 
-  double get _buttonSize => floating ? 44 : 48;
+  @override
+  State<UnifiedMinimap> createState() => _UnifiedMinimapState();
+}
+
+class _UnifiedMinimapState extends State<UnifiedMinimap> {
+  bool _expanded = false;
+  Timer? _collapseTimer;
+
+  double get _buttonSize => widget.floating ? 44 : 48;
   double get _spacing => 6.0;
+
+  @override
+  void dispose() {
+    _collapseTimer?.cancel();
+    super.dispose();
+  }
+
+  void _expand() {
+    setState(() => _expanded = true);
+    _resetCollapseTimer();
+  }
+
+  void _collapse() {
+    _collapseTimer?.cancel();
+    setState(() => _expanded = false);
+  }
+
+  void _resetCollapseTimer() {
+    _collapseTimer?.cancel();
+    _collapseTimer = Timer(const Duration(seconds: 5), _collapse);
+  }
+
+  void _onNavPressed(GameState gameState, String direction) {
+    gameState.processCommand(direction);
+    _resetCollapseTimer();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<GameState>(
       builder: (context, gameState, child) {
         final exits = gameState.getAvailableExits();
+
+        // Floating mode: collapsed = just the player icon; expanded = full nav
+        if (widget.floating && !_expanded) {
+          return GestureDetector(
+            onTap: _expand,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppTheme.background.withAlpha(100),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.all(8),
+              child: _buildCenterIcon(),
+            ),
+          );
+        }
 
         final content = FittedBox(
           fit: BoxFit.scaleDown,
@@ -29,9 +81,9 @@ class UnifiedMinimap extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildNavButton('U', exits.containsKey('U'), gameState, context),
+                  _buildNavButton('U', exits.containsKey('U'), gameState),
                   SizedBox(height: _spacing),
-                  _buildNavButton('D', exits.containsKey('D'), gameState, context),
+                  _buildNavButton('D', exits.containsKey('D'), gameState),
                 ],
               ),
               const SizedBox(width: 20),
@@ -39,27 +91,32 @@ class UnifiedMinimap extends StatelessWidget {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildNavButton('N', exits.containsKey('N'), gameState, context),
+                  _buildNavButton('N', exits.containsKey('N'), gameState),
                   SizedBox(height: _spacing),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildNavButton('W', exits.containsKey('W'), gameState, context),
+                      _buildNavButton('W', exits.containsKey('W'), gameState),
                       SizedBox(width: _spacing),
-                      _buildCenterIcon(),
+                      widget.floating
+                          ? GestureDetector(
+                              onTap: _collapse,
+                              child: _buildCenterIcon(),
+                            )
+                          : _buildCenterIcon(),
                       SizedBox(width: _spacing),
-                      _buildNavButton('E', exits.containsKey('E'), gameState, context),
+                      _buildNavButton('E', exits.containsKey('E'), gameState),
                     ],
                   ),
                   SizedBox(height: _spacing),
-                  _buildNavButton('S', exits.containsKey('S'), gameState, context),
+                  _buildNavButton('S', exits.containsKey('S'), gameState),
                 ],
               ),
             ],
           ),
         );
 
-        if (floating) {
+        if (widget.floating) {
           return Container(
             decoration: BoxDecoration(
               color: AppTheme.background.withAlpha(100),
@@ -83,9 +140,8 @@ class UnifiedMinimap extends StatelessWidget {
     String direction,
     bool hasExit,
     GameState gameState,
-    BuildContext context,
   ) {
-    final bgColor = floating
+    final bgColor = widget.floating
         ? (hasExit ? AppTheme.highlight.withAlpha(200) : Colors.transparent)
         : (hasExit ? AppTheme.highlight : AppTheme.background);
 
@@ -93,7 +149,7 @@ class UnifiedMinimap extends StatelessWidget {
       width: _buttonSize,
       height: _buttonSize,
       child: ElevatedButton(
-        onPressed: () => gameState.processCommand(direction),
+        onPressed: () => _onNavPressed(gameState, direction),
         style: ElevatedButton.styleFrom(
           backgroundColor: bgColor,
           foregroundColor: hasExit ? AppTheme.text : AppTheme.panel,
@@ -107,7 +163,9 @@ class UnifiedMinimap extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: hasExit ? AppTheme.text : (floating ? AppTheme.text.withAlpha(60) : AppTheme.panel),
+            color: hasExit
+                ? AppTheme.text
+                : (widget.floating ? AppTheme.text.withAlpha(60) : AppTheme.panel),
           ),
         ),
       ),
@@ -119,7 +177,7 @@ class UnifiedMinimap extends StatelessWidget {
       width: _buttonSize,
       height: _buttonSize,
       decoration: BoxDecoration(
-        color: floating
+        color: widget.floating
             ? AppTheme.highlight.withAlpha(60)
             : AppTheme.highlight.withAlpha(77),
       ),
