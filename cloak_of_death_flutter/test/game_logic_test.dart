@@ -14,7 +14,8 @@ void main() {
   });
 
   test('Complete Walkthrough Test', () {
-    // We will verify the game logic can execute the exact walkthrough.
+    // Walkthrough matching original Atari BASIC game flow.
+    // Object locations verified against Atari screenshots.
 
     void exec(String cmd) {
       gameState.processCommand(cmd);
@@ -40,7 +41,7 @@ void main() {
       expect(gameState.currentRoomId, id, reason: 'Expected to be in room $id');
     }
 
-    // Sequence 1: Entrance, Dining, Kitchen
+    // === Phase 1: Kitchen — get KNIFE, open CUPBOARD for MATCHES ===
     assertRoom(1);
     exec('W');
     assertRoom(2); // Dining Room
@@ -48,9 +49,9 @@ void main() {
     expectInv('CHAIR');
 
     exec('N');
-    assertRoom(3); // Kitchen
+    assertRoom(3); // Kitchen — KNIFE, BREAD, SINK here; CUPBOARD hidden until LOOK
     exec('DROP CHAIR');
-    exec('LOOK AROUND');
+    exec('LOOK AROUND'); // Reveals CUPBOARD (BASIC line 1220)
     exec('OPEN CUPBOARD');
     exec('EXAMINE CUPBOARD');
     exec('CLIMB CHAIR');
@@ -60,7 +61,7 @@ void main() {
     expectInv('KNIFE');
     exec('EXAMINE SINK');
 
-    // Sequence 2: Sitting Room, Study, Conservatory
+    // === Phase 2: Study — get BIBLE from DESK, Conservatory — get CHEST ===
     exec('S');
     assertRoom(2);
     exec('E');
@@ -72,7 +73,7 @@ void main() {
     expectInv('COAL');
 
     exec('N');
-    assertRoom(7); // Oak Panelled Study
+    assertRoom(7); // Oak Panelled Study — DESK here (screenshot verified)
     exec('EXAMINE DESK');
     exec('GET BIBLE');
     exec('GET LETTER');
@@ -85,9 +86,10 @@ void main() {
     exec('GET CHEST');
     expectInv('CHEST');
 
-    // Sequence 3: Corridors and Cellar
+    // === Phase 3: Corridors and Cellar ===
     exec('S');
     assertRoom(1);
+    exec('LOOK AROUND'); // Reveals CORRIDOR (BASIC line 1210)
     exec('GO CORRIDOR');
     assertRoom(5); // Dark Corridor
     exec('DROP CHEST');
@@ -109,6 +111,11 @@ void main() {
 
     exec('GO DOOR');
     assertRoom(20); // Cellar
+    exec('GET WIRE');
+    expectInv('WIRE');
+    exec('GET IRON');
+    expectInv('IRON');
+
     exec('E');
     assertRoom(24); // Underground Chamber
     exec('S');
@@ -119,8 +126,7 @@ void main() {
     exec('N');
     assertRoom(24);
     exec('E');
-    assertRoom(26); // Dark Passage (Dog)
-    exec('EXAMINE DOG');
+    assertRoom(26); // Dark Passage
     exec('DROP COAL');
     exec('DROP RAG');
     exec('BURN COAL'); // Dog runs away
@@ -129,7 +135,24 @@ void main() {
     assertRoom(24);
     exec('GET HAMMER');
     expectInv('HAMMER');
+    exec('GET SAW');
+    expectInv('SAW');
 
+    // === Phase 4: Make Crucifix at room 25 ===
+    exec('S');
+    assertRoom(25);
+    exec('GET BAR');
+    expectInv('BAR');
+    exec('CUT BAR');
+    expectInv('BAR PIECES');
+    exec('MAKE CRUCIFIX');
+    exec('GET CRUCIFIX');
+    expectInv('CRUCIFIX');
+    exec('DROP SAW');
+
+    // === Phase 5: Back upstairs ===
+    exec('N');
+    assertRoom(24);
     exec('W');
     assertRoom(20);
     exec('U');
@@ -137,13 +160,13 @@ void main() {
     exec('EXTINGUISH CANDLE');
     expectNotInv('LIT CANDLE');
 
-    // Sequence 4: Upstairs
+    // === Phase 6: Upstairs — Library and Hatch ===
     exec('S');
     assertRoom(1);
     exec('U');
     assertRoom(14); // Icy Corridor
     exec('N');
-    assertRoom(15); // Haunted Room? Wait, walkthrough says N, N
+    assertRoom(15); // Haunted Room
     exec('N');
     assertRoom(16); // Library
     exec('LIGHT CANDLE');
@@ -152,150 +175,109 @@ void main() {
     exec('GO PASSAGEWAY');
     assertRoom(17); // Secret Passageway
 
-    exec('U');
-    assertRoom(18); // Old Attic
-    exec('E');
-    assertRoom(19); // Tower (Pool Room?)
+    exec('D');
+    assertRoom(16); // Library
+    exec('S');
+    assertRoom(15);
+    exec('S');
+    assertRoom(14);
+    exec('EXTINGUISH CANDLE');
+    exec('D');
+    assertRoom(1);
+
+    // === Phase 7: Cellar — HATCH at room 21, get Wine ===
+    exec('GO CORRIDOR');
+    assertRoom(5);
+    exec('LIGHT CANDLE');
+    exec('GO DOOR');
+    assertRoom(20);
+    exec('W');
+    assertRoom(21); // Wine Cellar / Pool Room — WINE, HATCH, TABLE here
     exec('REMOVE NAILS');
     exec('DROP HAMMER');
-    exec('GO HATCH');
-    assertRoom(22); // Store room
-    exec('GET WIRE');
-    expectInv('WIRE');
-
-    // Sequence 5: Cellar and Saw
-    exec('S'); // Back from hatch to Tower?
-    exec('PUSH TABLE');
-    exec('W');
-    exec('D');
-    exec('S'); // 16 -> 15
-    exec('S'); // 15 -> 14
-    exec('EXTINGUISH CANDLE');
-    exec('D'); // 14 -> 1
-    exec('GO CORRIDOR');
-    exec('GO DOOR');
-    exec('LIGHT CANDLE');
-    exec('E');
-    exec('GET SAW');
-    expectInv('SAW');
-
-    // Sequence 6: Making the Crucifix
-    exec('S');
-    exec('DROP BIBLE');
-    exec('GET BAR');
-    exec('CUT BAR');
-    exec('MAKE CRUCIFIX');
-    exec('DROP SAW');
-    exec('GET CRUCIFIX');
-    exec('GET BIBLE');
-    expectInv('CRUCIFIX');
-    expectInv('BIBLE');
-
-    // Sequence 7: Iron and Goblet
-    exec('N');
-    exec('W');
-    exec('U');
-    exec('EXTINGUISH CANDLE');
-    exec('S');
-    exec('DROP BIBLE');
-    exec('DROP CRUCIFIX');
-    exec('GO CORRIDOR');
-    exec('LIGHT CANDLE');
-    exec('DROP MATCHES');
-    exec('GO DOOR');
-    exec('GET IRON');
-    expectInv('IRON');
-
-    exec('U');
-    exec('EXTINGUISH CANDLE');
-    exec('S');
-    exec('DROP KNIFE');
-    exec('GET BIBLE');
-    exec('U');
-    exec('W');
-    exec('PULL CORD');
-    exec('DROP IRON');
-    exec('E');
-    exec('N');
-    exec('W');
-    exec('GO ANNEXE');
-    exec('GET GOBLET');
-    expectInv('GOBLET');
-
-    // Sequence 8: Wine and Water
-    exec('E');
-    exec('E');
-    exec('S');
-    exec('D');
-    exec('GET KNIFE');
-    exec('DROP BIBLE');
-    exec('GO CORR');
-    exec('GET MATCHES');
-    exec('GO DOOR');
-    exec('LIGHT CANDLE');
-    exec('W');
     exec('GET WINE');
     expectInv('WINE');
 
     exec('E');
+    assertRoom(20);
     exec('U');
+    assertRoom(5);
     exec('EXTINGUISH CANDLE');
-    exec('S');
-    exec('DROP KNIFE');
-    exec('GET CRUCIFIX');
-    exec('GET BIBLE');
-    exec('U');
-    exec('N');
-    exec('DROP MATCHES');
-    exec('DROP CANDLE'); // Dropping unlit candle
-    exec('S');
-    exec('D');
-    exec('W');
-    exec('N');
-    exec(
-      'GET WATER',
-    ); // Automatically makes HOLY WATER if we have Bible and Crucifix
-    exec('GET BREAD');
-    expectInv('HOLY WATER');
-    expectInv('BREAD');
 
-    // Sequence 9: The Exorcism
+    // === Phase 8: Get Goblet, set up safe ===
     exec('S');
-    exec('E');
+    assertRoom(1);
+    exec('DROP KNIFE');
     exec('U');
+    assertRoom(14);
     exec('N');
-    exec('GET CANDLE');
-    exec('DROP BIBLE');
-    exec('GET MATCHES');
-    exec('LIGHT CANDLE');
-    exec('DROP MATCHES');
-    exec('GET BIBLE');
-    // In Haunted Room (15)
-    exec('EXORCISE CLOAK');
-    exec('DROP BREAD');
-    exec('E'); // Move to Master Bedroom (13) for Safe
+    assertRoom(15);
     exec('GET PAINTING');
+    expectInv('PAINTING');
+    exec('W');
+    assertRoom(12); // Annexe — GOBLET here
+    exec('GET GOBLET');
+    expectInv('GOBLET');
+
+    exec('E');
+    assertRoom(15);
+    exec('E');
+    assertRoom(13); // Master Bedroom
     exec('DROP PAINTING');
-    exec('OPEN SAFE'); // 1327
+    exec('OPEN SAFE');
     exec('1327');
     exec('EXAMINE SAFE');
-    exec('GET GATE KEY'); // Gets GATE KEY
+    exec('GET GATE KEY');
     expectInv('GATE KEY');
 
-    // Sequence 10: Escape
+    // === Phase 9: Get water, make HOLY WATER ===
     exec('W');
-    exec('EXTINGUISH CANDLE');
-    exec('LEAVE WINE'); // DROP WINE
-    exec('GET MATCHES');
+    assertRoom(15);
     exec('S');
+    assertRoom(14);
     exec('D');
-    exec('GET KNIFE');
-    exec('GO CORR');
-    exec('GO DOOR');
-    exec('LIGHT CANDLE');
+    assertRoom(1);
+    exec('W');
+    assertRoom(2);
+    exec('N');
+    assertRoom(3); // Kitchen
+    exec('GET WATER'); // GOBLET + BIBLE + CRUCIFIX → HOLY WATER
+    expectInv('HOLY WATER');
+    exec('GET BREAD');
+    expectInv('BREAD');
+
+    // === Phase 10: The Exorcism ===
+    exec('S');
+    assertRoom(2);
     exec('E');
-    exec('E'); // To Dark Passage
-    exec('UNLOCK GATES'); // Uses GATE KEY
+    assertRoom(1);
+    exec('U');
+    assertRoom(14);
+    exec('N');
+    assertRoom(15); // Haunted Room — CLOAK here
+    exec('LIGHT CANDLE');
+    exec('DROP MATCHES');
+    exec('EXORCISE CLOAK');
+    exec('DROP BREAD');
+
+    // === Phase 11: Escape ===
+    exec('S');
+    assertRoom(14);
+    exec('EXTINGUISH CANDLE');
+    exec('D');
+    assertRoom(1);
+    exec('GET KNIFE');
+    exec('GO CORRIDOR');
+    assertRoom(5);
+    exec('GET MATCHES');
+    exec('LIGHT CANDLE');
+    exec('GO DOOR');
+    assertRoom(20);
+    exec('E');
+    assertRoom(24);
+    exec('E');
+    assertRoom(26); // Dark Passage
+    exec('UNLOCK GATES');
     exec('E'); // Escape!
 
     expect(gameState.outputMessages.join(" "), contains("CONGRATULATIONS"));
