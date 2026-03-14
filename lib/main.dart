@@ -50,6 +50,7 @@ class _GameScreenState extends State<GameScreen> {
   final TextEditingController _commandController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _commandFocusNode = FocusNode();
+  final GlobalKey _roomViewKey = GlobalKey();
   bool _isFullScreen = false;
 
   @override
@@ -146,6 +147,49 @@ class _GameScreenState extends State<GameScreen> {
                         gameState.setAutoAnimateRooms(value);
                       },
                     ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Aspect Ratio',
+                      style: TextStyle(color: AppTheme.text, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Slider(
+                            value: gameState.aspectRatio,
+                            min: 1.0,
+                            max: 3.0,
+                            divisions: 40,
+                            activeColor: AppTheme.text,
+                            inactiveColor: AppTheme.panel,
+                            label: gameState.aspectRatio.toStringAsFixed(2),
+                            onChanged: (value) {
+                              gameState.setAspectRatio(value);
+                            },
+                          ),
+                        ),
+                        SizedBox(
+                          width: 80,
+                          child: Text(
+                            gameState.aspectRatio.toStringAsFixed(2),
+                            style: const TextStyle(
+                              color: AppTheme.text,
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        _aspectPresetButton(gameState, 'Atari', 160.0 / 96.0),
+                        _aspectPresetButton(gameState, '4:3', 4.0 / 3.0),
+                        _aspectPresetButton(gameState, '16:9', 16.0 / 9.0),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Authentic Atari speed: 20 px/s\nFast rendering: 200+ px/s',
@@ -240,6 +284,26 @@ class _GameScreenState extends State<GameScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _aspectPresetButton(GameState gameState, String label, double ratio) {
+    final isActive = (gameState.aspectRatio - ratio).abs() < 0.01;
+    return TextButton(
+      onPressed: () => gameState.setAspectRatio(ratio),
+      style: TextButton.styleFrom(
+        backgroundColor: isActive ? AppTheme.highlight : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        minimumSize: Size.zero,
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: AppTheme.text,
+          fontSize: 11,
+          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
     );
   }
 
@@ -372,7 +436,7 @@ class _GameScreenState extends State<GameScreen> {
       flex: 11,
       child: Stack(
         children: [
-          SizedBox.expand(child: RoomView(room: room)),
+          SizedBox.expand(child: RoomView(key: _roomViewKey, room: room)),
           Positioned(
             top: 8,
             right: 8,
@@ -417,10 +481,10 @@ class _GameScreenState extends State<GameScreen> {
                     flex: 4,
                     child: Center(
                       child: AspectRatio(
-                        aspectRatio: 160 / 96,
+                        aspectRatio: gameState.aspectRatio,
                         child: Stack(
                           children: [
-                            SizedBox.expand(child: RoomView(room: room)),
+                            SizedBox.expand(child: RoomView(key: _roomViewKey, room: room)),
                             Positioned(
                               top: 0,
                               right: 0,
@@ -475,10 +539,10 @@ class _GameScreenState extends State<GameScreen> {
               flex: 5,
               child: Center(
                 child: AspectRatio(
-                  aspectRatio: 160 / 96,
+                  aspectRatio: gameState.aspectRatio,
                   child: Stack(
                     children: [
-                      SizedBox.expand(child: RoomView(room: room)),
+                      SizedBox.expand(child: RoomView(key: _roomViewKey, room: room)),
                       // Floating navigation — bottom left
                       const Positioned(
                         left: 4,

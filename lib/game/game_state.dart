@@ -19,6 +19,7 @@ class GameState extends ChangeNotifier {
   double _pixelRenderSpeed = 2000.0;
   bool _autoAnimateRooms = true;
   bool _showDebugInfo = false;
+  double _aspectRatio = 160.0 / 96.0; // Atari default
 
   int _candleLife = 0;
 
@@ -35,6 +36,7 @@ class GameState extends ChangeNotifier {
   double get pixelRenderSpeed => _pixelRenderSpeed;
   bool get autoAnimateRooms => _autoAnimateRooms;
   bool get showDebugInfo => _showDebugInfo;
+  double get aspectRatio => _aspectRatio;
   // BASIC line 400: IF L>C14 AND P(C9)<>H AND P(C9)<>L THEN F1=C1
   // All rooms > 14 are dark unless lit candle is held or in the room.
   bool get isDark => _currentRoomId > 14;
@@ -169,6 +171,11 @@ class GameState extends ChangeNotifier {
 
   void setShowDebugInfo(bool value) {
     _showDebugInfo = value;
+    notifyListeners();
+  }
+
+  void setAspectRatio(double ratio) {
+    _aspectRatio = ratio.clamp(1.0, 4.0);
     notifyListeners();
   }
 
