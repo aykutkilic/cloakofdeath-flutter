@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'game/game_state.dart';
 import 'widgets/room_view.dart';
 import 'widgets/unified_minimap.dart';
-import 'widgets/verb_panel.dart';
 import 'widgets/object_panel.dart';
 import 'widgets/interactive_inventory.dart';
 import 'rendering/room_bytecode_loader.dart';
@@ -295,42 +294,94 @@ class _GameScreenState extends State<GameScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Left: Unified minimap (navigation integrated)
-                          const SizedBox(width: 120, child: UnifiedMinimap()),
+                          // Left: Navigation + settings
+                          SizedBox(
+                            width: 160,
+                            child: Column(
+                              children: [
+                                // Settings/menu row
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.settings, color: AppTheme.text, size: 20),
+                                      onPressed: () => _showSettingsDialog(context),
+                                      tooltip: 'Settings',
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.menu, color: AppTheme.text, size: 20),
+                                      color: AppTheme.panel,
+                                      padding: EdgeInsets.zero,
+                                      onSelected: (value) {
+                                        if (value == 'restart') {
+                                          context.read<GameState>().reset();
+                                        } else if (value == 'about') {
+                                          _showAboutDialog(context);
+                                        } else if (value == 'stats') {
+                                          _showStatsDialog(context, gameState);
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                        const PopupMenuItem<String>(
+                                          value: 'restart',
+                                          child: Text('Restart', style: TextStyle(color: AppTheme.text, fontFamily: 'Atari')),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: 'about',
+                                          child: Text('About', style: TextStyle(color: AppTheme.text, fontFamily: 'Atari')),
+                                        ),
+                                        const PopupMenuItem<String>(
+                                          value: 'stats',
+                                          child: Text('Stats', style: TextStyle(color: AppTheme.text, fontFamily: 'Atari')),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                // Navigation compass
+                                const Expanded(child: UnifiedMinimap()),
+                              ],
+                            ),
+                          ),
                           const SizedBox(width: 8),
 
-                          // Center: Room name, Room visualization, Inventory
+                          // Center: Room visualization + Inventory
                           Expanded(
-                            flex: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // Room visualization
+                                // Room visualization — maintains Atari aspect ratio
                                 Expanded(
                                   flex: 4,
-                                  child: Stack(
-                                    children: [
-                                      Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.transparent,
-                                        ),
-                                        child: RoomView(room: room),
+                                  child: Center(
+                                    child: AspectRatio(
+                                      aspectRatio: 160 / 96,
+                                      child: Stack(
+                                        children: [
+                                          SizedBox.expand(
+                                            child: RoomView(room: room),
+                                          ),
+                                          Positioned(
+                                            top: 0,
+                                            right: 0,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.fullscreen, color: AppTheme.text, size: 20),
+                                              padding: EdgeInsets.zero,
+                                              constraints: const BoxConstraints(),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _isFullScreen = true;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Positioned(
-                                        top: 0,
-                                        right: 0,
-                                        child: IconButton(
-                                          icon: const Icon(Icons.fullscreen, color: AppTheme.text, size: 20),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                          onPressed: () {
-                                            setState(() {
-                                              _isFullScreen = true;
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -344,99 +395,17 @@ class _GameScreenState extends State<GameScreen> {
                           ),
                           const SizedBox(width: 8),
 
-                        // Right: Interactive panels (verbs, objects)
-                        SizedBox(
-                          width: 180,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Top Right Menus
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.settings,
-                                      color: AppTheme.text,
-                                    ),
-                                    onPressed: () {
-                                      _showSettingsDialog(context);
-                                    },
-                                    tooltip: 'Settings',
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: const Icon(
-                                      Icons.menu,
-                                      color: AppTheme.text,
-                                    ),
-                                    color: AppTheme.panel,
-                                    onSelected: (value) {
-                                      if (value == 'restart') {
-                                        context.read<GameState>().reset();
-                                      } else if (value == 'about') {
-                                        _showAboutDialog(context);
-                                      } else if (value == 'stats') {
-                                        _showStatsDialog(context, gameState);
-                                      }
-                                    },
-                                    itemBuilder: (BuildContext context) =>
-                                        <PopupMenuEntry<String>>[
-                                          const PopupMenuItem<String>(
-                                            value: 'restart',
-                                            child: Text(
-                                              'Restart',
-                                              style: TextStyle(
-                                                color: AppTheme.text,
-                                                fontFamily: 'Atari',
-                                              ),
-                                            ),
-                                          ),
-                                          const PopupMenuItem<String>(
-                                            value: 'about',
-                                            child: Text(
-                                              'About',
-                                              style: TextStyle(
-                                                color: AppTheme.text,
-                                                fontFamily: 'Atari',
-                                              ),
-                                            ),
-                                          ),
-                                          const PopupMenuItem<String>(
-                                            value: 'stats',
-                                            child: Text(
-                                              'Stats',
-                                              style: TextStyle(
-                                                color: AppTheme.text,
-                                                fontFamily: 'Atari',
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              // Verb and Object panels (Scrollable together)
-                              Expanded(
-                                flex: 5,
-                                child: SingleChildScrollView(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: const [
-                                      VerbPanel(),
-                                      SizedBox(height: 4),
-                                      ObjectPanel(),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                          // Right: Objects panel only (verbs are now a popup)
+                          SizedBox(
+                            width: 150,
+                            child: SingleChildScrollView(
+                              child: const ObjectPanel(),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
                 // Game output text
                 Expanded(

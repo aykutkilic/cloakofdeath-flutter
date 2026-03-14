@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/game_state.dart';
 import '../app_theme.dart';
+import 'verb_panel.dart';
 
 /// Interactive inventory widget with clickable items
 class InteractiveInventory extends StatelessWidget {
@@ -155,7 +156,10 @@ class InteractiveInventory extends StatelessWidget {
                           final isSelected = selectedObject == item;
 
                           return ElevatedButton(
-                            onPressed: () => gameState.selectObject(item),
+                            onPressed: () {
+                              gameState.selectObject(item);
+                              VerbPanel.showVerbPopup(context, item);
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
                               foregroundColor: isSelected ? AppTheme.background : AppTheme.text,

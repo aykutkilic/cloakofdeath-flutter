@@ -105,7 +105,7 @@ class GameState extends ChangeNotifier {
       'BAR': 25,         // P(2)=25 Torture Chamber
       'BIBLE': 0,        // P(4)=0  hidden (revealed by EXAMINE DESK)
       'BOOK': 0,         // P(5)=0  hidden (revealed by EXAMINE SHELVES)
-      'WINE': 21,        // P(6)=22 original; adjusted to 21 (room 22 unreachable in Flutter)
+      'WINE': 22,        // P(6)=22 Wine Cellar
       'BREAD': 3,        // P(7)=3  Kitchen
       'CANDLE': 4,       // P(8)=4  Pantry
       'CHAIR': 2,        // P(10)=2 Dining Room
@@ -113,7 +113,7 @@ class GameState extends ChangeNotifier {
       'COAL': 0,         // P(12)=0 hidden (revealed by EXAMINE FIREPLACE)
       'GOBLET': 12,      // P(14)=12 (room 12)
       'HAMMER': 24,      // P(17)=24 Underground Chamber
-      'IRON': 20,        // P(18)=23 original; adjusted to 20 (room 23 unreachable in Flutter)
+      'IRON': 23,        // P(18)=23 Cold Damp Cellar
       'KEY': 0,          // P(19)=0  hidden (revealed by EXAMINE CHEST)
       'GATE KEY': 0,     // P(20)=0  hidden (in safe)
       'KNIFE': 3,        // P(21)=3  Kitchen
@@ -463,7 +463,7 @@ class GameState extends ChangeNotifier {
     }
 
     if (command == '1327') {
-      if (_currentRoomId == 13 && _gameFlags['painting_moved'] == true) {
+      if (_gameFlags['painting_moved'] == true && _objectLocations['SAFE'] == _currentRoomId) {
         addMessage("You've cracked it!");
         _gameFlags['safe_open'] = true;
         saveState();
@@ -522,25 +522,39 @@ class GameState extends ChangeNotifier {
        if (['N', 'S', 'E', 'W', 'U', 'D', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'UP', 'DOWN'].contains(verbString)) {
          moveInDirection(verbString[0]);
        } else if (o == 39 && _gameFlags['door_unlocked'] == true && _currentRoomId == 5) {
-         // GO DOOR — enter cellar
-         _currentRoomId = 20;
+         // GO DOOR — enter cellar (BASIC K=35 → room 23)
+         _currentRoomId = 23;
          _moveCount++;
          describeCurrentRoom();
        } else if (o == 35) { // GO CORRIDOR
          if (!_isObjectPresent('CORRIDOR')) {
            addMessage("I don't see it here.");
+         } else if (_currentRoomId == 1 && !_inventory.contains('KNIFE')) {
+           // BASIC line 1086: rat blocks corridor without knife
+           addMessage('What about the rat?');
          } else {
-           moveInDirection('N');
+           // BASIC K=7: GO CORRIDOR at room 1 → room 5
+           _currentRoomId = 5;
+           _moveCount++;
+           describeCurrentRoom();
          }
-       } else if (o == 46 && _gameFlags['bookshelf_moved'] == true) { // GO PASSAGEWAY
-         moveInDirection('U');
+       } else if (o == 46 && _gameFlags['bookshelf_moved'] == true && _currentRoomId == 16) { // GO PASSAGEWAY
+         _currentRoomId = 17;
+         _moveCount++;
+         describeCurrentRoom();
        } else if (o == 44 && _gameFlags['hatch_open'] == true && _objectLocations['HATCH'] == _currentRoomId) {
          // GO HATCH — BASIC line 1020/1105
          _currentRoomId = 20; // Original: GO HATCH leads to room 20
          _moveCount++;
          describeCurrentRoom();
-       } else if (o == 53) { // GO ANNEXE
-         moveInDirection('W');
+       } else if (o == 53) { // GO ANNEXE — BASIC K=91: room 13 special → room 12
+         if (!_isObjectPresent('ANNEXE')) {
+           addMessage("I don't see it here.");
+         } else {
+           _currentRoomId = 12;
+           _moveCount++;
+           describeCurrentRoom();
+         }
        } else {
          addMessage("You can't go that way.");
        }
@@ -667,7 +681,7 @@ class GameState extends ChangeNotifier {
        } else if (o == 36) { // OPEN CUPBOARD
          _gameFlags['cupboard_open'] = true;
          addMessage("Ok");
-       } else if (o == 48 && _currentRoomId == 13 && _gameFlags['painting_moved'] == true) {
+       } else if (o == 48 && _objectLocations['SAFE'] == _currentRoomId) {
          addMessage("Enter the 4 digit combination");
        } else {
          addMessage("Sorry, but I can't do that.");
@@ -811,6 +825,29 @@ class GameState extends ChangeNotifier {
     final dir = direction.toUpperCase();
     final exits = getAvailableExits();
 
+    // BASIC line 1080 (K=5): Room 1 Up → Room 9, needs Bible
+    if (_currentRoomId == 1 && dir == 'U' && !_inventory.contains('BIBLE')) {
+      addMessage("I'm too scared. It looks very creepy!!");
+      return false;
+    }
+    // BASIC line 1100 (K=94): Room 14 East → Room 15, needs Bible+Crucifix or cloak exorcised
+    if (_currentRoomId == 14 && dir == 'E') {
+      if (_gameFlags['cloak_exorcised'] != true &&
+          (!_inventory.contains('BIBLE') || !_inventory.contains('CRUCIFIX'))) {
+        addMessage("That's the haunted bedroom!!");
+        return false;
+      }
+      // Conditional exit to room 15
+      _currentRoomId = 15;
+      _moveCount++;
+      if (isTooDarkToSee) {
+        addMessage("It's difficult, moving in the dark!!");
+      }
+      describeCurrentRoom();
+      saveState();
+      notifyListeners();
+      return true;
+    }
     // BASIC line 1110: dog at room 26 blocks east movement
     if (_currentRoomId == 26 && dir == 'E' && _objectLocations['DOG'] == 26) {
       addMessage('The dog snarls, revealing bloodstained fangs!!');
@@ -819,15 +856,6 @@ class GameState extends ChangeNotifier {
     // BASIC line 1115: gates must be unlocked to go east from room 26
     if (_currentRoomId == 26 && dir == 'E' && _gameFlags['gates_unlocked'] != true) {
       addMessage('The gates are locked.');
-      return false;
-    }
-    if (_currentRoomId == 1 && dir == 'N' && !_inventory.contains('KNIFE')) {
-      addMessage('What about the rat?');
-      return false;
-    }
-
-    if (_currentRoomId == 1 && dir == 'U' && !_inventory.contains('BIBLE')) {
-      addMessage("I'm too scared. It looks very creepy!!");
       return false;
     }
 

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../game/game_state.dart';
 import '../app_theme.dart';
+import 'verb_panel.dart';
 
-/// Panel displaying clickable objects in current room
+/// Panel displaying clickable objects in current room.
+/// Tapping an object opens the 4x4 action popup.
 class ObjectPanel extends StatelessWidget {
   const ObjectPanel({super.key});
 
@@ -12,7 +14,6 @@ class ObjectPanel extends StatelessWidget {
     return Consumer<GameState>(
       builder: (context, gameState, child) {
         final objects = gameState.getVisibleObjects();
-        final selectedObject = gameState.selectedObject;
 
         return Container(
           decoration: const BoxDecoration(color: AppTheme.background),
@@ -21,33 +22,12 @@ class ObjectPanel extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Title
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'OBJECTS HERE',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.text,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (selectedObject != null && objects.contains(selectedObject))
-                    TextButton(
-                      onPressed: () => gameState.clearSelectedObject(),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 4, vertical: 2),
-                        minimumSize: const Size(0, 0),
-                      ),
-                      child: Text(
-                        'CLEAR',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppTheme.text,
-                              fontSize: 10,
-                            ),
-                      ),
-                    ),
-                ],
+              Text(
+                'OBJECTS HERE',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.text,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 4),
 
@@ -82,15 +62,17 @@ class ObjectPanel extends StatelessWidget {
                   itemCount: objects.length,
                   itemBuilder: (context, index) {
                     final object = objects[index];
-                    final isSelected = selectedObject == object;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: ElevatedButton(
-                        onPressed: () => gameState.selectObject(object),
+                        onPressed: () {
+                          gameState.selectObject(object);
+                          VerbPanel.showVerbPopup(context, object);
+                        },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
-                          foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
+                          backgroundColor: AppTheme.panel,
+                          foregroundColor: AppTheme.text,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 6,
@@ -104,10 +86,10 @@ class ObjectPanel extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.circle,
                               size: 6,
-                              color: isSelected ? AppTheme.background : AppTheme.text,
+                              color: AppTheme.text,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -118,8 +100,7 @@ class ObjectPanel extends StatelessWidget {
                                     .bodySmall
                                     ?.copyWith(
                                       fontSize: 10,
-                                      color: isSelected ? AppTheme.background : AppTheme.text,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: AppTheme.text,
                                     ),
                               ),
                             ),

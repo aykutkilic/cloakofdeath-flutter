@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../game/game_state.dart';
 
-/// Unified minimap widget with integrated navigation controls
+/// Unified minimap widget with integrated navigation controls.
+/// Larger buttons for easy touch interaction.
 class UnifiedMinimap extends StatelessWidget {
   const UnifiedMinimap({super.key});
+
+  static const double _buttonSize = 48;
+  static const double _spacing = 6;
 
   @override
   Widget build(BuildContext context) {
@@ -16,85 +20,46 @@ class UnifiedMinimap extends StatelessWidget {
         return Container(
           decoration: const BoxDecoration(color: AppTheme.background),
           padding: const EdgeInsets.all(8),
-          child: Column(
-            children: [
-              // Title
-
-              // Navigation grid
-              Expanded(
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Left side: UP/DOWN stack
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildNavButton(
-                              'U',
-                              exits.containsKey('U'),
-                              gameState,
-                              context,
-                            ),
-                            const SizedBox(height: 4),
-                            _buildNavButton(
-                              'D',
-                              exits.containsKey('D'),
-                              gameState,
-                              context,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        // Right side: Compass cross
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildNavButton(
-                              'N',
-                              exits.containsKey('N'),
-                              gameState,
-                              context,
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _buildNavButton(
-                                  'W',
-                                  exits.containsKey('W'),
-                                  gameState,
-                                  context,
-                                ),
-                                const SizedBox(width: 4),
-                                _buildCenterIcon(),
-                                const SizedBox(width: 4),
-                                _buildNavButton(
-                                  'E',
-                                  exits.containsKey('E'),
-                                  gameState,
-                                  context,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            _buildNavButton(
-                              'S',
-                              exits.containsKey('S'),
-                              gameState,
-                              context,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Left side: UP/DOWN stack
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildNavButton('U', exits.containsKey('U'), gameState, context),
+                      SizedBox(height: _spacing),
+                      _buildNavButton('D', exits.containsKey('D'), gameState, context),
+                    ],
                   ),
-                ),
+                  const SizedBox(width: 20),
+                  // Right side: Compass cross
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildNavButton('N', exits.containsKey('N'), gameState, context),
+                      SizedBox(height: _spacing),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildNavButton('W', exits.containsKey('W'), gameState, context),
+                          SizedBox(width: _spacing),
+                          _buildCenterIcon(),
+                          SizedBox(width: _spacing),
+                          _buildNavButton('E', exits.containsKey('E'), gameState, context),
+                        ],
+                      ),
+                      SizedBox(height: _spacing),
+                      _buildNavButton('S', exits.containsKey('S'), gameState, context),
+                    ],
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -105,31 +70,27 @@ class UnifiedMinimap extends StatelessWidget {
     String direction,
     bool hasExit,
     GameState gameState,
-    BuildContext context, {
-    double? width,
-  }) {
-    final labels = {'N': 'N', 'S': 'S', 'E': 'E', 'W': 'W', 'U': 'U', 'D': 'D'};
-
+    BuildContext context,
+  ) {
     return SizedBox(
-      width: width ?? 30,
-      height: 30,
+      width: _buttonSize,
+      height: _buttonSize,
       child: ElevatedButton(
         onPressed: () => gameState.processCommand(direction),
         style: ElevatedButton.styleFrom(
           backgroundColor: hasExit ? AppTheme.highlight : AppTheme.background,
           foregroundColor: hasExit ? AppTheme.text : AppTheme.panel,
-          padding: const EdgeInsets.all(1),
+          padding: EdgeInsets.zero,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           side: BorderSide.none,
           elevation: 0,
         ),
-        child: FittedBox(
-          child: Text(
-            labels[direction] ?? direction,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: hasExit ? AppTheme.text : AppTheme.panel,
-            ),
+        child: Text(
+          direction,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: hasExit ? AppTheme.text : AppTheme.panel,
           ),
         ),
       ),
@@ -138,10 +99,10 @@ class UnifiedMinimap extends StatelessWidget {
 
   Widget _buildCenterIcon() {
     return Container(
-      width: 30,
-      height: 30,
+      width: _buttonSize,
+      height: _buttonSize,
       decoration: BoxDecoration(color: AppTheme.highlight.withAlpha(77)),
-      child: const Icon(Icons.person, color: AppTheme.text, size: 20),
+      child: const Icon(Icons.person, color: AppTheme.text, size: 28),
     );
   }
 }
