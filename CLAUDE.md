@@ -4,17 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains **Cloak of Death**, a classic text adventure game originally written in Atari BASIC for 8-bit Atari computers by David Cockram. It has two main components:
-1. **Original game preservation** — Atari BASIC source (`Cloak of Death.bas`), cassette image (`.cas`), solution walkthrough, and game maps
-2. **Flutter mobile recreation** — A faithful Flutter reimplementation in `cloak_of_death_flutter/` with authentic Atari-style vector/pixel rendering
+This repository contains **Cloak of Death**, a faithful Flutter reimplementation of the classic text adventure game originally written in Atari BASIC for 8-bit Atari computers by David Cockram. Original game data (`.bas`, `.cas`, scripts, disassembly) lives in `tools/` (gitignored).
 
 ## Build & Run Commands
 
-All Flutter commands must be run from `cloak_of_death_flutter/`:
-
 ```bash
-cd cloak_of_death_flutter
-
 # Install dependencies
 flutter pub get
 
@@ -29,16 +23,13 @@ flutter test test/widget_test.dart
 
 # Static analysis
 flutter analyze
-
-# Run standalone Dart tool scripts (used for rendering debugging)
-dart run tools/test_render_png.dart
 ```
 
 The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.yaml`).
 
 ## Architecture
 
-### Flutter App (`cloak_of_death_flutter/lib/`)
+### Flutter App (`lib/`)
 
 **State management**: Provider pattern — `GameState` (ChangeNotifier) is the single source of truth for room, inventory, flags, and move count. Created in `main.dart` and consumed by all widgets.
 
@@ -53,7 +44,7 @@ The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.
 
 **Rendering pipeline** (the most complex subsystem):
 - `room_bytecode_loader.dart` — loads raw bytecode from `assets/rooms.bin` (extracted from original cassette)
-- `atari_bytecode_parser.dart` — parses the FIND bytecode format into `AtariBytecodeCommand` objects (polylines, closed polygons, flood fills). Bytecode commands: C8-D0 range (see `disassemble/DRAW Algorithm.md` for full spec)
+- `atari_bytecode_parser.dart` — parses the FIND bytecode format into `AtariBytecodeCommand` objects (polylines, closed polygons, flood fills). Bytecode commands: C8-D0 range (see `tools/disassemble/DRAW Algorithm.md` for full spec)
 - `atari_pixel_renderer.dart` — `CustomPainter` that renders commands pixel-by-pixel at authentic Atari resolution (160×96), using Bresenham line drawing and scanline flood fill
 - `atari_render_controller.dart` — animation controller for progressive room rendering (pixel-by-pixel reveal effect)
 - `atari_colors.dart` — Atari GTIA color palette mapping
@@ -74,17 +65,13 @@ The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.
 - JSON room data: `assets/room_vectors.json` (legacy format, rooms.bin is now primary)
 - Custom Atari font: `assets/fonts/Atari-Regular.ttf`
 
-### Disassembly (`disassemble/`)
+### Tools (`tools/`, gitignored)
 
-Contains reverse-engineered 6502 assembly of the original Atari DRAW and FILL routines. Key reference: `DRAW Algorithm.md` documents all 7 bytecode commands and the state machine. This is the authoritative spec for the Flutter rendering pipeline.
-
-### Tools (`cloak_of_death_flutter/tools/`)
-
-Standalone Dart scripts for debugging room rendering. `extract_rooms_from_cas.py` extracts room binary data from the cassette image. The `test_room8_fill*.dart` files are iterative debugging scripts for the flood fill algorithm.
+Contains original game data (`.bas`, `.cas`), reverse-engineered 6502 disassembly, analysis scripts, and Dart rendering debug tools. Key reference: `tools/disassemble/DRAW Algorithm.md` documents all 7 bytecode commands. This directory is gitignored.
 
 ## Testing
 
-Tests are in `cloak_of_death_flutter/test/`. The primary test (`game_logic_test.dart`) is a **full walkthrough integration test** that executes the entire game solution sequentially — it validates room transitions, inventory management, state flags, and end-to-end game completion. There are no isolated unit tests for individual verb/noun parsing. `game_logic_comprehensive_test.dart` covers specific logic blocks (rat blocking, object examination).
+Tests are in `test/`. The primary test (`game_logic_test.dart`) is a **full walkthrough integration test** that executes the entire game solution sequentially — it validates room transitions, inventory management, state flags, and end-to-end game completion. There are no isolated unit tests for individual verb/noun parsing. `game_logic_comprehensive_test.dart` covers specific logic blocks (rat blocking, object examination).
 
 ## Key Technical Details
 
