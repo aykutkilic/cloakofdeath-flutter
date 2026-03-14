@@ -40,7 +40,9 @@ class VerbPanel {
             side: const BorderSide(color: AppTheme.highlight, width: 2),
           ),
           insetPadding: const EdgeInsets.all(24),
-          child: Padding(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -122,6 +124,7 @@ class VerbPanel {
                 ),
               ],
             ),
+          ),
           ),
         );
       },
