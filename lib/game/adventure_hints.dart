@@ -5,22 +5,110 @@ import 'adventure_engine.dart';
 class AdventureHint {
   final String id;
   final String text;
-  const AdventureHint(this.id, this.text);
+  final List<String> details;
+  const AdventureHint(this.id, this.text, {this.details = const []});
 }
 
 class AdventureHints {
   /// Finite, increasingly practical guidance for the current prerequisite.
   /// Unknown steps have just their primary hint, never a fabricated paraphrase.
   static List<String> variants(AdventureHint hint) =>
-      {hint.text, ...?_details[hint.id]}.toList(growable: false);
+      {hint.text, ...hint.details}.toList(growable: false);
+
+  static AdventureHint next(
+    AdventureEngine game,
+    String Function(int) roomName, {
+    Set<int> visitedRooms = const {},
+  }) {
+    final primary = _next(game, roomName, visitedRooms);
+    return AdventureHint(
+      primary.id,
+      primary.text,
+      details: List.unmodifiable(_remainingDetails(primary.id, game)),
+    );
+  }
+
+  /// Resolve detail text at selection time, not later from an item-name catalog.
+  /// A reminder to retrieve equipment must not replay its completed puzzle.
+  static List<String> _remainingDetails(String id, AdventureEngine game) {
+    switch (id) {
+      case 'MATCHES':
+        return [
+          'Carry matches to relight your candle when you need to enter darkness.',
+        ];
+      case 'darkness-equipment':
+        return [
+          if (!game.flag('matches_reached'))
+            'The candle starts in the pantry; matches are in the kitchen cupboard.',
+          'Use the map to retrieve your lighting supplies from known rooms. You do not need to repeat solved puzzles to recover dropped items.',
+        ];
+      case 'BIBLE':
+        return [
+          if (game.locations['BIBLE'] == 0)
+            'EXAMINE DESK in the study reveals the Bible. Take it before trying the entrance stairs.',
+          'Keep the Bible in your inventory when you go up from the entrance hall.',
+        ];
+      case 'BIBLE-ritual':
+        return [
+          'Retrieve the Bible and carry it with your crucifix and holy water for the unfinished exorcism.',
+        ];
+      case 'BIBLE-cord':
+        return [
+          'You need the Bible to carry the iron upstairs for the cord mechanism. Retrieve it before returning to the guest bedroom.',
+        ];
+      case 'KNIFE-cellar':
+        return [
+          'Keep the knife with you while returning to the corridor to finish opening the cellar.',
+        ];
+      case 'high-cupboard':
+        return [
+          if (game.locations['CHAIR'] != 3) 'Drop the chair in the kitchen.',
+          if (game.locations['CUPBOARD'] == 0)
+            'LOOK AROUND in the kitchen to find the cupboard.',
+          if (!game.flag('on_chair'))
+            'CLIMB CHAIR in the kitchen to reach the cupboard.',
+          if (game.locations['MATCHES'] == 0)
+            'EXAMINE CUPBOARD to reveal the matches.',
+          'GET MATCHES while standing on the chair.',
+        ];
+      case 'cellar-lock':
+        return [
+          'With the small key, OPEN DOOR in the dark corridor.',
+          if (!game.flag('door_propped') && game.locations['CHEST'] != 5)
+            'DROP CHEST in the dark corridor before entering the cellar. Its broken latch otherwise traps you downstairs.',
+        ];
+      case 'safe-code':
+        return [
+          'Enter 1327 in the safe keypad. After it opens, examine the safe to find the gate key.',
+        ];
+      case 'KEY':
+        return [
+          if (game.locations['KEY'] == 0)
+            'EXAMINE CHEST to reveal the small key.',
+          'Take the small key and use it to unlock the corridor door.',
+        ];
+      case 'GATE KEY':
+        return [
+          'Carry the gate key to the tunnel for the remaining gate lock.',
+        ];
+      case 'dog':
+        return [
+          'DROP COAL and DROP RAG in the tunnel, then LIGHT COAL while carrying matches. Do not attack the dog.',
+          if (!game.flag('gates_unlocked'))
+            game.held('GATE KEY')
+                ? 'After frightening the dog, use your gate key to open the gate.'
+                : game.flag('gate_key_found')
+                ? 'Retrieve your gate key for the remaining gate lock.'
+                : 'The gate also needs the key from the haunted bedroom safe.',
+        ];
+      default:
+        return _details[id] ?? const [];
+    }
+  }
 
   static const _details = <String, List<String>>{
     'carrying-space': [
       'You have six carrying units. The heavy iron takes four; most other items take one. Leave finished tools in a known room.',
-    ],
-    'safe-code': [
-      'Examine the study desk and take the Bible to uncover the letter. Read the letter for the combination clue.',
-      'Enter 1327 in the safe keypad. After it opens, examine the safe to find the gate key.',
     ],
     'cloak-danger': [
       'EXORCISE CLOAK requires the Bible, crucifix, and holy water in your inventory. If anything is missing, go west immediately.',
@@ -30,9 +118,6 @@ class AdventureHints {
     ],
     'darkness': [
       'Use LIGHT CANDLE while carrying both candle and matches. Extinguish it in bright rooms to conserve fuel.',
-    ],
-    'darkness-equipment': [
-      'The candle starts in the pantry; matches are in the kitchen cupboard. The map can help retrieve supplies you dropped.',
     ],
     'save-fuel': [
       'EXTINGUISH CANDLE preserves the remaining wax. Map travel manages lighting automatically when you carry the supplies.',
@@ -52,22 +137,10 @@ class AdventureHints {
       'Carry the chair from the dining room to the kitchen and drop it there.',
       'CLIMB CHAIR, then examine the cupboard and take the matches while standing on the chair.',
     ],
-    'high-cupboard': [
-      'Drop the chair in the kitchen, CLIMB CHAIR, then EXAMINE CUPBOARD and GET MATCHES.',
-    ],
     'KNIFE': [
       'Take the knife from the kitchen and keep it in your inventory when you GO CORRIDOR from the entrance hall.',
       'Do not attack the rat. Carrying the knife is enough to pass it safely.',
     ],
-    'BIBLE': [
-      'If the Bible is still hidden, EXAMINE DESK in the study reveals it. Carry it when going upstairs from the entrance hall.',
-      'Keep track of the Bible after reaching upstairs: you will also need it with the crucifix and holy water for the cloak.',
-    ],
-    'cellar-lock': [
-      'With the small key, OPEN DOOR in the dark corridor. Do not enter until the chest is keeping the door open.',
-      'DROP CHEST in the dark corridor props the unlocked door. Its broken latch otherwise traps you downstairs.',
-    ],
-    'KEY': ['EXAMINE CHEST after breaking its lid, then take the small key.'],
     'CHEST': [
       'The chest begins in the conservatory. KICK CHEST breaks its lid; examine it to find the small key.',
       'Carry the chest to the dark corridor. Unlock the door with the key, then DROP CHEST there before going down: it holds the door open despite the broken latch.',
@@ -84,9 +157,6 @@ class AdventureHints {
     ],
     'lost-matches': [
       'A remaining lit candle still works, but once extinguished it cannot be relit without matches.',
-    ],
-    'MATCHES': [
-      'Matches are needed both to light the candle and to ignite the coal and oily rag in the tunnel.',
     ],
     'HAMMER': [
       'Carry the garage hammer to the pool room and REMOVE NAILS from the hatch.',
@@ -159,18 +229,22 @@ class AdventureHints {
     'embers': [
       'With matches in your inventory and both coal and rag on the tunnel floor, LIGHT COAL frightens the dog away.',
     ],
-    'dog': [
-      'DROP COAL and DROP RAG in the tunnel, then LIGHT COAL while carrying matches. Do not attack the dog.',
-      'Once the dog is gone, the gate still needs its own key from the haunted bedroom safe.',
-    ],
   };
 
-  static AdventureHint next(
+  static AdventureHint _next(
     AdventureEngine game,
     String Function(int) roomName,
+    Set<int> visitedRooms,
   ) {
     AdventureHint hint(String id, String text) => AdventureHint(id, text);
     bool exists(String item) => game.locations[item] != 0;
+    bool upstairs(int room) => room >= 9 && room <= 21;
+    final upstairsReached = upstairs(game.room) || visitedRooms.any(upstairs);
+    final corridorReached =
+        visitedRooms.contains(5) ||
+        game.room == 5 ||
+        (game.room >= 22 && game.room <= 26);
+    final crossMade = exists('CRUCIFIX') || game.flag('cloak_exorcised');
     AdventureHint seek(String item, String clue, {String? id}) {
       final location = game.locations[item] ?? 0;
       if (location > 0 && location != game.room) {
@@ -245,6 +319,7 @@ class AdventureHints {
             game.room == 21 ||
             game.room == 17 ||
             game.room == 18) &&
+        !crossMade &&
         game.flag('hatch_open') &&
         exists('WIRE') &&
         !game.held('WIRE')) {
@@ -279,6 +354,12 @@ class AdventureHints {
         );
       }
       if (game.flag('safe_open')) {
+        if (exists('GATE KEY')) {
+          return seek(
+            'GATE KEY',
+            'Take the revealed gate key for the tunnel gate.',
+          );
+        }
         return hint(
           'safe-contents',
           'Examine the open safe to reveal the gate key, then take it.',
@@ -304,16 +385,27 @@ class AdventureHints {
       }
       return hint(
         'high-cupboard',
-        'Look around the kitchen to find the cupboard. Stand on the chair to reach its matches.',
+        game.locations['CUPBOARD'] == 0
+            ? 'Look around the kitchen to find the cupboard. Stand on the chair to reach its matches.'
+            : game.locations['MATCHES'] == 0
+            ? 'Examine the kitchen cupboard to reveal the matches, then take them while standing on the chair.'
+            : game.flag('on_chair')
+            ? 'Take the matches from the cupboard while you are standing on the chair.'
+            : 'Stand on the chair in the kitchen to take the revealed matches.',
       );
     }
     if (!game.held('KNIFE') && !game.flag('door_unlocked')) {
       return seek(
         'KNIFE',
-        'Carry the kitchen knife to get past the rat into the dark corridor. You do not need to attack it.',
+        corridorReached
+            ? 'Retrieve your knife before returning to the corridor to unlock the cellar door.'
+            : 'Carry the kitchen knife to get past the rat into the dark corridor. You do not need to attack it.',
+        id: corridorReached ? 'KNIFE-cellar' : null,
       );
     }
-    if (!game.held('BIBLE') && !game.flag('door_unlocked')) {
+    if (!game.held('BIBLE') &&
+        !game.flag('door_unlocked') &&
+        !upstairsReached) {
       return seek(
         'BIBLE',
         exists('BIBLE')
@@ -325,13 +417,17 @@ class AdventureHints {
       if (game.held('KEY')) {
         return hint(
           'cellar-lock',
-          'The small key unlocks the cellar door in the dark corridor. Bring the chest too: the door needs a prop before you enter.',
+          game.locations['CHEST'] == 5
+              ? 'Use the small key to unlock the dark-corridor door. The chest is already in place to hold it open.'
+              : 'The small key unlocks the cellar door in the dark corridor. Bring the chest too: the door needs a prop before you enter.',
         );
       }
       if (game.flag('chest_broken')) {
         return seek(
           'KEY',
-          'Examine the broken chest and take its small key for the cellar door.',
+          exists('KEY')
+              ? 'Take the revealed small key for the cellar door.'
+              : 'Examine the broken chest and take its small key for the cellar door.',
         );
       }
       return seek(
@@ -364,11 +460,11 @@ class AdventureHints {
       }
       return seek(
         'MATCHES',
-        'Retrieve your matches so you can light the candle and the coal-and-rag fire for the dog.',
+        'Retrieve your matches so you can light the candle for the remaining dark rooms.',
       );
     }
     if (!game.flag('dog_terrified')) return _dog(game, seek);
-    if (!exists('CRUCIFIX')) {
+    if (!crossMade) {
       if (!game.flag('hatch_open')) {
         if (!game.held('HAMMER')) {
           return seek(
@@ -382,10 +478,16 @@ class AdventureHints {
             'Use the hammer to remove the hatch nails. The store room beyond contains silver wire for the crucifix.',
           );
         }
-        if (game.room == 17 || game.room == 18) {
+        if (game.room == 17 || game.room == 18 || game.room == 19) {
           return hint(
             'attic-route',
             'Go up from the hidden passage to the attic, then east to the pool room and its nailed hatch.',
+          );
+        }
+        if (game.locations['PASSAGEWAY'] == 16) {
+          return hint(
+            'passage-entry',
+            'The library passageway is already open. Go through it and up to the attic, then east to the pool-room hatch.',
           );
         }
         if (game.held('BOOK')) {
@@ -406,6 +508,12 @@ class AdventureHints {
         );
       }
       if (!game.held('BAR PIECES')) {
+        if (exists('BAR PIECES')) {
+          return seek(
+            'BAR PIECES',
+            'Retrieve the already-cut silver bar pieces and bring them with the wire to the workshop.',
+          );
+        }
         if (!game.held('SAW')) {
           return seek(
             'SAW',
@@ -430,6 +538,13 @@ class AdventureHints {
     }
     final hasVessel = exists('GOBLET OF WATER') || exists('HOLY WATER');
     if (!game.held('GOBLET') && !hasVessel) {
+      if (exists('GOBLET') && game.locations['GOBLET'] != 12) {
+        return seek(
+          'GOBLET',
+          'Retrieve your silver goblet to prepare holy water.',
+          id: 'GOBLET-retrieve',
+        );
+      }
       if (!game.flag('cord_held')) {
         if (game.room == 10 && game.held('IRON')) {
           return hint(
@@ -441,6 +556,7 @@ class AdventureHints {
           return seek(
             'BIBLE',
             'Keep the Bible while carrying the iron: you still need it to go upstairs from the entrance hall.',
+            id: 'BIBLE-cord',
           );
         }
         if (!game.held('IRON')) {
@@ -462,7 +578,10 @@ class AdventureHints {
     if (!game.held('BIBLE')) {
       return seek(
         'BIBLE',
-        'Retrieve the Bible. You need it with the crucifix and a goblet of water to prepare holy water.',
+        exists('HOLY WATER')
+            ? 'Retrieve the Bible to carry with your crucifix and holy water for the unfinished exorcism.'
+            : 'Retrieve the Bible. You need it with the crucifix and a goblet of water to prepare holy water.',
+        id: 'BIBLE-ritual',
       );
     }
     if (!game.held('CRUCIFIX')) {

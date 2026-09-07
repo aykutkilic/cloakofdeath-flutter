@@ -23,13 +23,34 @@ the engine, rather than inferred from item names or the user's recollection.
 
 ## State-derived guidance
 
-`AdventureHints.next` is a pure read of engine state and room names. It prioritizes
+`AdventureHints.next` is a pure read of engine state, room names, and existing
+exploration history. It prioritizes
 pending combination input and immediate danger, then unfinished puzzle milestones.
 It accounts for darkness, fuel conservation, cupboard reach, cellar preparation,
 the dog, hatch and passage, silver crafting, the cord mechanism, blessing,
 exorcism, the safe, and escape. Dropped equipment hints refer to its actual room.
 These are curated puzzle hints, not a search-based solver or proof that every
 arbitrary save remains winnable.
+
+Completion applies to both primary hints and their details. Engine flags and
+object transformations suppress solved puzzles (dog, hatch, bar cutting, cross,
+safe, and gate); known upstairs visits suppress the original Bible/stairs clue
+even after the Bible is dropped and the player returns downstairs. The adapter
+supplies the already-persisted exploration set, with current upstairs location
+also accepted as evidence. No second completion tracker or save schema is added.
+Legacy saves without exploration cannot reconstruct unrecorded earlier visits.
+
+Equipment recovery is distinct from re-solving a puzzle. Bible reminders for
+the unfinished ritual or iron transport have their own IDs and do not reuse
+the initial study/stairs details. A matches reminder cannot resurrect a completed
+dog puzzle. Already-cut bar pieces and a relocated goblet are retrieved rather
+than recommending another saw or repeating the cord mechanism. An open passage
+and a revealed safe key lead onward rather than repeating discovery commands.
+
+`AdventureHint` carries the state-selected detail list. `variants` only combines
+that snapshot with its primary text; it cannot append obsolete item-catalog
+details later. Cupboard setup, chest positioning, and other completed substeps
+are omitted where their current state already satisfies the prerequisite.
 
 There is no persisted hint cursor or extra command transaction. Repeated hints
 do not advance time, consume candle fuel, change inventory, or append to the
@@ -44,7 +65,8 @@ deduplicated sequence: a practical primary clue followed by additional details
 or commands. Steps without authored details have just one hint, not filler.
 
 `GameState.takeHint` advances session-only offsets keyed by the primary ID and
-text, so a changed prerequisite or dropped-item location has its own guidance.
+complete selected text sequence, so changed prerequisites or dropped-item
+locations have their own guidance, even when only the detail list changes.
 It never wraps around. `hasMoreHints` disables Another hint after the last entry,
 labeling it All hints shown. Reopening an exhausted step explains that all its
 guidance has been seen instead of showing the first clue again. Progress can
@@ -90,6 +112,10 @@ digit limits, hints without turn/fuel costs, and westward navigation.
 Additional tests verify the named prerequisites and complete dog/crucifix
 recipes, finite deduplicated progression, dialog reopen/exhaustion, refreshed
 guidance after progress, and reset behavior.
+The full walkthrough also checks that solved puzzle IDs never return and no dog
+advice appears after it is frightened. Focused completion tests cover upstairs
+history through return/drop/reload, ritual-specific Bible recovery, matches after
+the dog, partial crafting and safe completion, and detail-only progress changes.
 
 Layout coverage includes 320-pixel phones, short landscape, and 1.6x text.
 Preview images use the existing `PREVIEW_DIR` and `PREVIEW_FONT` test options;

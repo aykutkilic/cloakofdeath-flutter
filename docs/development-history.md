@@ -1,5 +1,27 @@
 # Development history
 
+## 2026-09-08 — Exclude completed puzzles from hint guidance
+
+Purpose: keep both the main clue and Another hint focused on unfinished work,
+including when players drop equipment or restore a saved journey.
+
+- Hint selection now reads existing exploration history as well as engine state.
+  Known upstairs visits suppress the original Bible/stairs advice after returning
+  downstairs. No duplicate completion tracker or save schema was introduced.
+- Each selected hint carries its state-filtered details. Ritual/transport Bible
+  retrieval no longer reuses the study/stairs introduction; matches recovery no
+  longer repeats the completed dog puzzle. Resolved cupboard setup and chest
+  positioning are omitted, and open passages or revealed keys lead onward.
+- Already-cut bar pieces and relocated goblets are retrieved without repeating
+  cutting or cord puzzles. Session hint progress keys include the entire selected
+  sequence so changes limited to follow-up details also refresh the guidance.
+- Validation: all 106 tests and application/test Dart analysis passed. The full
+  constrained walkthrough checks completed-puzzle exclusion and detail restore
+  equivalence; six focused regressions cover upstairs return/drop/reload, ritual
+  Bible recovery, matches after the dog, partial completion, open passages, and
+  detail-only progress. SDK checks required sandbox escalation. See
+  [hint design notes](hints-and-safe.md) for ownership and legacy-history limits.
+
 ## 2026-09-08 — Practical hints without repetitive cycling
 
 Purpose: make the lightbulb useful when players need actual prerequisites and

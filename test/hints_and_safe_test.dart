@@ -15,17 +15,18 @@ import 'support/walkthrough.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  AdventureHint hint(AdventureEngine game) =>
-      AdventureHints.next(game, (id) => 'room $id');
+  AdventureHint hint(AdventureEngine game, {Set<int> visited = const {}}) =>
+      AdventureHints.next(game, (id) => 'room $id', visitedRooms: visited);
 
   test(
     'hints are read-only and restore identically throughout the solution',
     () async {
       final data = await GameData.loadFromAssets();
       final game = AdventureEngine();
+      final visited = <int>{game.room};
       for (final command in walkthroughCommands) {
         final before = jsonEncode(game.toJson());
-        final current = hint(game);
+        final current = hint(game, visited: visited);
         const milestones = {
           'REMOVE NAILS': 'hatch',
           'MAKE CRUCIFIX': 'cross',
@@ -39,6 +40,44 @@ void main() {
         }
         expect(current.text, isNotEmpty, reason: command);
         final guidance = AdventureHints.variants(current);
+        if (game.flag('dog_terrified')) {
+          expect(
+            guidance.join(' ').toLowerCase(),
+            isNot(contains('dog')),
+            reason: command,
+          );
+          expect(
+            current.id,
+            isNot(isIn(['COAL', 'RAG', 'embers', 'dog'])),
+            reason: command,
+          );
+        }
+        if (game.flag('matches_reached')) {
+          expect(
+            current.id,
+            isNot(isIn(['CHAIR', 'high-cupboard'])),
+            reason: command,
+          );
+        }
+        if (game.flag('hatch_open')) {
+          expect(current.id, isNot(isIn(['HAMMER', 'hatch'])), reason: command);
+        }
+        if (game.locations['CRUCIFIX'] != 0 || game.flag('cloak_exorcised')) {
+          expect(
+            current.id,
+            isNot(
+              isIn(['SAW', 'BAR', 'BAR PIECES', 'WIRE', 'cut-silver', 'cross']),
+            ),
+            reason: command,
+          );
+        }
+        if (game.flag('safe_open')) {
+          expect(
+            current.id,
+            isNot(isIn(['painting', 'safe-code'])),
+            reason: command,
+          );
+        }
         expect(guidance.toSet().length, guidance.length, reason: command);
         expect(
           guidance.any(
@@ -48,10 +87,16 @@ void main() {
         );
         expect(jsonEncode(game.toJson()), before, reason: command);
         expect(
-          hint(AdventureEngine.fromJson(jsonDecode(before))).text,
-          current.text,
+          AdventureHints.variants(
+            hint(
+              AdventureEngine.fromJson(jsonDecode(before)),
+              visited: visited,
+            ),
+          ),
+          guidance,
         );
         game.execute(command, data.getRoomById(game.room)!.connections);
+        visited.add(game.room);
       }
       expect(game.outcome, 'won');
       expect(hint(game).id, 'ending');
@@ -110,6 +155,190 @@ void main() {
       game.locations['IRON'] = -1;
       game.room = 10;
       expect(hint(game).id, 'cord-weight');
+    },
+  );
+
+  test(
+    'upstairs completion survives returning, dropping the Bible, and reload',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final game = GameState();
+      await game.initialize();
+      for (final command in walkthroughCommands) {
+        game.processCommand(command);
+        if (command == 'GET BIBLE') break;
+      }
+      for (final command in ['W', 'S', 'U', 'DROP BIBLE', 'D']) {
+        game.processCommand(command);
+      }
+      expect(game.currentRoomId, 1);
+      expect(game.visitedRooms, contains(9));
+      expect(game.inventory, isNot(contains('BIBLE')));
+      expect(game.nextHint.id, 'CHEST');
+      expect(
+        AdventureHints.variants(game.nextHint).join(' '),
+        isNot(contains('upstairs')),
+      );
+      await game.saveState();
+      final restored = GameState();
+      await restored.initialize();
+      expect(restored.nextHint.id, 'CHEST');
+      expect(
+        AdventureHints.variants(restored.nextHint),
+        AdventureHints.variants(game.nextHint),
+      );
+      expect(restored.takeHint().id, 'CHEST');
+    },
+  );
+
+  test(
+    'Bible retrieval for the unfinished ritual does not repeat the stairs puzzle',
+    () {
+      final game = AdventureEngine()..room = 14;
+      for (final flag in [
+        'matches_reached',
+        'door_unlocked',
+        'dog_terrified',
+        'cord_held',
+      ]) {
+        game.flags[flag] = true;
+      }
+      game.locations['CANDLE'] = -1;
+      game.locations['MATCHES'] = -1;
+      game.locations['CRUCIFIX'] = -1;
+      game.locations['HOLY WATER'] = -1;
+      game.locations['BIBLE'] = 9;
+      final current = hint(game, visited: {1, 9, 14});
+      expect(current.id, 'BIBLE-ritual');
+      final text = AdventureHints.variants(current).join(' ').toLowerCase();
+      expect(text, contains('room 9'));
+      expect(text, contains('unfinished exorcism'));
+      expect(text, isNot(contains('stairs')));
+      expect(text, isNot(contains('desk')));
+      expect(text, isNot(contains('prepare holy water')));
+      game.flags['cloak_exorcised'] = true;
+      expect(hint(game).id, 'painting');
+    },
+  );
+
+  test('completed dog puzzle is absent from matches recovery guidance', () {
+    final game = AdventureEngine();
+    game.flags['matches_reached'] = true;
+    game.flags['door_unlocked'] = true;
+    game.flags['dog_terrified'] = true;
+    game.locations['DOG'] = 0;
+    game.locations['COAL'] = 0;
+    game.locations['RAG'] = 0;
+    game.locations['CANDLE'] = -1;
+    game.locations['MATCHES'] = 25;
+    expect(hint(game).id, 'MATCHES');
+    final text = AdventureHints.variants(hint(game)).join(' ').toLowerCase();
+    expect(text, contains('room 25'));
+    for (final completed in ['dog', 'coal', 'rag', 'cupboard']) {
+      expect(text, isNot(contains(completed)));
+    }
+  });
+
+  test(
+    'partial puzzle completion skips cutting, opening, and discovery steps',
+    () {
+      final game = AdventureEngine()..room = 14;
+      for (final flag in [
+        'matches_reached',
+        'door_unlocked',
+        'dog_terrified',
+        'hatch_open',
+      ]) {
+        game.flags[flag] = true;
+      }
+      game.locations['CANDLE'] = -1;
+      game.locations['MATCHES'] = -1;
+      game.locations['WIRE'] = -1;
+      game.locations['BAR'] = 0;
+      game.locations['BAR PIECES'] = 25;
+      // A dropped saw must not cause the already-cut bar to be requested again.
+      expect(hint(game).id, 'BAR PIECES');
+      expect(
+        AdventureHints.variants(hint(game)).join(' '),
+        isNot(contains('CUT BAR')),
+      );
+      game.locations['CRUCIFIX'] = 25;
+      game.locations['BAR PIECES'] = 0;
+      game.locations['WIRE'] = 0;
+      game.locations['GOBLET'] = 1;
+      expect(hint(game).id, 'GOBLET-retrieve');
+      expect(hint(game).text, contains('room 1'));
+      expect(
+        AdventureHints.variants(hint(game)).join(' '),
+        isNot(contains('cord')),
+      );
+      game.flags['cloak_exorcised'] = true;
+      game.flags['safe_open'] = true;
+      game.locations['SAFE'] = 15;
+      game.locations['GATE KEY'] = 15;
+      expect(hint(game).id, 'GATE KEY');
+      expect(
+        AdventureHints.variants(hint(game)).join(' '),
+        isNot(contains('EXAMINE SAFE')),
+      );
+    },
+  );
+
+  test(
+    'already-open library passage points onward instead of pulling the book again',
+    () {
+      final game = AdventureEngine()..room = 16;
+      for (final flag in [
+        'matches_reached',
+        'door_unlocked',
+        'dog_terrified',
+      ]) {
+        game.flags[flag] = true;
+      }
+      game.locations['LIT CANDLE'] = -1;
+      game.locations['CANDLE'] = 0;
+      game.locations['HAMMER'] = -1;
+      game.locations['PASSAGEWAY'] = 16;
+      expect(hint(game).id, 'passage-entry');
+      expect(
+        AdventureHints.variants(hint(game)).join(' '),
+        isNot(contains('PULL BOOK')),
+      );
+    },
+  );
+
+  test(
+    'completed detail steps refresh hint progress without replaying setup',
+    () async {
+      final engine = AdventureEngine()..room = 3;
+      engine.locations['CHAIR'] = 3;
+      engine.locations['CUPBOARD'] = 3;
+      SharedPreferences.setMockInitialValues({
+        'cloak_save_state': jsonEncode(engine.toJson()),
+      });
+      final game = GameState();
+      await game.initialize();
+      final primary = game.nextHint.text;
+      final count = AdventureHints.variants(game.nextHint).length;
+      for (var i = 0; i < count; i++) {
+        game.takeHint();
+      }
+      expect(game.hasMoreHints, isFalse);
+      game.processCommand('CLIMB CHAIR');
+      expect(game.nextHint.text, primary);
+      expect(game.hasMoreHints, isTrue);
+      expect(
+        AdventureHints.variants(game.nextHint).join(' '),
+        isNot(contains('CLIMB CHAIR')),
+      );
+      expect(
+        AdventureHints.variants(game.nextHint).join(' '),
+        isNot(contains('Drop the chair')),
+      );
+      game.processCommand('EXAMINE CUPBOARD');
+      game.processCommand('GET MATCHES');
+      expect(game.nextHint.id, 'KNIFE');
+      await game.saveState();
     },
   );
 

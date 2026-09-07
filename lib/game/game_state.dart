@@ -45,9 +45,11 @@ class GameState extends ChangeNotifier {
   AdventureHint get nextHint => AdventureHints.next(
     _engine,
     (id) => _gameData?.getRoomById(id)?.name ?? 'room $id',
+    visitedRooms: _exploration.visited,
   );
 
-  String _hintKey(AdventureHint hint) => '${hint.id}\n${hint.text}';
+  String _hintKey(AdventureHint hint) =>
+      '${hint.id}\n${AdventureHints.variants(hint).join('\n')}';
 
   bool get hasMoreHints {
     final primary = nextHint;

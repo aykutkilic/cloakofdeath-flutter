@@ -97,6 +97,9 @@ including across dialog openings. Another hint is disabled once all guidance for
 the current step has been shown. Progress can unlock new guidance; reset clears
 the session-only offsets. Hint requests never advance game turns, consume fuel,
 or write journal entries. See [hint design notes](hints-and-safe.md).
+Hint selection also uses persisted room discovery to recognize completed upstairs
+access. Primary clues and follow-up details skip solved tasks; equipment recovery
+is tied to the remaining objective, not the item's original introduction.
 
 The earlier read-only `nextHint` API is kept for callers needing a stable preview.
 The safe's variants can include 1327, following the user's earlier instruction.
