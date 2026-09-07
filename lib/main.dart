@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/link.dart';
 import 'game/game_state.dart';
 import 'widgets/room_view.dart';
 import 'widgets/unified_minimap.dart';
@@ -158,6 +159,18 @@ class _GameScreenState extends State<GameScreen> {
                 children: [
                   const Text(
                     'Original game by David Cockram, 1984.\nExplore the house, unravel its secrets, and escape.',
+                  ),
+                  const SizedBox(height: 16),
+                  Link(
+                    uri: Uri.parse(
+                      'https://github.com/aykutkilic/cloakofdeath-flutter',
+                    ),
+                    target: LinkTarget.blank,
+                    builder: (context, followLink) => TextButton.icon(
+                      onPressed: followLink,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('View on GitHub'),
+                    ),
                   ),
                 ],
               );

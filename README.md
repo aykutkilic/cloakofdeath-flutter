@@ -1,5 +1,7 @@
 # Cloak of Death - Flutter
 
+**[Play the demo in your browser](https://aykutkilic.github.io/cloakofdeath-flutter/)**
+
 A faithful Flutter recreation of **Cloak of Death**, a classic text adventure game originally written for 8-bit Atari computers by David Cockram.
 
 ## Features

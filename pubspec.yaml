@@ -34,6 +34,7 @@ dependencies:
   # State management
   provider: ^6.1.1
   shared_preferences: ^2.5.4
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:
