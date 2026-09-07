@@ -1,5 +1,55 @@
 # Development history
 
+## 2026-09-08 — Contextual hints, safe keypad, and compass ordering
+
+Purpose: make the solution approachable through indirect clues and provide an
+intentional touch interaction for the safe's four-digit combination.
+
+- Added a lightbulb in the header and safe panel. The read-only hint resolver
+  follows current puzzle progress and item locations, including dropped equipment
+  and carrying constraints. The safe hint may mention 1327 as requested.
+- Added a themed four-slot keypad with clear, backspace, hardware keyboard
+  support, and explicit submission. It opens for typed/menu commands and pending
+  saved games; background controls cannot accidentally submit a wrong answer.
+- Swapped W/E presentation order while preserving movement semantics.
+- Added full-route hint/restore checks, safe interaction regressions, and phone,
+  landscape, and enlarged-text layout coverage. See [design and validation
+  notes](hints-and-safe.md) for decisions, source use, and tool experience.
+- Validation: all 77 tests passed; `flutter analyze` reported no issues.
+  Inspected rendered hint and safe panels with real fonts, including small-phone
+  and enlarged-text layouts. No live-device update was performed.
+
+## 2026-09-08 — Puzzle command discoverability and upstairs artwork
+
+Purpose: make cross crafting and nail removal discoverable in the touch UI,
+and restore the missing scene upstairs from the entrance hall.
+
+- Replaced generic MAKE/REMOVE puzzle labels with MAKE CROSS on wire/bar pieces
+  and REMOVE NAILS on the hatch. The hammer also exposes REMOVE NAILS in room 21.
+  These actions use the normal engine command transaction, preserving puzzle
+  prerequisites, turn accounting, and saves.
+- Recovered room 9's complete 157-byte original drawing from the cassette.
+  The legacy extractor started at room 1, although room 9 precedes it on tape;
+  the compiled room 9 buffer was empty. Extended the tracked read-only
+  `scripts/inspect_original.py` with `upstairs_hallway_bytecode_hex` so recovery
+  is reproducible from the source cassette.
+- Treat compiled room definitions as the runtime artwork source. The legacy
+  `assets/rooms.bin` snapshot omits room 9's header and first 93 bytes; do not
+  regenerate definitions from it. The local ignored extractor was corrected
+  to locate the room 9 header; this is not a substitute for the tracked recovery
+  evidence. The legacy generator also lacks current connection metadata.
+- Rendering coverage now rejects empty artwork instead of silently skipping it.
+  Added four-color hallway rendering, real inventory crafting, both nail-removal
+  menus, and entrance-to-upstairs widget navigation coverage.
+- Validation: the full 62-test suite passed, followed by the added upstairs
+  navigation/render check. Inspected the widget-rendered hallway PNG; scene
+  geometry and colors render correctly (test UI fonts were placeholders).
+  No live-device update was performed. Static analysis reported no issues. Tooling required
+  SDK-cache permission. Initial new test assumptions were corrected against
+  engine rules: GO HATCH leads to room 20; the stairs require the carried Bible
+  to overcome fear (the knife only helps with the rat). No game rules were
+  changed to accommodate the tests.
+
 ## 2026-09-07 — Original game rules and solvability audit
 
 Purpose: make the mobile adaptation solvable under the original constraints,

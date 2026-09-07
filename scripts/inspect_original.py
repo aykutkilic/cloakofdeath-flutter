@@ -50,8 +50,14 @@ def inspect(path):
     nouns = program.index(b'BALL') - 1  # Include the first object ID marker.
     exits = program[nouns + 416:nouns + 416 + 182]
     assert len(exits) == 26 * 7
+    # Graphics are not sorted by room ID. The legacy room-1-based extractor
+    # dropped room 9's header and most of its drawing. Keep this evidence
+    # available independently of that incomplete assets/rooms.bin snapshot.
+    hallway_start = program.index(bytes.fromhex('a9 ff 06 8a e4'))
+    hall_start = program.index(bytes.fromhex('a1 55 04 08 e2'), hallway_start)
     result = {
         'cassette_sha256': hashlib.sha256(raw).hexdigest(),
+        'upstairs_hallway_bytecode_hex': program[hallway_start:hall_start].hex(' '),
         'initial_P_1_to_53': data,
         'exit_columns': ['N', 'S', 'E', 'W', 'U', 'D', 'special'],
         'exits_0_absent_90_conditional': {

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/game_data.dart';
 import '../models/room.dart';
 import 'adventure_engine.dart';
+import 'adventure_hints.dart';
 
 /// Flutter adapter: transcript/settings stay outside the deterministic rules.
 class GameState extends ChangeNotifier {
@@ -38,6 +39,10 @@ class GameState extends ChangeNotifier {
   bool get isGameOver => !_engine.isPlaying;
   bool get hasWon => _engine.outcome == 'won';
   bool get awaitingCombination => _engine.awaitingCombination;
+  AdventureHint get nextHint => AdventureHints.next(
+    _engine,
+    (id) => _gameData?.getRoomById(id)?.name ?? 'room $id',
+  );
 
   String? get darknessGuidance {
     if (!isTooDarkToSee) return null;
@@ -151,7 +156,7 @@ class GameState extends ChangeNotifier {
       case 'GATE':
       case 'HATCH':
         actions.addAll(['OPEN', 'GO']);
-        if (object == 'HATCH') actions.add('REMOVE');
+        if (object == 'HATCH') actions.add('REMOVE NAILS');
       case 'SAFE':
         actions.add('OPEN');
       case 'CANDLE':
@@ -179,7 +184,9 @@ class GameState extends ChangeNotifier {
         actions.add('CUT');
       case 'BAR PIECES':
       case 'WIRE':
-        actions.add('MAKE');
+        actions.add('MAKE CROSS');
+      case 'HAMMER':
+        if (currentRoomId == 21) actions.add('REMOVE NAILS');
       case 'CLOAK':
         actions.add('EXORCISE');
       case 'SINK':
@@ -200,6 +207,12 @@ class GameState extends ChangeNotifier {
 
   void executeObjectVerb(String verb, String object) {
     _selectedObject = null;
+    // Puzzle actions name their actual target, which may not be a selectable
+    // object yet (the cross) or a separate object at all (the hatch's nails).
+    if (verb == 'MAKE CROSS' || verb == 'REMOVE NAILS') {
+      processCommand(verb);
+      return;
+    }
     final target = verb == 'MAKE'
         ? 'CRUCIFIX'
         : verb == 'GET' && object == 'SINK'

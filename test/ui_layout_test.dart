@@ -14,6 +14,7 @@ import 'package:cloak_of_death_flutter/rendering/room_bytecode_loader.dart';
 import 'package:cloak_of_death_flutter/rendering/atari_render_controller.dart';
 import 'package:cloak_of_death_flutter/rendering/atari_pixel_renderer.dart';
 import 'package:cloak_of_death_flutter/rendering/atari_bytecode_parser.dart';
+import 'support/walkthrough.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +47,11 @@ void main() {
     ('large-text', const Size(390, 844), 0, 1.6),
     ('dark-phone', const Size(390, 844), 0, 1),
     ('dark-desktop', const Size(1280, 900), 0, 1),
+    ('upstairs-hallway', const Size(1280, 900), 0, 1),
+    ('safe-phone', const Size(320, 568), 0, 1),
+    ('safe-landscape', const Size(844, 390), 0, 1),
+    ('safe-large-text', const Size(390, 844), 0, 1.6),
+    ('hint-phone', const Size(320, 568), 0, 1),
   ]) {
     testWidgets('${variant.$1}: layout and command submission remain usable', (
       tester,
@@ -96,6 +102,31 @@ void main() {
       await tester.pumpAndSettle();
       expect(game.moveCount, 1);
       if (!dark) expect(game.getVisibleObjects(), contains('CORRIDOR'));
+      if (variant.$1 == 'upstairs-hallway') {
+        // The player needs the Bible to overcome fear of going upstairs.
+        for (final command in [
+          'E',
+          'N',
+          'EXAMINE DESK',
+          'GET BIBLE',
+          'S',
+          'W',
+        ]) {
+          game.processCommand(command);
+        }
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('U'));
+        await tester.pumpAndSettle();
+        expect(game.currentRoomId, 9);
+        expect(find.byType(AtariAnimatedRoomView), findsOneWidget);
+        expect(find.text('Room 9 has no graphics data'), findsNothing);
+        final painter = tester
+            .widgetList<CustomPaint>(find.byType(CustomPaint))
+            .map((widget) => widget.painter)
+            .whereType<AtariPixelRenderer>()
+            .single;
+        expect(painter.screenBuffer!.pixels.toSet().length, 4);
+      }
       final frame = tester.getRect(
         find.byKey(const ValueKey('room-artwork-frame')),
       );
@@ -105,6 +136,23 @@ void main() {
       expect(frame.width / frame.height, closeTo(game.aspectRatio, 0.001));
       expect(rail.left, greaterThan(frame.right));
       expect(tester.takeException(), isNull);
+
+      if (variant.$1.startsWith('safe-')) {
+        for (final command in walkthroughCommands) {
+          if (command == '1327') break;
+          game.processCommand(command);
+        }
+        await tester.pumpAndSettle();
+        expect(game.awaitingCombination, isTrue);
+        expect(find.byKey(const ValueKey('safe-combination')), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+      if (variant.$1 == 'hint-phone') {
+        await tester.tap(find.byTooltip('A gentle hint'));
+        await tester.pumpAndSettle();
+        expect(find.text('A thought to follow'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
 
       const previewDir = String.fromEnvironment('PREVIEW_DIR');
       if (previewDir.isNotEmpty) {
@@ -120,6 +168,10 @@ void main() {
           ).writeAsBytes(data!.buffer.asUint8List());
           image.dispose();
         });
+      }
+      if (variant.$1.startsWith('safe-')) {
+        await tester.ensureVisible(find.text('Try combination'));
+        expect(tester.takeException(), isNull);
       }
       await game.saveState();
     });

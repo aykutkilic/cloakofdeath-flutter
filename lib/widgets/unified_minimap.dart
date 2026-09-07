@@ -12,8 +12,8 @@ class UnifiedMinimap extends StatelessWidget {
   static const directions = <String, (String, IconData)>{
     'N': ('North', Icons.north),
     'S': ('South', Icons.south),
-    'E': ('East', Icons.east),
     'W': ('West', Icons.west),
+    'E': ('East', Icons.east),
     'U': ('Up', Icons.stairs_outlined),
     'D': ('Down', Icons.stairs_outlined),
   };

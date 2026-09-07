@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloak_of_death_flutter/game/game_state.dart';
 import 'package:cloak_of_death_flutter/widgets/object_panel.dart';
-import 'package:cloak_of_death_flutter/widgets/verb_panel.dart';
+import 'package:cloak_of_death_flutter/widgets/interactive_inventory.dart';
 import 'support/walkthrough.dart';
 
 void main() {
@@ -114,21 +114,14 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: game,
-          child: MaterialApp(
-            home: Scaffold(
-              body: Builder(
-                builder: (context) => TextButton(
-                  onPressed: () => VerbPanel.showVerbPopup(context, 'WIRE'),
-                  child: const Text('WIRE'),
-                ),
-              ),
-            ),
+          child: const MaterialApp(
+            home: Scaffold(body: InteractiveInventory()),
           ),
         ),
       );
       await tester.tap(find.text('WIRE'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('MAKE'));
+      await tester.tap(find.text('MAKE CROSS'));
       await tester.pumpAndSettle();
       expect(game.getVisibleObjects(), contains('CRUCIFIX'));
       expect(game.inventory, isNot(contains('WIRE')));
@@ -136,4 +129,39 @@ void main() {
       await game.saveState();
     },
   );
+
+  for (final object in ['HATCH', 'HAMMER']) {
+    testWidgets('REMOVE NAILS works from the $object menu', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final game = GameState();
+      await game.initialize();
+      for (final command in walkthroughCommands) {
+        if (command == 'REMOVE NAILS') break;
+        game.processCommand(command);
+      }
+      expect(game.currentRoomId, 21);
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: game,
+          child: MaterialApp(
+            home: Scaffold(
+              body: object == 'HATCH'
+                  ? const ObjectPanel()
+                  : const InteractiveInventory(),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text(object));
+      await tester.pumpAndSettle();
+      final before = game.moveCount;
+      await tester.tap(find.text('REMOVE NAILS'));
+      await tester.pumpAndSettle();
+      expect(game.moveCount, before + 1);
+      game.processCommand('GO HATCH');
+      expect(game.currentRoomId, 20);
+      expect(tester.takeException(), isNull);
+      await game.saveState();
+    });
+  }
 }

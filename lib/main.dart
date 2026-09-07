@@ -6,6 +6,8 @@ import 'widgets/unified_minimap.dart';
 import 'widgets/object_panel.dart';
 import 'widgets/interactive_inventory.dart';
 import 'widgets/game_settings_dialog.dart';
+import 'widgets/hint_button.dart';
+import 'widgets/safe_combination_overlay.dart';
 import 'rendering/room_bytecode_loader.dart';
 import 'app_theme.dart';
 
@@ -26,7 +28,7 @@ class CloakOfDeathApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Cloak of Death',
     theme: AppTheme.themeData,
-    home: const GameScreen(),
+    home: const SafeCombinationOverlay(child: GameScreen()),
     debugShowCheckedModeBanner: false,
   );
 }
@@ -142,6 +144,7 @@ class _GameScreenState extends State<GameScreen> {
             builder: (_) => const GameSettingsDialog(),
           ),
         ),
+        const HintButton(),
         PopupMenuButton<String>(
           tooltip: 'Game menu',
           icon: const Icon(Icons.more_horiz),

@@ -18,9 +18,26 @@ void main() {
     // Rooms 11,13,15,16,18,21,22,23,26 contain CA commands whose color byte
     // is a pattern byte (> 3) and used to crash with a palette RangeError.
     for (final roomId in RoomBytecodeLoader.availableRooms) {
-      if (RoomBytecodeLoader.getRoomBuffer(roomId)!.isEmpty) continue;
+      expect(
+        RoomBytecodeLoader.getRoomBuffer(roomId),
+        isNotEmpty,
+        reason: 'room $roomId must have artwork',
+      );
       expect(() => _render(roomId), returnsNormally, reason: 'room $roomId');
     }
+  });
+
+  test('upstairs hallway has its complete original drawing', () {
+    final data = RoomBytecodeLoader.getRoomBuffer(9)!;
+    expect(data.length, 157);
+    final room = AtariBytecodeParser.parseRoom(data, 9)!;
+    expect(room.commands.length, greaterThan(15));
+    final screen = _render(9);
+    final colors = <int>{
+      for (var y = 0; y < 96; y++)
+        for (var x = 0; x < 160; x++) screen.peek(x, y),
+    };
+    expect(colors.length, 4);
   });
 
   test('room 8 doorway is boundary-filled with the CC 64 pattern', () {
