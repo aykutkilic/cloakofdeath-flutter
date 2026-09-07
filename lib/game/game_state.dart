@@ -39,6 +39,18 @@ class GameState extends ChangeNotifier {
   bool get hasWon => _engine.outcome == 'won';
   bool get awaitingCombination => _engine.awaitingCombination;
 
+  String? get darknessGuidance {
+    if (!isTooDarkToSee) return null;
+    if ((currentRoomId == 22 || currentRoomId == 23) &&
+        !_engine.flag('door_propped')) {
+      return 'The cellar door has slammed shut. Its broken latch prevents '
+          'escape upstairs. The chest must be left by the open door before '
+          'entering to keep it propped open.';
+    }
+    return 'You can try the direction buttons by touch. Light your candle '
+        'from the inventory to see your surroundings.';
+  }
+
   Future<void> initialize() async {
     _gameData = await GameData.loadFromAssets();
     final prefs = await SharedPreferences.getInstance();

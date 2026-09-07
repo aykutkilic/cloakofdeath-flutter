@@ -85,7 +85,7 @@ class InteractiveInventory extends StatelessWidget {
                             ),
                             child: Column(
                               children: [
-                                ObjectIcon(item, size: 26),
+                                ObjectIcon(item, size: 36),
                                 const SizedBox(height: 8),
                                 Text(
                                   item,

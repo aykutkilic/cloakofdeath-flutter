@@ -71,28 +71,41 @@ class _RoomViewState extends State<RoomView> {
     if (isTooDarkToSee) {
       return Container(
         decoration: const BoxDecoration(color: AppTheme.panel),
-        child: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.nightlight_outlined,
-                  size: 36,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxHeight < 180 || constraints.maxWidth < 260) {
+              return const Center(
+                child: Icon(
+                  Icons.dark_mode_outlined,
                   color: AppTheme.accent,
+                  size: 32,
                 ),
-                SizedBox(height: 16),
-                Text('Too dark to see', style: TextStyle(fontSize: 18)),
-                SizedBox(height: 8),
-                Text(
-                  'You need a light to see this room.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppTheme.mutedColor),
+              );
+            }
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.nightlight_outlined,
+                      size: 36,
+                      color: AppTheme.accent,
+                    ),
+                    SizedBox(height: 16),
+                    Text('Too dark to see', style: TextStyle(fontSize: 18)),
+                    SizedBox(height: 8),
+                    Text(
+                      'You need a light to see this room.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppTheme.mutedColor),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       );
     }

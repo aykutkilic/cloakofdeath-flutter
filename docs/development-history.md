@@ -46,3 +46,45 @@ desktop while preserving its original Atari artwork.
 
 [Visual design notes](visual-design.md) record the layout decisions, screenshot
 workflow, browser/driver limitations, and rendering fix.
+
+## 2026-09-07 — Inventory icon redesign
+
+Purpose: give inventory objects recognizable, consistent artwork at small sizes.
+
+- Replaced tinted inventory bitmaps with 28 hand-drawn vector symbols, shared
+  across inventory cards, room object chips, and contextual action dialogs.
+  Increased inventory artwork to 36 pixels and differentiated item states with
+  silhouettes and material colors. Preserved game rules, labels, and actions.
+- Kept the rendering system code-native: one painter with a common grid and
+  stroke convention, selected by `ObjectIcon`, without new asset dependencies.
+- Added portable-item coverage, rendered state-distinction, and real inventory
+  action tests. Inspected a rendered contact sheet at 36 and 20 pixels with a
+  320-pixel inventory control. These are widget renders, not device screenshots.
+- Validation: all 55 tests passed; `flutter analyze` reported no issues.
+  Hot reload succeeded in the connected macOS app.
+
+## 2026-09-07 — Exploration navigation alignment
+
+Purpose: keep directional movement beside the exploration action rather than
+detaching it at the left of a wide control surface.
+
+- Right-aligned the shared wrapping navigation control. Its responsive wrapping
+  behavior remains intact on narrow phones, while desktop movement now lines up
+  with Look around at the right edge.
+
+## 2026-09-07 — Room-side navigation and darkness feedback
+
+Purpose: place navigation vertically beside the room, following the user's
+classic adventure reference, and explain movement restrictions in darkness.
+
+- Replaced the below-scene strip with a shared right-side rail containing Look
+  around and six movement buttons. Sized the artwork frame to its actual aspect
+  ratio rather than framing a wider letterboxed container.
+- Enabled direction attempts in darkness through the normal command handler;
+  retained the original cellar trap and added explicit broken-latch/door-prop
+  guidance. Compact dark scenes use a symbol to avoid text overflow.
+- Layout tradeoff: on phones navigation now scrolls with the room rather than
+  occupying a fixed strip; the journal and command input remain outside that scroll.
+- Validation: 59 tests passed, including dark cellar escape with a propped door,
+  locked-door feedback without the prop, eight viewport/state renders, and aspect
+  ratio/right-side placement assertions. Inspected desktop and phone renders.

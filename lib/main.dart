@@ -270,27 +270,57 @@ class _GameScreenState extends State<GameScreen> {
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border.all(color: AppTheme.border),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: LayoutBuilder(
-              builder: (context, constraints) => SizedBox(
-                height: (constraints.maxWidth / game.aspectRatio).clamp(
-                  0,
-                  maxImageHeight,
-                ),
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: game.aspectRatio,
-                    child: RoomView(room: game.currentRoom!),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final imageWidth = (constraints.maxWidth - 118).clamp(
+                0.0,
+                maxImageHeight * game.aspectRatio,
+              );
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    key: const ValueKey('room-artwork-frame'),
+                    width: imageWidth,
+                    height: imageWidth / game.aspectRatio,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: RoomView(room: game.currentRoom!),
+                    ),
                   ),
-                ),
-              ),
-            ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 106,
+                    child: Container(
+                      key: const ValueKey('room-navigation-rail'),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.background,
+                        border: Border.all(color: AppTheme.border),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            tooltip: 'Look around',
+                            onPressed: game.isGameOver
+                                ? null
+                                : () => game.processCommand('LOOK'),
+                            icon: const Icon(
+                              Icons.visibility_outlined,
+                              color: AppTheme.accent,
+                            ),
+                          ),
+                          const Divider(indent: 12, endIndent: 12),
+                          const UnifiedMinimap(vertical: true),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const ObjectPanel(),
@@ -298,55 +328,33 @@ class _GameScreenState extends State<GameScreen> {
     ),
   );
 
-  Widget _navigation(GameState game) => Padding(
-    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+  Widget _exploration(GameState game, {required bool compact}) =>
+      SingleChildScrollView(
+        key: const ValueKey('exploration-scroll'),
+        padding: EdgeInsets.fromLTRB(
+          compact ? 12 : 24,
+          0,
+          compact ? 12 : 20,
+          16,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Expanded(child: Text('EXPLORE', style: AppTheme.label)),
-            TextButton.icon(
-              onPressed: game.isGameOver
-                  ? null
-                  : () => game.processCommand('LOOK'),
-              icon: const Icon(Icons.visibility_outlined, size: 18),
-              label: const Text('Look around'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _status(game),
             ),
+            _scene(
+              game,
+              maxImageHeight: compact && MediaQuery.sizeOf(context).height < 650
+                  ? 120
+                  : 320,
+            ),
+            const SizedBox(height: 12),
+            const InteractiveInventory(),
           ],
         ),
-        const SizedBox(height: 4),
-        const UnifiedMinimap(),
-      ],
-    ),
-  );
-
-  Widget _exploration(
-    GameState game, {
-    required bool compact,
-    bool includeNavigation = true,
-  }) => SingleChildScrollView(
-    key: const ValueKey('exploration-scroll'),
-    padding: EdgeInsets.fromLTRB(compact ? 12 : 24, 0, compact ? 12 : 20, 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _status(game),
-        ),
-        _scene(
-          game,
-          maxImageHeight: compact && MediaQuery.sizeOf(context).height < 650
-              ? 120
-              : 320,
-        ),
-        if (includeNavigation) _navigation(game),
-        const SizedBox(height: 12),
-        const InteractiveInventory(),
-      ],
-    ),
-  );
+      );
 
   Widget _journal(GameState game, {bool showHeading = true}) {
     final transcript = game.outputMessages.join('\n');
@@ -516,10 +524,8 @@ class _GameScreenState extends State<GameScreen> {
                                                   child: _exploration(
                                                     game,
                                                     compact: true,
-                                                    includeNavigation: false,
                                                   ),
                                                 ),
-                                                _navigation(game),
                                               ],
                                             )
                                           : _exploration(game, compact: false),
@@ -543,13 +549,8 @@ class _GameScreenState extends State<GameScreen> {
                               : Column(
                                   children: [
                                     Expanded(
-                                      child: _exploration(
-                                        game,
-                                        compact: true,
-                                        includeNavigation: false,
-                                      ),
+                                      child: _exploration(game, compact: true),
                                     ),
-                                    _navigation(game),
                                     SizedBox(
                                       height: (constraints.maxHeight * 0.2)
                                           .clamp(96.0, 160.0),

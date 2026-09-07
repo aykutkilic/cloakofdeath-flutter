@@ -5,7 +5,9 @@ import '../game/game_state.dart';
 
 /// Always-visible direction controls, laid out without covering the artwork.
 class UnifiedMinimap extends StatelessWidget {
-  const UnifiedMinimap({super.key});
+  const UnifiedMinimap({super.key, this.vertical = false});
+
+  final bool vertical;
 
   static const directions = <String, (String, IconData)>{
     'N': ('North', Icons.north),
@@ -24,11 +26,15 @@ class UnifiedMinimap extends StatelessWidget {
         builder: (context, constraints) {
           final narrow = constraints.maxWidth < 330;
           return Wrap(
-            spacing: narrow ? 1 : 6,
+            // Keep movement with the exploration action at the trailing edge.
+            // Wrap maintains that intent when a narrow phone needs two rows.
+            alignment: WrapAlignment.end,
+            spacing: vertical ? 4 : (narrow ? 1 : 6),
             runSpacing: 8,
             children: directions.entries.map((entry) {
               final available =
-                  exits.containsKey(entry.key) && !game.isGameOver;
+                  (game.isTooDarkToSee || exits.containsKey(entry.key)) &&
+                  !game.isGameOver;
               return Tooltip(
                 message: entry.value.$1,
                 child: Semantics(

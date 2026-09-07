@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:convert';
+import 'package:cloak_of_death_flutter/game/adventure_engine.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -42,6 +44,8 @@ void main() {
     ('landscape', const Size(844, 390), 0, 1),
     ('keyboard', const Size(390, 844), 320, 1),
     ('large-text', const Size(390, 844), 0, 1.6),
+    ('dark-phone', const Size(390, 844), 0, 1),
+    ('dark-desktop', const Size(1280, 900), 0, 1),
   ]) {
     testWidgets('${variant.$1}: layout and command submission remain usable', (
       tester,
@@ -52,7 +56,13 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetViewInsets);
-      SharedPreferences.setMockInitialValues({});
+      final dark = variant.$1.startsWith('dark-');
+      SharedPreferences.setMockInitialValues({
+        if (dark)
+          'cloak_save_state': jsonEncode(
+            (AdventureEngine()..room = 22).toJson(),
+          ),
+      });
       final game = GameState();
       await game.initialize();
       game.setAutoAnimateRooms(false);
@@ -85,7 +95,15 @@ void main() {
       await tester.tap(find.byTooltip('Send command'));
       await tester.pumpAndSettle();
       expect(game.moveCount, 1);
-      expect(game.getVisibleObjects(), contains('CORRIDOR'));
+      if (!dark) expect(game.getVisibleObjects(), contains('CORRIDOR'));
+      final frame = tester.getRect(
+        find.byKey(const ValueKey('room-artwork-frame')),
+      );
+      final rail = tester.getRect(
+        find.byKey(const ValueKey('room-navigation-rail')),
+      );
+      expect(frame.width / frame.height, closeTo(game.aspectRatio, 0.001));
+      expect(rail.left, greaterThan(frame.right));
       expect(tester.takeException(), isNull);
 
       const previewDir = String.fromEnvironment('PREVIEW_DIR');

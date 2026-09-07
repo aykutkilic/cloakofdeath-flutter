@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloak_of_death_flutter/game/adventure_engine.dart';
+import 'package:cloak_of_death_flutter/widgets/unified_minimap.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +12,36 @@ import 'support/walkthrough.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  for (final propped in [true, false]) {
+    testWidgets('dark cellar movement respects door prop: $propped', (
+      tester,
+    ) async {
+      final engine = AdventureEngine()..room = 23;
+      engine.flags['door_propped'] = propped;
+      SharedPreferences.setMockInitialValues({
+        'cloak_save_state': jsonEncode(engine.toJson()),
+      });
+      final game = GameState();
+      await game.initialize();
+      expect(game.isTooDarkToSee, isTrue);
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: game,
+          child: const MaterialApp(home: Scaffold(body: UnifiedMinimap())),
+        ),
+      );
+      await tester.tap(find.text('U'));
+      await tester.pumpAndSettle();
+      expect(game.currentRoomId, propped ? 5 : 23);
+      expect(game.moveCount, 1);
+      if (!propped) {
+        expect(game.outputMessages.last, contains('locked'));
+        expect(game.darknessGuidance, contains('broken latch'));
+      }
+      await game.saveState();
+    });
+  }
 
   testWidgets('tap corridor action uses the same turn path as typed movement', (
     tester,

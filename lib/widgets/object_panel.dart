@@ -23,7 +23,7 @@ class ObjectPanel extends StatelessWidget {
             if (objects.isEmpty)
               Text(
                 game.isTooDarkToSee
-                    ? 'Too dark to make anything out.'
+                    ? game.darknessGuidance!
                     : 'Nothing in sight. Try looking around.',
                 style: Theme.of(
                   context,
