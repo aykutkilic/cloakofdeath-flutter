@@ -150,7 +150,7 @@ void main() {
       if (variant.$1 == 'hint-phone') {
         await tester.tap(find.byTooltip('A gentle hint'));
         await tester.pumpAndSettle();
-        expect(find.text('A thought to follow'), findsOneWidget);
+        expect(find.text('Hints for your next step'), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
 

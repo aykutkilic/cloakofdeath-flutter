@@ -88,14 +88,15 @@ state before executing the selected route through `processCommand`, preserving
 turns, candle consumption, entry effects, journal output, ordered saves, and
 discovery updates. Map previews and floor switching do not change game state.
 
-## Hint rotation
+## Hint progression
 
-The deterministic primary hint remains the source of puzzle selection. Each
-puzzle has an alternate clue that describes a different relationship or angle.
-`takeHint` cycles these per-puzzle clues within the session, including reopening
-the lightbulb dialog. Another hint cycles without closing the dialog. Rotation
-does not advance puzzle progress, consume turns or fuel, or write journal entries.
-Resetting starts a new rotation; rotation offsets are not canonical save data.
+The deterministic primary hint remains the source of puzzle selection. Following
+feedback about repetitive, cryptic clues, each step now has a finite sequence of
+practical guidance and more specific details. `takeHint` advances without wrapping,
+including across dialog openings. Another hint is disabled once all guidance for
+the current step has been shown. Progress can unlock new guidance; reset clears
+the session-only offsets. Hint requests never advance game turns, consume fuel,
+or write journal entries. See [hint design notes](hints-and-safe.md).
 
 The earlier read-only `nextHint` API is kept for callers needing a stable preview.
 The safe's variants can include 1327, following the user's earlier instruction.
@@ -105,7 +106,7 @@ The safe's variants can include 1327, following the user's earlier instruction.
 Regression coverage includes save migration/reset, unknown/dark room privacy,
 current room contents, route preview purity, manual-equivalent travel turns,
 locks and required equipment, entry side effects, fatal cloak routes, exact
-cardinal/floor relationships, hint rotation, mouse hover/click, touch inspection,
+cardinal/floor relationships, finite hint progression, mouse hover/click, touch inspection,
 double-tap/long-press travel, blocked touch travel, and
 desktop/phone/landscape map layouts. Candle-specific tests compare saved state
 against the same manual commands, exercise repeated light boundaries, one-turn

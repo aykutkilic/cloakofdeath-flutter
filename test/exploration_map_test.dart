@@ -409,7 +409,7 @@ void main() {
   });
 
   testWidgets(
-    'hints rotate inside the dialog and across reopening, without turns',
+    'hints advance without repeating across reopening and stop at exhaustion',
     (tester) async {
       final game = await fresh();
       await tester.pumpWidget(
@@ -425,11 +425,38 @@ void main() {
       await tester.tap(find.text('Another hint'));
       await tester.pumpAndSettle();
       expect(find.text(primary), findsNothing);
+      final second = tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byType(SingleChildScrollView),
+              matching: find.byType(Text),
+            ),
+          )
+          .data!;
       await tester.tap(find.text('Keep exploring'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('A gentle hint'));
       await tester.pumpAndSettle();
-      expect(find.text(primary), findsOneWidget);
+      expect(find.text(primary), findsNothing);
+      expect(find.text(second), findsNothing);
+      expect(find.text('All hints shown'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextButton>(
+              find.widgetWithText(TextButton, 'All hints shown'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('Keep exploring'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('A gentle hint'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('You have seen all the guidance'),
+        findsOneWidget,
+      );
+      expect(find.text(primary), findsNothing);
       expect(game.moveCount, 0);
       expect(game.candleLife, AdventureEngine.candleBurnTurns);
     },

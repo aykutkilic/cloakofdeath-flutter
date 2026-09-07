@@ -9,154 +9,160 @@ class AdventureHint {
 }
 
 class AdventureHints {
-  /// Alternate clues stay bound to the currently relevant puzzle. Cycling is
-  /// session UI state; asking again never skips a prerequisite or costs a turn.
-  static List<String> variants(AdventureHint hint) => [
-    hint.text,
-    _alternatives[hint.id] ?? 'Consider what you already know: ${hint.text}',
-  ];
+  /// Finite, increasingly practical guidance for the current prerequisite.
+  /// Unknown steps have just their primary hint, never a fabricated paraphrase.
+  static List<String> variants(AdventureHint hint) =>
+      {hint.text, ...?_details[hint.id]}.toList(growable: false);
 
-  static const _alternatives = <String, String>{
-    'carrying-space':
-        'A tool that has finished its job can wait somewhere familiar. '
-        'Light and the protection needed for your next doorway deserve priority.',
-    'ending':
-        'The house rewards remembering its tricks. Some discoveries will '
-        'make sense much earlier on another journey.',
-    'safe-code':
-        'Think of the study letter as something to listen to. '
-        'Its odd phrasing points toward the four digits 1327.',
-    'cloak-danger':
-        'The next moment matters. Blessed water, scripture, and '
-        'a silver symbol are the language of this haunting; otherwise the doorway offers retreat.',
-    'spent-candle':
-        'Wax cannot be replenished here. Consider whether your known '
-        'route to freedom can still be followed by touch.',
-    'darkness':
-        'A candle needs something small and fiery before it can help your eyes.',
-    'darkness-equipment':
-        'The map remembers places you have reached. A familiar '
-        'room may be where your lighting supplies are waiting.',
-    'save-fuel':
-        'The flame can rest while daylight does the work. '
-        'Later rooms will be less forgiving of wasted wax.',
-    'passage-return':
-        'A heavy table can conceal a mechanism. The room with '
-        'the hatch may also hold the answer to returning downstairs.',
-    'escape':
-        'The house is behind the last iron barrier. Freedom requires '
-        'going beyond it, not merely opening it.',
-    'gate':
-        'The key has survived the haunting for a reason. '
-        'Remember the large barrier at the far end of the tunnel.',
-    'safe-contents':
-        'An unlocked container does not reveal everything at a glance. '
-        'There may be a small object still waiting inside.',
-    'painting':
-        'A wall decoration can be a hiding place. '
-        'What would become visible if the picture were no longer there?',
-    'CHAIR':
-        'The dining room offers a portable answer to a problem of height. '
-        'Think about where a higher viewpoint would be useful.',
-    'high-cupboard':
-        'Something useful is stored high in the kitchen. '
-        'A seat can do more than provide a rest, once it is underfoot.',
-    'KNIFE':
-        'You need only look dangerous to the rat. Fighting it is another matter.',
-    'BIBLE':
-        'The study holds reassurance for the stairs and meaning for '
-        'the ritual ahead. Keep its book close when courage is needed.',
-    'cellar-lock':
-        'The small key came from an old box. '
-        'The corridor has the sort of lock it might fit.',
-    'KEY': 'The chest was not empty. Its opened interior deserves attention.',
-    'CHEST':
-        'The old box has two uses: something inside it, and its own '
-        'weight outside it. A stubborn lid and a swinging door suggest both.',
-    'CANDLE':
-        'A pantry is a sensible place to keep household supplies. '
-        'Something made of wax would be useful below stairs.',
-    'LIT CANDLE':
-        'A light left on the floor cannot accompany you. '
-        'Think back to the last room where you set it down.',
-    'lost-matches':
-        'Without a spark, remaining wax is of little help. '
-        'Keep any flame you still have until you know a way out.',
-    'MATCHES':
-        'The little things from the high cupboard are easy to '
-        'leave behind, but they are what make a candle useful.',
-    'HAMMER':
-        'Among the garage tools, one has an end made for pulling '
-        'small metal fastenings free.',
-    'hatch':
-        'A nailed lid does not need a key. '
-        'Consider the curved end of the garage tool.',
-    'attic-route':
-        'The hidden passage has a way above it. '
-        'The attic connects to a room built for a table game.',
-    'book-shelf':
-        'The book works as part of the shelf. '
-        'A lever cannot operate while carried away from its mechanism.',
-    'library':
-        'One volume among the shelves is unusual. '
-        'Perhaps its movement matters more than its words.',
-    'WIRE':
-        'Beyond the nailed hatch is silver that bends. '
-        'It could bind pieces that are too stiff to join themselves.',
-    'SAW':
-        'The workshop has silver, but you need an edge with teeth '
-        'to turn a single length into useful pieces.',
-    'BAR':
-        'The silver in the workshop is raw material. '
-        'A protective shape needs more than one length.',
-    'BAR PIECES':
-        'The pieces are already the right material. '
-        'Keep them together until you can bind them into a meaningful shape.',
-    'cut-silver':
-        'A workshop bench and a toothed blade are a fitting '
-        'pair for reshaping the metal you carry.',
-    'cross':
-        'A familiar sacred shape has two crossing arms. '
-        'Flexible silver could hold the rigid lengths in place.',
-    'cord-weight':
-        'The rumbling lasts only while the mechanism is held. '
-        'A heavy substitute for your hand could keep it working.',
-    'IRON':
-        'The cellar contains a burden heavy enough to maintain tension. '
-        'Carrying it will mean leaving most other equipment somewhere safe.',
-    'guest-cord':
-        'Something hangs in the guest bedroom. '
-        'A lasting pull could change a room nearby.',
-    'GOBLET':
-        'A newly accessible side room near the master bedroom '
-        'contains silver meant to hold a liquid.',
-    'CRUCIFIX':
-        'Making a protective symbol is only half the task. '
-        'Its protection needs to accompany you.',
-    'HOLY WATER':
-        'The prepared water belongs beside your other sacred '
-        'objects when you approach the restless cloth.',
-    'GOBLET OF WATER':
-        'Ordinary water may change when the vessel, '
-        'scripture, and the silver symbol are carried together.',
-    'blessing':
-        'The kitchen supply is plain water. The company it keeps '
-        'in a silver vessel can give it another purpose.',
-    'ritual-ready':
-        'Before entering the haunted room, have your light '
-        'ready. What follows calls for a sacred rite, without delay.',
-    'COAL':
-        'The fireplace contains dark fuel. '
-        'Its glow might resemble something the tunnel guard recognizes.',
-    'RAG':
-        'Oil can help another fuel catch. The workshop scrap is '
-        'more useful beside something combustible than burning alone.',
-    'embers':
-        'Imagine the dark lumps glowing at the guard’s feet. '
-        'Their appearance could do what force cannot.',
-    'dog':
-        'The guard has remarkable eyes. '
-        'A frightening imitation might be more effective than a weapon.',
+  static const _details = <String, List<String>>{
+    'carrying-space': [
+      'You have six carrying units. The heavy iron takes four; most other items take one. Leave finished tools in a known room.',
+    ],
+    'safe-code': [
+      'Examine the study desk and take the Bible to uncover the letter. Read the letter for the combination clue.',
+      'Enter 1327 in the safe keypad. After it opens, examine the safe to find the gate key.',
+    ],
+    'cloak-danger': [
+      'EXORCISE CLOAK requires the Bible, crucifix, and holy water in your inventory. If anything is missing, go west immediately.',
+    ],
+    'spent-candle': [
+      'Direction commands still work in darkness, but objects are hidden. Relighting cannot restore spent candle fuel.',
+    ],
+    'darkness': [
+      'Use LIGHT CANDLE while carrying both candle and matches. Extinguish it in bright rooms to conserve fuel.',
+    ],
+    'darkness-equipment': [
+      'The candle starts in the pantry; matches are in the kitchen cupboard. The map can help retrieve supplies you dropped.',
+    ],
+    'save-fuel': [
+      'EXTINGUISH CANDLE preserves the remaining wax. Map travel manages lighting automatically when you carry the supplies.',
+    ],
+    'passage-return': [
+      'PUSH TABLE in the pool room, then go west to the attic, down to the passageway, and west to the library.',
+    ],
+    'escape': [
+      'Go east through the unlocked tunnel gate to finish your escape.',
+    ],
+    'gate': ['Carry the gate key to the tunnel, OPEN GATE, then go east.'],
+    'safe-contents': [
+      'EXAMINE SAFE reveals the gate key; take it before leaving.',
+    ],
+    'painting': ['GET PAINTING reveals the wall safe behind it.'],
+    'CHAIR': [
+      'Carry the chair from the dining room to the kitchen and drop it there.',
+      'CLIMB CHAIR, then examine the cupboard and take the matches while standing on the chair.',
+    ],
+    'high-cupboard': [
+      'Drop the chair in the kitchen, CLIMB CHAIR, then EXAMINE CUPBOARD and GET MATCHES.',
+    ],
+    'KNIFE': [
+      'Take the knife from the kitchen and keep it in your inventory when you GO CORRIDOR from the entrance hall.',
+      'Do not attack the rat. Carrying the knife is enough to pass it safely.',
+    ],
+    'BIBLE': [
+      'If the Bible is still hidden, EXAMINE DESK in the study reveals it. Carry it when going upstairs from the entrance hall.',
+      'Keep track of the Bible after reaching upstairs: you will also need it with the crucifix and holy water for the cloak.',
+    ],
+    'cellar-lock': [
+      'With the small key, OPEN DOOR in the dark corridor. Do not enter until the chest is keeping the door open.',
+      'DROP CHEST in the dark corridor props the unlocked door. Its broken latch otherwise traps you downstairs.',
+    ],
+    'KEY': ['EXAMINE CHEST after breaking its lid, then take the small key.'],
+    'CHEST': [
+      'The chest begins in the conservatory. KICK CHEST breaks its lid; examine it to find the small key.',
+      'Carry the chest to the dark corridor. Unlock the door with the key, then DROP CHEST there before going down: it holds the door open despite the broken latch.',
+    ],
+    'cellar-prop': [
+      'Retrieve the chest and use DROP CHEST in the dark corridor beside the unlocked door, not down in the cellar.',
+      'Leave the chest there after entering. Picking it up removes the prop and lets the cellar door trap you again.',
+    ],
+    'CANDLE': [
+      'Carry matches as well as the candle; an unlit candle alone cannot illuminate the cellar.',
+    ],
+    'LIT CANDLE': [
+      'Pick up the lit candle before leaving. It only lights the room where it is, and burns fuel even when dropped.',
+    ],
+    'lost-matches': [
+      'A remaining lit candle still works, but once extinguished it cannot be relit without matches.',
+    ],
+    'MATCHES': [
+      'Matches are needed both to light the candle and to ignite the coal and oily rag in the tunnel.',
+    ],
+    'HAMMER': [
+      'Carry the garage hammer to the pool room and REMOVE NAILS from the hatch.',
+    ],
+    'hatch': [
+      'REMOVE NAILS needs the hammer in your inventory. GO HATCH leads to the silver wire.',
+    ],
+    'attic-route': [
+      'Go up from the passageway, then east from the attic to the pool room. The hammer opens its nailed hatch.',
+    ],
+    'book-shelf': [
+      'Return the book to the library, then PULL BOOK there to reveal the passageway.',
+    ],
+    'library': [
+      'EXAMINE SHELVES in the library, then PULL BOOK to reveal the passageway. Go through it and up to reach the attic.',
+    ],
+    'WIRE': [
+      'The silver wire binds the cut silver bar pieces into a crucifix. Carry both to the workshop to MAKE CROSS.',
+    ],
+    'SAW': [
+      'The rusty saw starts in the garage. Carry it and the silver bar to the workshop to CUT BAR.',
+    ],
+    'BAR': [
+      'Use the silver bar, not the heavy iron. CUT BAR requires the saw and the workshop.',
+    ],
+    'BAR PIECES': [
+      'Carry the bar pieces and silver wire to the workshop, then MAKE CROSS.',
+    ],
+    'cut-silver': [
+      'In the workshop, CUT BAR with the saw. The resulting pieces can be bound with silver wire.',
+    ],
+    'cross': [
+      'In the workshop, carry both BAR PIECES and WIRE and use MAKE CROSS. The heavy iron is for the bedroom cord, not the crucifix.',
+    ],
+    'cord-weight': [
+      'In the guest bedroom, PULL CORD and then DROP IRON before leaving. The weight keeps the annexe open.',
+    ],
+    'IRON': [
+      'Carry the heavy iron to the guest bedroom. PULL CORD, then DROP IRON while the cord is pulled. Keep the Bible for the entrance stairs.',
+    ],
+    'guest-cord': [
+      'Examine the guest bedroom to reveal the cord. Pull it and drop the heavy iron there to keep the mechanism held.',
+    ],
+    'GOBLET': [
+      'With the cord held by the iron, go to the master bedroom and enter the annexe to retrieve the silver goblet.',
+    ],
+    'CRUCIFIX': [
+      'Carry the crucifix, Bible, and holy water together before facing the cloak.',
+    ],
+    'HOLY WATER': [
+      'The cloak requires all three: holy water, Bible, and crucifix. Bring them into the haunted bedroom and EXORCISE CLOAK promptly.',
+    ],
+    'GOBLET OF WATER': [
+      'Carrying the filled goblet with both the Bible and crucifix blesses its water automatically.',
+    ],
+    'blessing': [
+      'Carry the silver goblet, Bible, and crucifix to the kitchen. EXAMINE SINK, then GET WATER; it becomes holy water automatically. Leave one carrying unit free.',
+    ],
+    'ritual-ready': [
+      'Light the candle before entering the haunted bedroom east of the icy corridor, then EXORCISE CLOAK immediately.',
+    ],
+    'COAL': [
+      'Bring the oily rag from the workshop and carry matches too; the coal cannot be lit without the rag beside it.',
+      'In the tunnel with the dog, DROP COAL and DROP RAG, then LIGHT COAL. The glowing embers frighten the dog away.',
+    ],
+    'RAG': [
+      'Take the rag and coal to the tunnel, with matches in your inventory. Drop both beside the dog before lighting the coal.',
+      'Do not burn the rag on its own or light the pair in another room. The embers must be created where the dog is.',
+    ],
+    'embers': [
+      'With matches in your inventory and both coal and rag on the tunnel floor, LIGHT COAL frightens the dog away.',
+    ],
+    'dog': [
+      'DROP COAL and DROP RAG in the tunnel, then LIGHT COAL while carrying matches. Do not attack the dog.',
+      'Once the dog is gone, the gate still needs its own key from the haunted bedroom safe.',
+    ],
   };
 
   static AdventureHint next(
@@ -165,12 +171,12 @@ class AdventureHints {
   ) {
     AdventureHint hint(String id, String text) => AdventureHint(id, text);
     bool exists(String item) => game.locations[item] != 0;
-    AdventureHint seek(String item, String clue) {
+    AdventureHint seek(String item, String clue, {String? id}) {
       final location = game.locations[item] ?? 0;
       if (location > 0 && location != game.room) {
         return hint(
-          item,
-          '$clue Something useful is in the ${roomName(location)}.',
+          id ?? item,
+          '$clue You can find the ${item.toLowerCase()} in the ${roomName(location)}.',
         );
       }
       if (!game.held(item) &&
@@ -182,7 +188,7 @@ class AdventureHints {
               'safe until you need it again. The iron alone needs four carrying units.',
         );
       }
-      return hint(item, clue);
+      return hint(id ?? item, clue);
     }
 
     if (!game.isPlaying) {
@@ -197,18 +203,15 @@ class AdventureHints {
     if (game.awaitingCombination) {
       return hint(
         'safe-code',
-        'The letter sounds different when heard as digits. '
-            'Let 1327 linger in your mind as you study the four spaces.',
+        'The safe combination is hidden in the sound of the study letter: 1327.',
       );
     }
     if (game.room == 15 && !game.flag('cloak_exorcised')) {
       return hint(
         'cloak-danger',
         game.held('BIBLE') && game.held('CRUCIFIX') && game.held('HOLY WATER')
-            ? 'This is a possession, not a fight. Your sacred objects belong '
-                  'together in a rite, and the approaching cloth leaves little time.'
-            : 'The cloth is closing in. Curiosity can wait; safety lies back '
-                  'through the doorway until faith, silver, and blessed water are ready.',
+            ? 'You have the Bible, crucifix, and holy water. Exorcise the cloak now; staying here for three turns is fatal.'
+            : 'Go west to safety now. Return with the Bible, crucifix, and holy water; the cloak kills after three turns in this room.',
       );
     }
     if (game.isDark) {
@@ -224,21 +227,18 @@ class AdventureHints {
       if (game.held('CANDLE') && game.held('MATCHES')) {
         return hint(
           'darkness',
-          'Wax and a spark could give this darkness a shape.',
+          'You have a candle and matches. Light the candle to see this room.',
         );
       }
       return hint(
         'darkness-equipment',
-        'Darkness conceals both objects and dangers. Remember where you '
-            'left your candle and its source of fire; direction buttons still '
-            'let you feel your way.',
+        'You need a candle and matches to see here. Retrieve your lighting supplies; direction buttons still let you move in darkness.',
       );
     }
     if (game.held('LIT CANDLE') && game.room < 15) {
       return hint(
         'save-fuel',
-        'There is already enough light here. Every unnecessary flame '
-            'leaves a little less wax for the darkness ahead.',
+        'This room is already bright. Extinguish the candle to save fuel for the cellar and attic.',
       );
     }
     if ((game.room == 20 ||
@@ -250,8 +250,7 @@ class AdventureHints {
         !game.held('WIRE')) {
       return seek(
         'WIRE',
-        'Something thin and silver beyond the hatch could '
-            'bind larger pieces together.',
+        'Collect the silver wire beyond the hatch. You will need it to bind silver bar pieces into a crucifix.',
       );
     }
     if ((game.room == 17 || game.room == 18 || game.room == 21) &&
@@ -259,8 +258,7 @@ class AdventureHints {
         game.held('WIRE')) {
       return hint(
         'passage-return',
-        'The route back is linked to the pool room. Its largest furnishing '
-            'may be less fixed than it looks.',
+        'Push the table in the pool room to reopen the passageway route back to the library.',
       );
     }
     if (game.flag('cloak_exorcised')) {
@@ -271,98 +269,88 @@ class AdventureHints {
         if (!game.held('GATE KEY')) {
           return seek(
             'GATE KEY',
-            'The key from the wall safe belongs to '
-                'something more substantial than a bedroom door.',
+            'Retrieve the gate key from the wall safe; it unlocks the tunnel gate.',
           );
         }
         if (!game.flag('dog_terrified')) return _dog(game, seek);
         return hint(
           'gate',
-          'The tunnel ends at iron bars. The safe kept '
-              'the means of passing them.',
+          'Use the gate key from the safe to unlock the iron gate at the end of the tunnel.',
         );
       }
       if (game.flag('safe_open')) {
         return hint(
           'safe-contents',
-          'An open safe deserves a closer look; '
-              'its value may be a way out rather than treasure.',
+          'Examine the open safe to reveal the gate key, then take it.',
         );
       }
       if (exists('SAFE')) {
         return hint(
           'safe-code',
-          'The wall lock wants four digits. '
-              'The letter in the study has a curious sound to it: 1327.',
+          'Open the wall safe with the four-digit combination hinted at in the study letter: 1327.',
         );
       }
       return hint(
         'painting',
-        'Now the room is quiet, consider what '
-            'the picture might be covering.',
+        'The cloak is gone. Remove the painting in this room to uncover the wall safe.',
       );
     }
     if (!game.flag('matches_reached')) {
       if (game.locations['CHAIR'] != 3 && !game.held('CHAIR')) {
         return seek(
           'CHAIR',
-          'A kitchen cupboard may be beyond your reach. '
-              'Furniture need not stay in the room where you found it.',
+          'The kitchen cupboard holds matches, but you need the dining-room chair to reach them.',
         );
       }
       return hint(
         'high-cupboard',
-        'The kitchen rewards a closer look. '
-            'Its tall cupboard and a steadier, higher viewpoint belong together.',
+        'Look around the kitchen to find the cupboard. Stand on the chair to reach its matches.',
       );
     }
     if (!game.held('KNIFE') && !game.flag('door_unlocked')) {
       return seek(
         'KNIFE',
-        'The rat need not be harmed. A kitchen utensil '
-            'might make it think twice about blocking your path.',
+        'Carry the kitchen knife to get past the rat into the dark corridor. You do not need to attack it.',
       );
     }
     if (!game.held('BIBLE') && !game.flag('door_unlocked')) {
       return seek(
         'BIBLE',
         exists('BIBLE')
-            ? 'You may want the comfort of scripture before facing the upstairs rooms.'
-            : 'The study desk may hold something more reassuring than furniture.',
+            ? 'Carry the Bible to overcome your fear and go upstairs from the entrance hall.'
+            : 'Examine the study desk for the Bible. Carrying it lets you go upstairs from the entrance hall.',
       );
     }
     if (!game.flag('door_unlocked')) {
       if (game.held('KEY')) {
         return hint(
           'cellar-lock',
-          'A small key and the corridor door look '
-              'like parts of the same mystery.',
+          'The small key unlocks the cellar door in the dark corridor. Bring the chest too: the door needs a prop before you enter.',
         );
       }
       if (game.flag('chest_broken')) {
         return seek(
           'KEY',
-          'The damaged chest may have more to show you inside.',
+          'Examine the broken chest and take its small key for the cellar door.',
         );
       }
       return seek(
         'CHEST',
-        'An old wooden lid might respond to a less polite '
-            'approach. That heavy box could also be useful beside a troublesome door.',
+        'Break open the wooden chest to find the cellar key. Keep the chest: dropping it in the dark corridor will hold the unlocked door open.',
       );
     }
     if (game.room == 5 && !game.flag('door_propped')) {
       return seek(
         'CHEST',
-        'Before trusting the cellar stairs, consider what '
-            'would keep the door from slamming behind you. A heavy box might help.',
+        'Drop the chest in the dark corridor before entering the cellar. It props the door open; the broken latch otherwise leaves you trapped downstairs.',
+        id: 'cellar-prop',
       );
     }
     final movingIron = exists('CRUCIFIX') && !game.flag('cord_held');
     if (!movingIron && !game.held('CANDLE') && !game.held('LIT CANDLE')) {
       return seek(
         exists('LIT CANDLE') ? 'LIT CANDLE' : 'CANDLE',
-        'The pantry once offered a little light for the darker parts of the house.',
+        'Bring the candle for the dark rooms. It starts in the pantry, and needs matches to light.',
       );
     }
     if (!movingIron && !game.held('MATCHES') && !game.held('LIT CANDLE')) {
@@ -376,8 +364,7 @@ class AdventureHints {
       }
       return seek(
         'MATCHES',
-        'Wax alone cannot drive away the dark. '
-            'Remember where you left the little source of fire.',
+        'Retrieve your matches so you can light the candle and the coal-and-rag fire for the dog.',
       );
     }
     if (!game.flag('dog_terrified')) return _dog(game, seek);
@@ -386,67 +373,59 @@ class AdventureHints {
         if (!game.held('HAMMER')) {
           return seek(
             'HAMMER',
-            'Some fastenings need a claw rather than a key.',
+            'The garage hammer can remove the nails from the pool-room hatch.',
           );
         }
         if (game.room == 21) {
           return hint(
             'hatch',
-            'The hatch is held by small metal fastenings. '
-                'The claw in your toolkit was made to loosen them.',
+            'Use the hammer to remove the hatch nails. The store room beyond contains silver wire for the crucifix.',
           );
         }
         if (game.room == 17 || game.room == 18) {
           return hint(
             'attic-route',
-            'Above the hidden passage lies an attic; '
-                'the pool room beyond it has a fastening worth investigating.',
+            'Go up from the hidden passage to the attic, then east to the pool room and its nailed hatch.',
           );
         }
         if (game.held('BOOK')) {
           return hint(
             'book-shelf',
-            'A secret mechanism needs its lever '
-                'in place. A book in your hands cannot move its shelf.',
+            'The library book operates a secret door only while it is in the library. Put it back before pulling it.',
           );
         }
         return hint(
           'library',
-          'A particular volume on the library shelves '
-              'may move more than a reader. Beyond it lies a route upward.',
+          'Examine the library shelves and pull the book to reveal a passageway leading up to the attic.',
         );
       }
       if (!game.held('WIRE')) {
         return seek(
           'WIRE',
-          'The space beyond the hatch hides something '
-              'thin enough to hold silver pieces together.',
+          'Get the silver wire beyond the pool-room hatch. It joins the cut bar pieces into a crucifix.',
         );
       }
       if (!game.held('BAR PIECES')) {
         if (!game.held('SAW')) {
           return seek(
             'SAW',
-            'A silver bar needs reshaping. Even a rusty '
-                'cutting tool may have a useful edge.',
+            'You need the garage saw to cut the silver bar into crucifix pieces in the workshop.',
           );
         }
         if (!game.held('BAR')) {
           return seek(
             exists('BAR PIECES') ? 'BAR PIECES' : 'BAR',
-            'Silver in the workshop could become something protective.',
+            'The workshop silver bar provides the pieces for a crucifix. It needs cutting with the saw, then binding with silver wire.',
           );
         }
         return hint(
           'cut-silver',
-          'The workshop is a good place to divide '
-              'silver into lengths for a sacred shape.',
+          'Cut the silver bar with the saw in the workshop. Keep the pieces for the crucifix.',
         );
       }
       return hint(
         'cross',
-        'Two silver lengths crossing, held by wire: '
-            'imagine the symbol they could form on the workshop bench.',
+        'Make a crucifix in the workshop using the cut silver bar pieces and silver wire, then pick it up.',
       );
     }
     final hasVessel = exists('GOBLET OF WATER') || exists('HOLY WATER');
@@ -455,76 +434,64 @@ class AdventureHints {
         if (game.room == 10 && game.held('IRON')) {
           return hint(
             'cord-weight',
-            'A tug is temporary. Something very '
-                'heavy could keep the silk cord under tension after you let go.',
+            'Pull the bedroom cord and drop the heavy iron to keep it pulled. This holds the master-bedroom annexe open.',
           );
         }
         if (game.room == 1 && game.held('IRON') && !game.held('BIBLE')) {
           return seek(
             'BIBLE',
-            'Even with a weight for the bedroom mechanism, '
-                'you still need the comfort of scripture to face the stairs.',
+            'Keep the Bible while carrying the iron: you still need it to go upstairs from the entrance hall.',
           );
         }
         if (!game.held('IRON')) {
           return seek(
             'IRON',
-            'The guest bedroom mechanism needs lasting '
-                'weight, not just a brief tug. You will need four free carrying units.',
+            'Use the heavy cellar iron to hold down the guest-bedroom cord. It takes four carrying units; it is not the silver bar used for the crucifix.',
           );
         }
         return hint(
           'guest-cord',
-          'The guest bedroom has a hanging thread '
-              'of a mystery. Its movement may affect another room.',
+          'The guest-bedroom cord opens the master-bedroom annexe. Pull it and use the heavy iron to keep it held.',
         );
       }
       return seek(
         'GOBLET',
-        'The master bedroom has changed. A small '
-            'side room may hold a vessel worthy of a ritual.',
+        'Enter the annexe from the master bedroom and collect the silver goblet for holy water.',
       );
     }
     if (!game.held('BIBLE')) {
       return seek(
         'BIBLE',
-        'Scripture belongs beside the silver vessel '
-            'when you prepare for the haunted room.',
+        'Retrieve the Bible. You need it with the crucifix and a goblet of water to prepare holy water.',
       );
     }
     if (!game.held('CRUCIFIX')) {
       return seek(
         'CRUCIFIX',
-        'A crafted symbol cannot protect you '
-            'while it waits elsewhere.',
+        'Pick up your crucifix. You must carry it with the Bible and holy water to exorcise the cloak.',
       );
     }
     if (!game.held('HOLY WATER')) {
       if (exists('HOLY WATER')) {
         return seek(
           'HOLY WATER',
-          'Blessed water is best kept close '
-              'when the cloth begins to stir.',
+          'Retrieve the holy water before entering the haunted bedroom; bring the Bible and crucifix too.',
         );
       }
       if (exists('GOBLET OF WATER') && !game.held('GOBLET OF WATER')) {
         return seek(
           'GOBLET OF WATER',
-          'Water, scripture, and your silver '
-              'symbol may have a special affinity when carried together.',
+          'Pick up the goblet of water while carrying the Bible and crucifix; the water will become holy water.',
         );
       }
       return hint(
         'blessing',
-        'The kitchen has water. In a silver vessel, '
-            'beside scripture and a sacred symbol, it may become more than water.',
+        'Fill the silver goblet from the kitchen sink while carrying the Bible and crucifix to make holy water.',
       );
     }
     return hint(
       'ritual-ready',
-      'Faith, silver, and blessed water are ready. '
-          'Beyond the icy corridor, prepare your light before meeting the cloth; '
-          'there will be little time for anything but a rite.',
+      'Bring the Bible, crucifix, and holy water into the haunted bedroom east of the icy corridor. Light your candle first, then exorcise the cloak promptly.',
     );
   }
 
@@ -535,8 +502,7 @@ class AdventureHints {
     if (game.room == 26 && game.here('COAL') && game.here('RAG')) {
       return const AdventureHint(
         'embers',
-        'A spark could turn those dark '
-            'lumps into a pair of eyes to rival the guard at the gates.',
+        'The coal and oily rag are together beside the dog. Light the coal with matches to frighten it away.',
       );
     }
     for (final item in ['COAL', 'RAG']) {
@@ -544,18 +510,14 @@ class AdventureHints {
         return seek(
           item,
           item == 'COAL'
-              ? 'The sitting-room fireplace holds something that could glow '
-                    'like watchful eyes.'
-              : 'A workshop rag carries oil. It could help something else '
-                    'glow, rather than burn away alone.',
+              ? 'Examine the sitting-room fireplace for coal. Burning it with the oily rag in the tunnel frightens the dog away.'
+              : 'Get the oily rag from the workshop. The coal needs it as kindling to frighten the tunnel dog.',
         );
       }
     }
     return const AdventureHint(
       'dog',
-      'The tunnel guard fears what it '
-          'resembles. Dark lumps and an oily scrap at its feet might suggest '
-          'a rival with glowing eyes.',
+      'Drop the coal and oily rag together in the tunnel, then light the coal with matches. The glowing embers frighten the dog away.',
     );
   }
 }

@@ -17,12 +17,16 @@ class HintButton extends StatelessWidget {
         builder: (context) => StatefulBuilder(
           builder: (context, setState) => AlertDialog(
             icon: const Icon(Icons.lightbulb_outline),
-            title: const Text('A thought to follow'),
+            title: const Text('Hints for your next step'),
             content: SingleChildScrollView(child: Text(hint.text)),
             actions: [
               TextButton(
-                onPressed: () => setState(() => hint = game.takeHint()),
-                child: const Text('Another hint'),
+                onPressed: game.hasMoreHints
+                    ? () => setState(() => hint = game.takeHint())
+                    : null,
+                child: Text(
+                  game.hasMoreHints ? 'Another hint' : 'All hints shown',
+                ),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context),

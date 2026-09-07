@@ -1,6 +1,6 @@
 # Hints and safe interaction — 2026-09-08
 
-Purpose: offer a gentle nudge toward the next useful puzzle without requiring
+Purpose: offer practical guidance toward the next useful puzzle without requiring
 players to type an exact command or read a full solution.
 
 ## Evidence and wording
@@ -8,9 +8,18 @@ players to type an exact command or read a full solution.
 The user supplied the [Gaming After 40 playthrough](https://gamingafter40.blogspot.com/2013/11/adventure-of-week-cloak-of-death-1984.html).
 Its narrative includes failed experiments and later corrections, so the current
 source-verified engine and constrained walkthrough remain authoritative for
-prerequisites, navigation, inventory load, and hazards. Hints are original prose
-about relationships between objects; they do not emit solution commands. The
-user explicitly allowed the safe clue to mention **1327**.
+prerequisites, navigation, inventory load, and hazards. Following user feedback,
+hints now name useful items, explain what they do, and offer command-level help
+when another hint is requested. They no longer hide recipes behind metaphors.
+The user explicitly allowed the safe clue to mention **1327**.
+
+Examples: the knife permits passing the rat without fighting; the Bible permits
+the entrance stairs; dropping the chest in the dark corridor holds the cellar
+door despite its broken latch. Coal and oily rag must be dropped together in the
+tunnel and lit with carried matches to frighten the dog. The crucifix uses the
+silver bar cut with the garage saw, plus silver wire, in the workshop; the heavy
+iron instead holds the guest-bedroom cord. These distinctions were checked in
+the engine, rather than inferred from item names or the user's recollection.
 
 ## State-derived guidance
 
@@ -26,6 +35,24 @@ There is no persisted hint cursor or extra command transaction. Repeated hints
 do not advance time, consume candle fuel, change inventory, or append to the
 journal. Restored saves receive the same hint as the equivalent live state.
 Temporary UI selection and partially entered digits remain local widget state.
+
+## Finite hint progression
+
+The old implementation alternated two phrasings forever, with an echo of the
+primary text as its fallback. `AdventureHints.variants` now returns a finite,
+deduplicated sequence: a practical primary clue followed by additional details
+or commands. Steps without authored details have just one hint, not filler.
+
+`GameState.takeHint` advances session-only offsets keyed by the primary ID and
+text, so a changed prerequisite or dropped-item location has its own guidance.
+It never wraps around. `hasMoreHints` disables Another hint after the last entry,
+labeling it All hints shown. Reopening an exhausted step explains that all its
+guidance has been seen instead of showing the first clue again. Progress can
+unlock a different sequence; resetting the game clears offsets. The pure
+`nextHint` remains deterministic and independent of these presentation offsets.
+
+Cellar door-propping has its own hint ID, separate from finding/breaking the
+chest, so later details do not send players back to an already-finished task.
 
 Carrying constraints influence ordering: once the cross exists, the iron/goblet
 stage must allow the player to leave relics and matches behind. Otherwise hints
@@ -60,6 +87,9 @@ restore equivalence at every step, explicit major puzzle milestones, dropped
 items, out-of-order completion, and iron carrying space. Widget tests cover
 typed/menu/restored safe entry, correct/fatal attempts, keyboard editing, clear,
 digit limits, hints without turn/fuel costs, and westward navigation.
+Additional tests verify the named prerequisites and complete dog/crucifix
+recipes, finite deduplicated progression, dialog reopen/exhaustion, refreshed
+guidance after progress, and reset behavior.
 
 Layout coverage includes 320-pixel phones, short landscape, and 1.6x text.
 Preview images use the existing `PREVIEW_DIR` and `PREVIEW_FONT` test options;

@@ -1,5 +1,30 @@
 # Development history
 
+## 2026-09-08 — Practical hints without repetitive cycling
+
+Purpose: make the lightbulb useful when players need actual prerequisites and
+actions, rather than two cryptic phrasings of the same advice.
+
+- Rewrote clues to name equipment and its purpose: knife for the rat, Bible for
+  the stairs, chest to prop the corridor door, coal plus oily rag and matches for
+  the dog, and cut silver bar plus wire for the crucifix. More detailed entries
+  include commands and safety warnings. The heavy iron is explicitly reserved
+  for the bedroom cord, not confused with the silver bar.
+- Replaced modulo cycling and the fallback echo with finite, deduplicated hint
+  sequences. Another hint advances to new details, then becomes All hints shown.
+  Reopening an exhausted step explains exhaustion instead of repeating its first
+  clue. Progress and changed item locations can unlock new guidance; reset clears
+  session offsets. Hint reads still consume no turns, fuel, or journal entries.
+- Split cellar propping from chest discovery so later guidance does not recommend
+  repeating the chest-opening task. Renamed the dialog Hints for your next step.
+- Checked recipes and locations against the engine and constrained walkthrough,
+  including the garage saw, letter revealed by taking the Bible, and westward
+  library return after pushing the pool table. [Design notes](hints-and-safe.md)
+  record the revised wording and progression contract.
+- Validation: the full 100-test suite and application/test static analysis passed.
+  Added recipe/prerequisite, uniqueness, exhaustion/reopen, progress, and reset
+  checks; existing phone, landscape, and enlarged-text layout tests passed.
+
 ## 2026-09-08 — Automatic candle management during map travel
 
 Purpose: remove repetitive candle commands when revisiting rooms without

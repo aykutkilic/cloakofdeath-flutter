@@ -29,6 +29,7 @@ void main() {
         const milestones = {
           'REMOVE NAILS': 'hatch',
           'MAKE CRUCIFIX': 'cross',
+          'PUSH TABLE': 'passage-return',
           'PULL CORD': 'cord-weight',
           'EXORCISE CLOAK': 'cloak-danger',
           '1327': 'safe-code',
@@ -37,6 +38,14 @@ void main() {
           expect(current.id, milestones[command], reason: command);
         }
         expect(current.text, isNotEmpty, reason: command);
+        final guidance = AdventureHints.variants(current);
+        expect(guidance.toSet().length, guidance.length, reason: command);
+        expect(
+          guidance.any(
+            (text) => text.startsWith('Consider what you already know:'),
+          ),
+          isFalse,
+        );
         expect(jsonEncode(game.toJson()), before, reason: command);
         expect(
           hint(AdventureEngine.fromJson(jsonDecode(before))).text,
@@ -104,6 +113,122 @@ void main() {
     },
   );
 
+  test('practical hints name the rat, stairs, and cellar prerequisites', () {
+    final game = AdventureEngine();
+    game.flags['matches_reached'] = true;
+    expect(hint(game).id, 'KNIFE');
+    expect(hint(game).text, contains('knife'));
+    expect(hint(game).text, contains('rat'));
+    game.locations['KNIFE'] = -1;
+    expect(hint(game).id, 'BIBLE');
+    expect(hint(game).text, contains('upstairs'));
+    expect(hint(game).text, contains('study desk'));
+    game.locations['BIBLE'] = -1;
+    game.locations['KEY'] = -1;
+    expect(hint(game).id, 'cellar-lock');
+    expect(
+      AdventureHints.variants(hint(game)).join(' '),
+      contains('DROP CHEST'),
+    );
+    game.flags['door_unlocked'] = true;
+    game.locations['KEY'] = 0;
+    game.room = 5;
+    expect(hint(game).id, 'cellar-prop');
+    expect(hint(game).text, contains('Drop the chest in the dark corridor'));
+    expect(hint(game).text, contains('broken latch'));
+    expect(
+      AdventureHints.variants(hint(game)).join(' '),
+      isNot(contains('KICK CHEST')),
+    );
+  });
+
+  test('dog hints give the complete coal, rag, and matches recipe', () {
+    final game = AdventureEngine()..room = 19;
+    game.flags['matches_reached'] = true;
+    game.flags['door_unlocked'] = true;
+    game.locations['LIT CANDLE'] = -1;
+    game.locations['CANDLE'] = 0;
+    game.locations['MATCHES'] = -1;
+    expect(hint(game).id, 'COAL');
+    final steps = AdventureHints.variants(hint(game));
+    expect(steps.length, 3);
+    expect(steps.first, contains('oily rag'));
+    expect(steps[1], contains('matches'));
+    expect(steps[2], contains('DROP COAL and DROP RAG, then LIGHT COAL'));
+    game.room = 26;
+    game.locations['COAL'] = 26;
+    game.locations['RAG'] = 26;
+    expect(hint(game).id, 'embers');
+    game.execute('LIGHT COAL', {});
+    expect(game.flag('dog_terrified'), isTrue);
+    expect(hint(game).id, isNot(isIn(['COAL', 'RAG', 'embers', 'dog'])));
+  });
+
+  test('crucifix guidance uses silver bar, saw, and wire, not heavy iron', () {
+    final game = AdventureEngine()..room = 25;
+    for (final flag in [
+      'matches_reached',
+      'door_unlocked',
+      'dog_terrified',
+      'hatch_open',
+    ]) {
+      game.flags[flag] = true;
+    }
+    for (final item in ['LIT CANDLE', 'MATCHES', 'WIRE', 'SAW', 'BAR']) {
+      game.locations[item] = -1;
+    }
+    game.locations['CANDLE'] = 0;
+    expect(hint(game).id, 'cut-silver');
+    expect(
+      hint(game).text,
+      contains('silver bar with the saw in the workshop'),
+    );
+    game.execute('CUT BAR', {});
+    expect(hint(game).id, 'cross');
+    expect(hint(game).text, contains('silver bar pieces and silver wire'));
+    expect(
+      AdventureHints.variants(hint(game)).last,
+      contains('heavy iron is for the bedroom cord'),
+    );
+    game.execute('MAKE CROSS', {});
+    expect(game.locations['CRUCIFIX'], 25);
+  });
+
+  test(
+    'hint progression is finite, read-only, and refreshed by progress or reset',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final game = GameState();
+      await game.initialize();
+      final journal = List.of(game.outputMessages);
+      final seen = <String>{};
+      final count = AdventureHints.variants(game.nextHint).length;
+      for (var i = 0; i < count; i++) {
+        expect(game.hasMoreHints, isTrue);
+        expect(seen.add(game.takeHint().text), isTrue);
+      }
+      expect(game.hasMoreHints, isFalse);
+      expect(game.takeHint().id, 'hints-exhausted');
+      expect(game.moveCount, 0);
+      expect(game.outputMessages, journal);
+      game.processCommand('W');
+      game.processCommand('GET CHAIR');
+      expect(game.nextHint.id, 'high-cupboard');
+      expect(game.hasMoreHints, isTrue);
+      expect(game.takeHint().id, 'high-cupboard');
+      await game.reset();
+      expect(game.hasMoreHints, isTrue);
+      expect(game.takeHint().text, seen.first);
+      expect(
+        AdventureHints.variants(
+          const AdventureHint('unlisted', 'One useful clue.'),
+        ),
+        ['One useful clue.'],
+      );
+      await game.saveState();
+    },
+  );
+
   Future<GameState> mount(WidgetTester tester, {bool pending = false}) async {
     SharedPreferences.setMockInitialValues({});
     final game = GameState();
@@ -135,24 +260,25 @@ void main() {
     return game;
   }
 
-  testWidgets('lightbulb opens an indirect hint without a turn or fuel cost', (
-    tester,
-  ) async {
-    final game = await mount(tester);
-    final moves = game.moveCount;
-    final fuel = game.candleLife;
-    final journal = List.of(game.outputMessages);
-    await tester.tap(find.byTooltip('A gentle hint'));
-    await tester.pumpAndSettle();
-    expect(find.text('A thought to follow'), findsOneWidget);
-    expect(find.textContaining('1327'), findsOneWidget);
-    expect(game.moveCount, moves);
-    expect(game.candleLife, fuel);
-    expect(game.outputMessages, journal);
-    await tester.tap(find.text('Keep exploring'));
-    await tester.pumpAndSettle();
-    await game.saveState();
-  });
+  testWidgets(
+    'lightbulb opens practical guidance without a turn or fuel cost',
+    (tester) async {
+      final game = await mount(tester);
+      final moves = game.moveCount;
+      final fuel = game.candleLife;
+      final journal = List.of(game.outputMessages);
+      await tester.tap(find.byTooltip('A gentle hint'));
+      await tester.pumpAndSettle();
+      expect(find.text('Hints for your next step'), findsOneWidget);
+      expect(find.textContaining('1327'), findsOneWidget);
+      expect(game.moveCount, moves);
+      expect(game.candleLife, fuel);
+      expect(game.outputMessages, journal);
+      await tester.tap(find.text('Keep exploring'));
+      await tester.pumpAndSettle();
+      await game.saveState();
+    },
+  );
 
   for (final correct in [true, false]) {
     testWidgets('typed OPEN SAFE uses keypad and engine outcome: $correct', (

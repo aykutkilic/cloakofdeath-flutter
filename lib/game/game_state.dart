@@ -47,12 +47,27 @@ class GameState extends ChangeNotifier {
     (id) => _gameData?.getRoomById(id)?.name ?? 'room $id',
   );
 
+  String _hintKey(AdventureHint hint) => '${hint.id}\n${hint.text}';
+
+  bool get hasMoreHints {
+    final primary = nextHint;
+    return (_hintOffsets[_hintKey(primary)] ?? 0) <
+        AdventureHints.variants(primary).length;
+  }
+
   AdventureHint takeHint() {
     final primary = nextHint;
     final choices = AdventureHints.variants(primary);
-    final offset = _hintOffsets[primary.id] ?? 0;
-    _hintOffsets[primary.id] = offset + 1;
-    return AdventureHint(primary.id, choices[offset % choices.length]);
+    final key = _hintKey(primary);
+    final offset = _hintOffsets[key] ?? 0;
+    if (offset >= choices.length) {
+      return const AdventureHint(
+        'hints-exhausted',
+        'You have seen all the guidance for this step. Try it out; new guidance becomes available as your situation changes.',
+      );
+    }
+    _hintOffsets[key] = offset + 1;
+    return AdventureHint(primary.id, choices[offset]);
   }
 
   Set<int> get visitedRooms => Set.unmodifiable(_exploration.visited);
