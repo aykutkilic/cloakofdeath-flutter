@@ -35,7 +35,7 @@ class GameState extends ChangeNotifier {
   bool get autoAnimateRooms => _autoAnimateRooms;
   bool get showDebugInfo => _showDebugInfo;
   double get aspectRatio => _aspectRatio;
-  bool get isDark => currentRoomId > 14 && currentRoomId != 27;
+  bool get isDark => AdventureEngine.roomNeedsLight(currentRoomId);
   bool get hasLitCandle => _engine.hasLight;
   bool get isTooDarkToSee => _engine.isDark;
   int get candleLife => _engine.candleLife;

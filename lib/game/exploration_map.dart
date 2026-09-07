@@ -119,12 +119,34 @@ class ExplorationMap {
   Map<int, List<String>> routes(AdventureEngine source, GameData data) {
     if (!source.isPlaying || source.awaitingCombination) return {};
     final routes = <int, List<String>>{source.room: []};
-    final queue = Queue<(AdventureEngine, List<String>)>()
-      ..add((AdventureEngine.fromJson(source.toJson()), []));
-    final seen = <String>{};
+    // Candle actions make edges cost different numbers of turns. Process full
+    // plans in turn order, retaining alternatives that preserve more fuel.
+    final queue = SplayTreeMap<int, Queue<(AdventureEngine, List<String>)>>()
+      ..[0] = Queue.of([
+        (AdventureEngine.fromJson(source.toJson()), <String>[]),
+      ]);
+    final seen = <String, List<(int, int)>>{};
     while (queue.isNotEmpty) {
-      final (engine, path) = queue.removeFirst();
-      if (path.length >= visited.length) continue;
+      final cost = queue.firstKey()!;
+      final bucket = queue[cost]!;
+      final (engine, path) = bucket.removeFirst();
+      if (bucket.isEmpty) queue.remove(cost);
+      final key = jsonEncode([
+        engine.room,
+        engine.flags,
+        engine.locations,
+        engine.cloakTurns,
+      ]);
+      final alternatives = seen.putIfAbsent(key, () => []);
+      if (alternatives.any((p) => p.$1 <= cost && p.$2 >= engine.candleLife)) {
+        continue;
+      }
+      alternatives.removeWhere(
+        (p) => p.$1 >= cost && p.$2 <= engine.candleLife,
+      );
+      alternatives.add((cost, engine.candleLife));
+      routes.putIfAbsent(engine.room, () => List.unmodifiable(path));
+      if (!engine.isPlaying) continue;
       final exits =
           data.getRoomById(engine.room)?.connections ?? <String, int>{};
       final commands = <String>{
@@ -137,25 +159,58 @@ class ExplorationMap {
         'GO GATE',
       };
       for (final command in commands) {
-        final next = AdventureEngine.fromJson(engine.toJson());
-        next.execute(command, exits);
-        if (next.room == engine.room ||
-            !visited.contains(next.room) ||
-            next.outcome == 'dead') {
-          continue;
-        }
-        final steps = [...path, command];
-        routes.putIfAbsent(next.room, () => List.unmodifiable(steps));
-        // Shorter paths with the same physical state dominate longer paths.
-        final key = jsonEncode([
-          next.room,
-          next.flags,
-          next.locations,
-          next.cloakTurns,
-        ]);
-        if (next.isPlaying && seen.add(key)) queue.add((next, steps));
+        final edge = _travelEdge(engine, command, exits, data);
+        if (edge == null) continue;
+        final (next, actions) = edge;
+        final steps = [...path, ...actions];
+        queue.putIfAbsent(steps.length, () => Queue()).add((next, steps));
       }
     }
     return routes;
+  }
+
+  /// Probe movement using the engine rather than duplicating GO/lock rules.
+  /// Then replay with candle management; every automatic action is a real turn.
+  (AdventureEngine, List<String>)? _travelEdge(
+    AdventureEngine engine,
+    String command,
+    Map<String, int> exits,
+    GameData data,
+  ) {
+    final probe = AdventureEngine.fromJson(engine.toJson())
+      ..execute(command, exits);
+    if (probe.room == engine.room || !visited.contains(probe.room)) return null;
+
+    final next = AdventureEngine.fromJson(engine.toJson());
+    final actions = <String>[];
+    void perform(String action) {
+      actions.add(action);
+      next.execute(action, data.getRoomById(next.room)?.connections ?? {});
+    }
+
+    final needsLight = AdventureEngine.roomNeedsLight(probe.room);
+    if (needsLight &&
+        next.held('CANDLE') &&
+        next.held('MATCHES') &&
+        next.candleLife > 0) {
+      perform('LIGHT CANDLE');
+    } else if (!needsLight &&
+        next.held('LIT CANDLE') &&
+        (!AdventureEngine.roomNeedsLight(next.room) ||
+            probe.outcome == 'won')) {
+      // Save fuel before a bright-room journey. Extinguish before the final
+      // exit too, because a won engine no longer accepts commands.
+      perform('EXTINGUISH CANDLE');
+    }
+    if (!next.isPlaying) return null;
+    perform(command);
+    if (next.room != probe.room || next.outcome == 'dead') return null;
+    // Leave darkness before spending a turn snuffing the candle, particularly
+    // when escaping the haunted bedroom on its last safe turn.
+    if (next.isPlaying && !needsLight && next.held('LIT CANDLE')) {
+      perform('EXTINGUISH CANDLE');
+    }
+    if (next.outcome == 'dead') return null;
+    return (next, actions);
   }
 }

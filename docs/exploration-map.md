@@ -52,16 +52,37 @@ pointer kind, not screen width or platform, so mobile browsers and mixed-input
 devices behave consistently. Current and unreachable rooms remain inspectable;
 travel gestures on them only show details. Tooltips are dismissed before travel.
 
-Map travel feels immediate but follows the normal movement transactions. A BFS
-executes candidate movement commands on cloned engines and admits only visited
+Map travel feels immediate but follows the normal command transactions. A
+turn-ordered search executes candidate commands on cloned engines and admits only visited
 destinations reached without death. This reuses rat, Bible, cellar latch, passage,
-annexe, hatch, gate, candle, and cloak logic. The search performs no item or puzzle
-actions and does not reveal unknown rooms along a shortcut. It is disabled while
+annexe, hatch, gate, candle, and cloak logic. Beyond candle management, the search
+performs no item or puzzle actions and does not enter unknown rooms along a shortcut. It is disabled while
 the safe awaits a combination and after the game ends.
 
-Search keys include room, object state, flags, and cloak progress. Shorter paths
-to the same physical state dominate longer paths, including remaining candle
-fuel. Path length is bounded by the discovered room count. The UI indicates
+### Automatic candle management
+
+Map routes include ordinary `LIGHT CANDLE` and `EXTINGUISH CANDLE` commands.
+Before entering darkness, light a carried candle only with carried matches and
+remaining fuel. Keep it burning between dark rooms. Extinguish before moving
+between bright rooms, or immediately after leaving darkness. Leaving darkness
+first avoids spending an extra turn inside the haunted bedroom. The final exit
+is an exception: extinguish before winning, since terminal games accept no more
+commands. The engine owns the shared room-light requirement used by the adapter
+and planner; room names and artwork are not lighting rules.
+
+These actions cost normal turns and lighting consumes fuel immediately. Fuel is
+never reset; a candle can burn out en route. Missing equipment does not conjure
+light or trigger failed automatic commands: the engine's existing ability to
+navigate discovered rooms in darkness remains available. Dropped candles are
+not picked up or extinguished remotely. Ordinary manual movement is unchanged.
+
+Preview and execution share the exact command plan, including candle actions.
+The search uses turn-cost buckets rather than movement-only BFS because candle
+actions make edges have different costs. Search keys include room, object state,
+flags, and cloak progress; each state retains non-dominated turn/fuel alternatives.
+A route is pruned only when another reaches the same state in no more turns with
+at least as much fuel. This also prevents fruitless cycles without a room-count
+limit that would incorrectly count lighting commands as rooms visited. The UI indicates
 the number of turns or a blocked route. Requesting travel revalidates against current
 state before executing the selected route through `processCommand`, preserving
 turns, candle consumption, entry effects, journal output, ordered saves, and
@@ -86,5 +107,8 @@ current room contents, route preview purity, manual-equivalent travel turns,
 locks and required equipment, entry side effects, fatal cloak routes, exact
 cardinal/floor relationships, hint rotation, mouse hover/click, touch inspection,
 double-tap/long-press travel, blocked touch travel, and
-desktop/phone/landscape map layouts. Preview files use the existing PREVIEW_DIR
+desktop/phone/landscape map layouts. Candle-specific tests compare saved state
+against the same manual commands, exercise repeated light boundaries, one-turn
+and exhausted fuel, missing/remote equipment, extra-turn cloak hazards, the final
+exit, and route selection by total command cost. Preview files use the existing PREVIEW_DIR
 and PREVIEW_FONT test options. SDK-cache access needs sandbox escalation.

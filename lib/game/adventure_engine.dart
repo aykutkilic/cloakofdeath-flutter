@@ -105,7 +105,8 @@ class AdventureEngine {
   bool flag(String name) => flags[name] == true;
   bool get isPlaying => outcome == 'playing';
   bool get hasLight => present('LIT CANDLE');
-  bool get isDark => room > 14 && room != 27 && !hasLight;
+  static bool roomNeedsLight(int id) => id > 14 && id != 27;
+  bool get isDark => roomNeedsLight(room) && !hasLight;
   List<String> get visible => isDark ? [] : locations.keys.where(here).toList();
   void say(String message) => messages.add(message);
 

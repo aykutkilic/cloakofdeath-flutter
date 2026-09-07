@@ -12,6 +12,7 @@ import 'package:cloak_of_death_flutter/game/adventure_engine.dart';
 import 'package:cloak_of_death_flutter/game/game_state.dart';
 import 'package:cloak_of_death_flutter/game/exploration_map.dart';
 import 'package:cloak_of_death_flutter/models/game_data.dart';
+import 'package:cloak_of_death_flutter/models/room.dart';
 import 'package:cloak_of_death_flutter/widgets/exploration_map_dialog.dart';
 import 'package:cloak_of_death_flutter/widgets/hint_button.dart';
 import 'package:cloak_of_death_flutter/app_theme.dart';
@@ -40,6 +41,22 @@ void main() {
   });
   Future<GameState> fresh() async {
     SharedPreferences.setMockInitialValues({});
+    final game = GameState();
+    await game.initialize();
+    return game;
+  }
+
+  Future<GameState> restoreWithMap(
+    AdventureEngine engine,
+    List<int> rooms,
+  ) async {
+    final knowledge = ExplorationMap()..visited.addAll(rooms);
+    SharedPreferences.setMockInitialValues({
+      'cloak_save_state': jsonEncode({
+        ...engine.toJson(),
+        'exploration': knowledge.toJson(),
+      }),
+    });
     final game = GameState();
     await game.initialize();
     return game;
@@ -173,6 +190,181 @@ void main() {
       expect(engine.candleLife, AdventureEngine.candleBurnTurns);
     },
   );
+
+  test(
+    'map travel manages candle across light boundaries and saves exact turns',
+    () async {
+      final engine = AdventureEngine()..room = 14;
+      engine.locations['CANDLE'] = -1;
+      engine.locations['MATCHES'] = -1;
+      engine.candleLife = 20;
+      final game = await restoreWithMap(engine, [9, 14, 16]);
+      final journal = List.of(game.outputMessages);
+      expect(game.mapRoutes[16], ['LIGHT CANDLE', 'N']);
+      expect(game.moveCount, 0);
+      expect(game.candleLife, 20);
+      expect(game.inventory, contains('CANDLE'));
+      expect(game.outputMessages, journal);
+      expect(game.travelToRoom(16), isTrue);
+      expect(game.hasLitCandle, isTrue);
+      expect(game.isRoomRevealed(16), isTrue);
+      expect(game.candleLife, 18);
+      expect(game.moveCount, 2);
+      expect(game.mapRoutes[9], ['S', 'EXTINGUISH CANDLE', 'S']);
+      expect(game.travelToRoom(9), isTrue);
+      expect(game.hasLitCandle, isFalse);
+      expect(game.candleLife, 17);
+      expect(game.moveCount, 5);
+      expect(game.mapRoutes[16], ['N', 'LIGHT CANDLE', 'N']);
+      expect(game.travelToRoom(16), isTrue);
+      expect(game.candleLife, 15);
+      expect(game.moveCount, 8);
+      await game.saveState();
+      final restored = GameState();
+      await restored.initialize();
+      expect(restored.currentRoomId, 16);
+      expect(restored.hasLitCandle, isTrue);
+      expect(restored.candleLife, 15);
+      expect(restored.moveCount, 8);
+
+      final data = await GameData.loadFromAssets();
+      for (final command in [
+        'LIGHT CANDLE',
+        'N',
+        'S',
+        'EXTINGUISH CANDLE',
+        'S',
+        'N',
+        'LIGHT CANDLE',
+        'N',
+      ]) {
+        engine.execute(command, data.getRoomById(engine.room)!.connections);
+      }
+      final saved =
+          jsonDecode(
+                (await SharedPreferences.getInstance()).getString(
+                  'cloak_save_state',
+                )!,
+              )
+              as Map<String, dynamic>;
+      for (final entry in engine.toJson().entries) {
+        expect(saved[entry.key], entry.value, reason: entry.key);
+      }
+    },
+  );
+
+  test(
+    'bright travel snuffs before moving and never adjusts a remote candle',
+    () async {
+      final data = await GameData.loadFromAssets();
+      final map = ExplorationMap()..visited.addAll([1, 2, 3]);
+      final engine = AdventureEngine();
+      engine.locations['CANDLE'] = 0;
+      engine.locations['LIT CANDLE'] = -1;
+      engine.candleLife = 1;
+      final game = await restoreWithMap(engine, [1, 2, 3]);
+      expect(game.mapRoutes[3], ['EXTINGUISH CANDLE', 'W', 'N']);
+      expect(game.travelToRoom(3), isTrue);
+      expect(game.candleLife, 1);
+      expect(game.inventory, contains('CANDLE'));
+      expect(game.moveCount, 3);
+      await game.saveState();
+      engine.locations['LIT CANDLE'] = 1;
+      expect(map.routes(engine, data)[3], ['W', 'N']);
+    },
+  );
+
+  test(
+    'automatic lighting requires carried equipment and never refills fuel',
+    () async {
+      final data = await GameData.loadFromAssets();
+      final map = ExplorationMap()..visited.addAll([14, 16]);
+      final engine = AdventureEngine()..room = 14;
+      engine.locations['CANDLE'] = -1;
+      // Manual navigation in darkness is legal; missing equipment does not grant light.
+      expect(map.routes(engine, data)[16], ['N']);
+      engine.locations['MATCHES'] = -1;
+      engine.locations['CANDLE'] = 14;
+      expect(map.routes(engine, data)[16], ['N']);
+      engine.locations['CANDLE'] = -1;
+      engine.candleLife = 0;
+      expect(map.routes(engine, data)[16], ['N']);
+      engine.candleLife = 2;
+      final game = await restoreWithMap(engine, [14, 16]);
+      expect(game.mapRoutes[16], ['LIGHT CANDLE', 'N']);
+      expect(game.travelToRoom(16), isTrue);
+      expect(game.candleLife, 0);
+      expect(game.hasLitCandle, isFalse);
+      expect(game.isTooDarkToSee, isTrue);
+      await game.saveState();
+    },
+  );
+
+  test('candle actions respect haunted-room timing and terminal exit', () async {
+    final data = await GameData.loadFromAssets();
+    final map = ExplorationMap()..visited.addAll([14, 15, 17, 26, 27]);
+    final engine = AdventureEngine()..room = 15;
+    engine.locations['CANDLE'] = 0;
+    engine.locations['LIT CANDLE'] = -1;
+    engine.cloakTurns = 2;
+    expect(map.routes(engine, data)[14], ['W', 'EXTINGUISH CANDLE']);
+    engine.locations['LIT CANDLE'] = 0;
+    engine.locations['CANDLE'] = -1;
+    engine.locations['MATCHES'] = -1;
+    engine.locations['PASSAGEWAY'] = 15;
+    // A synthetic dark exit isolates the extra LIGHT turn in the haunted room.
+    final hazardData = GameData(
+      rooms: [
+        ...data.rooms.where((room) => room.id != 15),
+        Room(
+          id: 15,
+          name: 'Haunted',
+          description: '',
+          exits: ['N'],
+          connections: {'N': 17},
+        ),
+      ],
+    );
+    expect(map.routes(engine, hazardData).containsKey(17), isFalse);
+    engine.room = 26;
+    engine.locations['CANDLE'] = 0;
+    engine.locations['LIT CANDLE'] = -1;
+    engine.locations['DOG'] = 0;
+    engine.flags['gates_unlocked'] = true;
+    final game = await restoreWithMap(engine, [26, 27]);
+    expect(game.mapRoutes[27], ['EXTINGUISH CANDLE', 'E']);
+    expect(game.travelToRoom(27), isTrue);
+    expect(game.hasWon, isTrue);
+    expect(game.hasLitCandle, isFalse);
+    await game.saveState();
+  });
+
+  test('route cost includes candle actions, not just rooms crossed', () {
+    final data = GameData(
+      rooms: [
+        for (final entry in <int, Map<String, int>>{
+          1: {'N': 16, 'E': 2},
+          16: {'E': 3},
+          2: {'E': 4},
+          4: {'E': 3},
+          3: {},
+        }.entries)
+          Room(
+            id: entry.key,
+            name: '',
+            description: '',
+            exits: entry.value.keys.toList(),
+            connections: entry.value,
+          ),
+      ],
+    );
+    final map = ExplorationMap()..visited.addAll([1, 2, 3, 4, 16]);
+    final engine = AdventureEngine();
+    engine.locations['CANDLE'] = -1;
+    engine.locations['MATCHES'] = -1;
+    // Two moves via darkness take four turns; three bright moves take three.
+    expect(map.routes(engine, data)[3], ['E', 'E', 'E']);
+  });
 
   test('all directional room relations agree with floor coordinates', () async {
     final data = await GameData.loadFromAssets();

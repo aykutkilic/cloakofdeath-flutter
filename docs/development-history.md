@@ -1,5 +1,26 @@
 # Development history
 
+## 2026-09-08 — Automatic candle management during map travel
+
+Purpose: remove repetitive candle commands when revisiting rooms without
+bypassing the adventure's equipment, fuel, or timed hazards.
+
+- Map plans now light a carried candle before darkness and extinguish it in
+  bright rooms. Matches and remaining fuel are required for lighting; dropped
+  items are not manipulated remotely. Ordinary manual movement is unchanged.
+- Candle actions run through the same engine commands in previews and travel,
+  preserving turn costs, cumulative fuel, journal entries, and ordered saves.
+  Leaving the haunted bedroom happens before extinguishing; the final exit
+  extinguishes before the engine becomes terminal.
+- Replaced movement-only BFS with turn-cost buckets and turn/fuel dominance:
+  automatic commands make different route edges cost different numbers of turns.
+  Shared the engine's room-light requirement with the UI adapter and planner.
+- Validation: all 96 tests passed, including five new candle/route regressions;
+  full application/test Dart analysis reported no issues. Tests cover exact
+  manual-equivalent saved state, relighting without fuel reset, missing equipment,
+  low fuel, cloak timing, the final exit, and total-turn route selection.
+  SDK-backed checks required sandbox escalation. See [map design notes](exploration-map.md).
+
 ## 2026-09-08 — Separate touch map inspection and travel
 
 Purpose: let mobile players inspect a room without accidentally moving there.
