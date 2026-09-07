@@ -8,6 +8,7 @@ import 'widgets/object_panel.dart';
 import 'widgets/interactive_inventory.dart';
 import 'widgets/game_settings_dialog.dart';
 import 'widgets/hint_button.dart';
+import 'widgets/exploration_map_dialog.dart';
 import 'widgets/safe_combination_overlay.dart';
 import 'rendering/room_bytecode_loader.dart';
 import 'app_theme.dart';
@@ -137,19 +138,27 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
         ),
-        IconButton(
-          tooltip: 'Display settings',
-          icon: const Icon(Icons.tune),
-          onPressed: () => showDialog(
-            context: context,
-            builder: (_) => const GameSettingsDialog(),
+        if (!narrow)
+          IconButton(
+            tooltip: 'Display settings',
+            icon: const Icon(Icons.tune),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const GameSettingsDialog(),
+            ),
           ),
-        ),
         const HintButton(),
+        const ExplorationMapButton(),
         PopupMenuButton<String>(
           tooltip: 'Game menu',
           icon: const Icon(Icons.more_horiz),
           onSelected: (value) {
+            if (value == 'settings') {
+              showDialog<void>(
+                context: context,
+                builder: (_) => const GameSettingsDialog(),
+              );
+            }
             if (value == 'restart') _restart(game);
             if (value == 'about') {
               showAboutDialog(
@@ -177,6 +186,11 @@ class _GameScreenState extends State<GameScreen> {
             }
           },
           itemBuilder: (_) => [
+            if (narrow)
+              const PopupMenuItem(
+                value: 'settings',
+                child: Text('Display settings'),
+              ),
             const PopupMenuItem(value: 'restart', child: Text('New game')),
             const PopupMenuItem(value: 'about', child: Text('About the game')),
           ],

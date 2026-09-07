@@ -1,0 +1,336 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloak_of_death_flutter/game/adventure_engine.dart';
+import 'package:cloak_of_death_flutter/game/game_state.dart';
+import 'package:cloak_of_death_flutter/game/exploration_map.dart';
+import 'package:cloak_of_death_flutter/models/game_data.dart';
+import 'package:cloak_of_death_flutter/widgets/exploration_map_dialog.dart';
+import 'package:cloak_of_death_flutter/widgets/hint_button.dart';
+import 'package:cloak_of_death_flutter/app_theme.dart';
+import 'support/walkthrough.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    const font = String.fromEnvironment('PREVIEW_FONT');
+    if (font.isNotEmpty) {
+      await (FontLoader('Roboto')..addFont(
+            Future.value(ByteData.sublistView(File(font).readAsBytesSync())),
+          ))
+          .load();
+      await (FontLoader('MaterialIcons')..addFont(
+            Future.value(
+              ByteData.sublistView(
+                File(
+                  '${File(font).parent.path}/MaterialIcons-Regular.otf',
+                ).readAsBytesSync(),
+              ),
+            ),
+          ))
+          .load();
+    }
+  });
+  Future<GameState> fresh() async {
+    SharedPreferences.setMockInitialValues({});
+    final game = GameState();
+    await game.initialize();
+    return game;
+  }
+
+  test(
+    'discovery persists and old saves never infer previously visited rooms',
+    () async {
+      final game = await fresh();
+      expect(game.visitedRooms, {1});
+      expect(game.mapRoomName(3), 'Unknown');
+      expect(game.mapRoomContents(3), isEmpty);
+      game.processCommand('W');
+      game.processCommand('N');
+      game.processCommand('GET KNIFE');
+      expect(game.visitedRooms, {1, 2, 3});
+      expect(game.mapRoomContents(3), isNot(contains('KNIFE')));
+      game.processCommand('DROP KNIFE');
+      expect(game.mapRoomContents(3), contains('KNIFE'));
+      await game.saveState();
+      final restored = GameState();
+      await restored.initialize();
+      expect(restored.visitedRooms, game.visitedRooms);
+      expect(restored.exploredLinks.length, 2);
+      SharedPreferences.setMockInitialValues({
+        'cloak_save_state': jsonEncode((AdventureEngine()..room = 23).toJson()),
+      });
+      final legacy = GameState();
+      await legacy.initialize();
+      expect(legacy.visitedRooms, {23});
+      expect(legacy.mapRoomName(23), 'Unlit room');
+      expect(legacy.mapRoomContents(23), isEmpty);
+      await game.reset();
+      expect(game.visitedRooms, {1});
+    },
+  );
+
+  test(
+    'route preview is read-only and fast travel equals manual movement',
+    () async {
+      final game = await fresh();
+      for (final command in ['W', 'N', 'GET KNIFE', 'S', 'E']) {
+        game.processCommand(command);
+      }
+      final before = game.moveCount;
+      final journal = List.of(game.outputMessages);
+      expect(game.mapRoutes[3], ['W', 'N']);
+      expect(game.mapRoutes.containsKey(7), isFalse);
+      expect(game.moveCount, before);
+      expect(game.outputMessages, journal);
+      expect(game.travelToRoom(3), isTrue);
+      expect(game.currentRoomId, 3);
+      expect(game.moveCount, before + 2);
+      expect(game.visitedRooms, {1, 2, 3});
+      await game.saveState();
+    },
+  );
+
+  test('routes obey stairs, rat, cellar trap and pending safe input', () async {
+    final data = await GameData.loadFromAssets();
+    final map = ExplorationMap()..visited.addAll(roomPositions.keys);
+    final engine = AdventureEngine();
+    engine.locations['CORRIDOR'] = 1;
+    expect(map.routes(engine, data).containsKey(9), isFalse);
+    expect(map.routes(engine, data).containsKey(5), isFalse);
+    engine.locations['KNIFE'] = -1;
+    engine.locations['BIBLE'] = -1;
+    expect(map.routes(engine, data)[9], ['U']);
+    expect(map.routes(engine, data)[5], ['GO CORRIDOR']);
+    engine.room = 23;
+    expect(map.routes(engine, data).containsKey(5), isFalse);
+    engine.flags['door_propped'] = true;
+    expect(map.routes(engine, data)[5], ['U']);
+    engine.awaitingCombination = true;
+    expect(map.routes(engine, data), isEmpty);
+  });
+
+  test(
+    'travel preserves candle use, entry effects and discovered-room limits',
+    () async {
+      final engine = AdventureEngine()..room = 23;
+      engine.locations['CANDLE'] = 0;
+      engine.locations['LIT CANDLE'] = -1;
+      engine.candleLife = 20;
+      final knowledge = ExplorationMap()..visited.addAll([23, 24, 25]);
+      SharedPreferences.setMockInitialValues({
+        'cloak_save_state': jsonEncode({
+          ...engine.toJson(),
+          'exploration': knowledge.toJson(),
+        }),
+      });
+      final game = GameState();
+      await game.initialize();
+      expect(game.travelToRoom(26), isFalse);
+      expect(game.moveCount, 0);
+      expect(game.travelToRoom(25), isTrue);
+      expect(game.moveCount, 2);
+      expect(game.candleLife, 18);
+      expect(game.mapRoomContents(24), contains('HAMMER'));
+      expect(game.mapRoomContents(25), contains('BAR'));
+      await game.saveState();
+      final restored = GameState();
+      await restored.initialize();
+      expect(restored.currentRoomId, 25);
+      expect(restored.candleLife, 18);
+      expect(restored.exploredLinks.length, 2);
+    },
+  );
+
+  test(
+    'route simulation respects entry side effects, candle and cloak death',
+    () async {
+      final data = await GameData.loadFromAssets();
+      final map = ExplorationMap()..visited.addAll([14, 15, 16, 17, 19, 21]);
+      final engine = AdventureEngine()..room = 16;
+      engine.locations['PASSAGEWAY'] = 16;
+      engine.locations['LIT CANDLE'] = -1;
+      engine.locations['CANDLE'] = 0;
+      engine.locations['BIBLE'] = -1;
+      engine.locations['CRUCIFIX'] = -1;
+      engine.flags['table_pushed'] = true;
+      expect(map.routes(engine, data)[19], ['GO PASSAGEWAY', 'U']);
+      engine.room = 17;
+      engine.flags['table_pushed'] = false;
+      expect(map.routes(engine, data).containsKey(16), isFalse);
+      engine.room = 14;
+      engine.cloakTurns = 2;
+      expect(map.routes(engine, data).containsKey(15), isFalse);
+      engine.cloakTurns = 0;
+      expect(map.routes(engine, data)[15], ['E']);
+      expect(engine.candleLife, AdventureEngine.candleBurnTurns);
+    },
+  );
+
+  test('all directional room relations agree with floor coordinates', () async {
+    final data = await GameData.loadFromAssets();
+    final engine = AdventureEngine();
+    for (final room in data.rooms) {
+      engine.room = room.id;
+      engine.flags['table_pushed'] = true;
+      final from = roomPositions[room.id]!;
+      for (final edge in engine.exits(room.connections).entries) {
+        final to = roomPositions[edge.value]!;
+        switch (edge.key) {
+          case 'N':
+            expect(to.y, lessThan(from.y));
+            expect(to.floor, from.floor);
+          case 'S':
+            expect(to.y, greaterThan(from.y));
+            expect(to.floor, from.floor);
+          case 'W':
+            expect(to.x, lessThan(from.x));
+            expect(to.floor, from.floor);
+          case 'E':
+            expect(to.x, greaterThan(from.x));
+            expect(to.floor, from.floor);
+          case 'U':
+            expect(to.floor, greaterThan(from.floor));
+            expect(to.x, from.x);
+            expect(to.y, from.y);
+          case 'D':
+            expect(to.floor, lessThan(from.floor));
+            expect(to.x, from.x);
+            expect(to.y, from.y);
+        }
+      }
+    }
+    expect(
+      roomPositions.values
+          .map((p) => '${p.x},${p.y},${p.floor}')
+          .toSet()
+          .length,
+      roomPositions.length,
+    );
+  });
+
+  testWidgets(
+    'hints rotate inside the dialog and across reopening, without turns',
+    (tester) async {
+      final game = await fresh();
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: game,
+          child: const MaterialApp(home: Scaffold(body: HintButton())),
+        ),
+      );
+      await tester.tap(find.byTooltip('A gentle hint'));
+      await tester.pumpAndSettle();
+      final primary = game.nextHint.text;
+      expect(find.text(primary), findsOneWidget);
+      await tester.tap(find.text('Another hint'));
+      await tester.pumpAndSettle();
+      expect(find.text(primary), findsNothing);
+      await tester.tap(find.text('Keep exploring'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('A gentle hint'));
+      await tester.pumpAndSettle();
+      expect(find.text(primary), findsOneWidget);
+      expect(game.moveCount, 0);
+      expect(game.candleLife, AdventureEngine.candleBurnTurns);
+    },
+  );
+
+  testWidgets(
+    'map hides unvisited rooms, shows hover contents, and travels on click',
+    (tester) async {
+      final game = await fresh();
+      for (final command in ['W', 'N', 'S', 'E']) {
+        game.processCommand(command);
+      }
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: game,
+          child: const MaterialApp(
+            home: Scaffold(body: ExplorationMapButton()),
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Exploration map'));
+      await tester.pumpAndSettle();
+      expect(find.text('Kitchen'), findsOneWidget);
+      expect(find.text('Oak Panelled Study'), findsNothing);
+      expect(find.text('Attic'), findsNothing);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await tester.tap(find.byTooltip('Fit floor'));
+      await tester.pumpAndSettle();
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(
+        tester.getCenter(find.byKey(const ValueKey('map-room-3'))),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('KNIFE'), findsWidgets);
+      await mouse.removePointer();
+      final before = game.moveCount;
+      await tester.tap(find.byKey(const ValueKey('map-room-3')));
+      await tester.pumpAndSettle();
+      expect(game.currentRoomId, 3);
+      expect(game.moveCount, before + 2);
+      expect(find.byType(ExplorationMapDialog), findsNothing);
+      await game.saveState();
+    },
+  );
+
+  for (final size in [
+    const Size(1280, 900),
+    const Size(320, 568),
+    const Size(844, 390),
+  ]) {
+    testWidgets('explored map fits $size with floor links', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final game = await fresh();
+      for (final command in walkthroughCommands) {
+        if (command == 'EXORCISE CLOAK') break;
+        game.processCommand(command);
+      }
+      final capture = GlobalKey();
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: game,
+          child: RepaintBoundary(
+            key: capture,
+            child: MaterialApp(
+              theme: AppTheme.themeData,
+              home: const Scaffold(body: ExplorationMapButton()),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Exploration map'));
+      await tester.pumpAndSettle();
+      expect(find.text('First floor'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      const preview = String.fromEnvironment('PREVIEW_DIR');
+      if (preview.isNotEmpty) {
+        await tester.runAsync(() async {
+          final boundary =
+              capture.currentContext!.findRenderObject()!
+                  as RenderRepaintBoundary;
+          final image = await boundary.toImage();
+          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+          await Directory(preview).create(recursive: true);
+          await File(
+            '$preview/map-${size.width.toInt()}.png',
+          ).writeAsBytes(bytes!.buffer.asUint8List());
+          image.dispose();
+        });
+      }
+      await game.saveState();
+    });
+  }
+}

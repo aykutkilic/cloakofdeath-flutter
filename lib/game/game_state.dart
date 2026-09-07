@@ -5,11 +5,14 @@ import '../models/game_data.dart';
 import '../models/room.dart';
 import 'adventure_engine.dart';
 import 'adventure_hints.dart';
+import 'exploration_map.dart';
 
 /// Flutter adapter: transcript/settings stay outside the deterministic rules.
 class GameState extends ChangeNotifier {
   GameData? _gameData;
   AdventureEngine _engine = AdventureEngine();
+  ExplorationMap _exploration = ExplorationMap();
+  final Map<String, int> _hintOffsets = {};
   List<String> _outputMessages = [];
   String? _selectedObject;
   double _pixelRenderSpeed = 2000;
@@ -44,6 +47,42 @@ class GameState extends ChangeNotifier {
     (id) => _gameData?.getRoomById(id)?.name ?? 'room $id',
   );
 
+  AdventureHint takeHint() {
+    final primary = nextHint;
+    final choices = AdventureHints.variants(primary);
+    final offset = _hintOffsets[primary.id] ?? 0;
+    _hintOffsets[primary.id] = offset + 1;
+    return AdventureHint(primary.id, choices[offset % choices.length]);
+  }
+
+  Set<int> get visitedRooms => Set.unmodifiable(_exploration.visited);
+  List<ExploredLink> get exploredLinks => List.unmodifiable(_exploration.links);
+  bool isRoomRevealed(int id) => _exploration.revealed.contains(id);
+  String mapRoomName(int id) => !visitedRooms.contains(id)
+      ? 'Unknown'
+      : isRoomRevealed(id)
+      ? _gameData!.getRoomById(id)!.name
+      : 'Unlit room';
+  List<String> mapRoomContents(int id) =>
+      !isRoomRevealed(id)
+            ? []
+            : [
+                for (final object in _exploration.knownObjects)
+                  if (_engine.locations[object] == id) object,
+              ]
+        ..sort();
+  Map<int, List<String>> get mapRoutes =>
+      _gameData == null ? {} : _exploration.routes(_engine, _gameData!);
+
+  bool travelToRoom(int id) {
+    final route = mapRoutes[id];
+    if (route == null || route.isEmpty) return false;
+    for (final command in route) {
+      processCommand(command);
+    }
+    return currentRoomId == id;
+  }
+
   String? get darknessGuidance {
     if (!isTooDarkToSee) return null;
     if ((currentRoomId == 22 || currentRoomId == 23) &&
@@ -66,6 +105,9 @@ class GameState extends ChangeNotifier {
       try {
         final data = Map<String, dynamic>.from(json.decode(saved));
         _engine = AdventureEngine.fromJson(data);
+        _exploration = ExplorationMap.fromJson(
+          Map<String, dynamic>.from(data['exploration'] ?? {}),
+        );
         _outputMessages = List<String>.from(data['outputMessages'] ?? []);
         for (final message in _engine.messages) {
           addMessage(message);
@@ -75,6 +117,7 @@ class GameState extends ChangeNotifier {
         addMessage('The saved game could not be read. A new game has started.');
       }
     }
+    _exploration.observe(_engine);
     notifyListeners();
   }
 
@@ -83,6 +126,7 @@ class GameState extends ChangeNotifier {
     final snapshot = json.encode({
       ..._engine.toJson(),
       'outputMessages': List<String>.of(_outputMessages),
+      'exploration': _exploration.toJson(),
     });
     _pendingSave = _pendingSave
         .catchError((Object error) {
@@ -97,6 +141,8 @@ class GameState extends ChangeNotifier {
 
   void _initNewGame() {
     _engine = AdventureEngine();
+    _exploration = ExplorationMap()..observe(_engine);
+    _hintOffsets.clear();
     _selectedObject = null;
     _outputMessages = [
       'Welcome to CLOAK OF DEATH',
@@ -370,7 +416,10 @@ class GameState extends ChangeNotifier {
   void processCommand(String command) {
     if (command.trim().isEmpty || isGameOver) return;
     addMessage('What shall I do?${command.toUpperCase()}');
+    final previousRoom = currentRoomId;
     _engine.execute(command, currentRoom?.connections ?? {});
+    _exploration.observe(_engine);
+    _exploration.recordMove(previousRoom, currentRoomId, command.toUpperCase());
     if (_engine.describeRoom && !isGameOver) describeCurrentRoom();
     for (final message in _engine.messages) {
       addMessage(message);

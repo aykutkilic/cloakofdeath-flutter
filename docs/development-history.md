@@ -1,5 +1,27 @@
 # Development history
 
+## 2026-09-08 — Rotating clues and exploration map
+
+Purpose: avoid repeating a single tip and provide a useful map of discovered
+rooms with room contents and movement that respects the adventure rules.
+
+- Added per-puzzle clue rotation across lightbulb openings and an Another hint
+  action. Rotation is session-only and costs no game turns or candle fuel.
+- Added persisted exploration knowledge, floor-based room layouts, hover/hold
+  contents, directional and stair connections, pan/zoom, and click-to-travel.
+  Travel previews simulate the real engine; executed routes consume the normal
+  turns and fuel and cannot skip unvisited rooms or locked puzzle conditions.
+- Legacy saves reveal only their current room. Dark visits remain unnamed until
+  seen in light; unrevealed objects stay hidden. On phones, display settings moves
+  into the game menu to keep room for the map button.
+- [Map design notes](exploration-map.md) record state ownership, layout decisions,
+  route semantics, migration, and verification experience.
+- Validation: the full 87-test suite passed. After mobile zoom refinements,
+  all 11 focused map/hint tests passed, including an added fuel/save test.
+  Inspected desktop, phone, and landscape map renders with real fonts.
+  Final Flutter analysis reported no issues after waiting for the shared SDK
+  startup lock; no other process or lock file was modified.
+
 ## 2026-09-08 — Repository and playable demo links
 
 Purpose: connect players to the source project and let repository visitors play

@@ -9,6 +9,156 @@ class AdventureHint {
 }
 
 class AdventureHints {
+  /// Alternate clues stay bound to the currently relevant puzzle. Cycling is
+  /// session UI state; asking again never skips a prerequisite or costs a turn.
+  static List<String> variants(AdventureHint hint) => [
+    hint.text,
+    _alternatives[hint.id] ?? 'Consider what you already know: ${hint.text}',
+  ];
+
+  static const _alternatives = <String, String>{
+    'carrying-space':
+        'A tool that has finished its job can wait somewhere familiar. '
+        'Light and the protection needed for your next doorway deserve priority.',
+    'ending':
+        'The house rewards remembering its tricks. Some discoveries will '
+        'make sense much earlier on another journey.',
+    'safe-code':
+        'Think of the study letter as something to listen to. '
+        'Its odd phrasing points toward the four digits 1327.',
+    'cloak-danger':
+        'The next moment matters. Blessed water, scripture, and '
+        'a silver symbol are the language of this haunting; otherwise the doorway offers retreat.',
+    'spent-candle':
+        'Wax cannot be replenished here. Consider whether your known '
+        'route to freedom can still be followed by touch.',
+    'darkness':
+        'A candle needs something small and fiery before it can help your eyes.',
+    'darkness-equipment':
+        'The map remembers places you have reached. A familiar '
+        'room may be where your lighting supplies are waiting.',
+    'save-fuel':
+        'The flame can rest while daylight does the work. '
+        'Later rooms will be less forgiving of wasted wax.',
+    'passage-return':
+        'A heavy table can conceal a mechanism. The room with '
+        'the hatch may also hold the answer to returning downstairs.',
+    'escape':
+        'The house is behind the last iron barrier. Freedom requires '
+        'going beyond it, not merely opening it.',
+    'gate':
+        'The key has survived the haunting for a reason. '
+        'Remember the large barrier at the far end of the tunnel.',
+    'safe-contents':
+        'An unlocked container does not reveal everything at a glance. '
+        'There may be a small object still waiting inside.',
+    'painting':
+        'A wall decoration can be a hiding place. '
+        'What would become visible if the picture were no longer there?',
+    'CHAIR':
+        'The dining room offers a portable answer to a problem of height. '
+        'Think about where a higher viewpoint would be useful.',
+    'high-cupboard':
+        'Something useful is stored high in the kitchen. '
+        'A seat can do more than provide a rest, once it is underfoot.',
+    'KNIFE':
+        'You need only look dangerous to the rat. Fighting it is another matter.',
+    'BIBLE':
+        'The study holds reassurance for the stairs and meaning for '
+        'the ritual ahead. Keep its book close when courage is needed.',
+    'cellar-lock':
+        'The small key came from an old box. '
+        'The corridor has the sort of lock it might fit.',
+    'KEY': 'The chest was not empty. Its opened interior deserves attention.',
+    'CHEST':
+        'The old box has two uses: something inside it, and its own '
+        'weight outside it. A stubborn lid and a swinging door suggest both.',
+    'CANDLE':
+        'A pantry is a sensible place to keep household supplies. '
+        'Something made of wax would be useful below stairs.',
+    'LIT CANDLE':
+        'A light left on the floor cannot accompany you. '
+        'Think back to the last room where you set it down.',
+    'lost-matches':
+        'Without a spark, remaining wax is of little help. '
+        'Keep any flame you still have until you know a way out.',
+    'MATCHES':
+        'The little things from the high cupboard are easy to '
+        'leave behind, but they are what make a candle useful.',
+    'HAMMER':
+        'Among the garage tools, one has an end made for pulling '
+        'small metal fastenings free.',
+    'hatch':
+        'A nailed lid does not need a key. '
+        'Consider the curved end of the garage tool.',
+    'attic-route':
+        'The hidden passage has a way above it. '
+        'The attic connects to a room built for a table game.',
+    'book-shelf':
+        'The book works as part of the shelf. '
+        'A lever cannot operate while carried away from its mechanism.',
+    'library':
+        'One volume among the shelves is unusual. '
+        'Perhaps its movement matters more than its words.',
+    'WIRE':
+        'Beyond the nailed hatch is silver that bends. '
+        'It could bind pieces that are too stiff to join themselves.',
+    'SAW':
+        'The workshop has silver, but you need an edge with teeth '
+        'to turn a single length into useful pieces.',
+    'BAR':
+        'The silver in the workshop is raw material. '
+        'A protective shape needs more than one length.',
+    'BAR PIECES':
+        'The pieces are already the right material. '
+        'Keep them together until you can bind them into a meaningful shape.',
+    'cut-silver':
+        'A workshop bench and a toothed blade are a fitting '
+        'pair for reshaping the metal you carry.',
+    'cross':
+        'A familiar sacred shape has two crossing arms. '
+        'Flexible silver could hold the rigid lengths in place.',
+    'cord-weight':
+        'The rumbling lasts only while the mechanism is held. '
+        'A heavy substitute for your hand could keep it working.',
+    'IRON':
+        'The cellar contains a burden heavy enough to maintain tension. '
+        'Carrying it will mean leaving most other equipment somewhere safe.',
+    'guest-cord':
+        'Something hangs in the guest bedroom. '
+        'A lasting pull could change a room nearby.',
+    'GOBLET':
+        'A newly accessible side room near the master bedroom '
+        'contains silver meant to hold a liquid.',
+    'CRUCIFIX':
+        'Making a protective symbol is only half the task. '
+        'Its protection needs to accompany you.',
+    'HOLY WATER':
+        'The prepared water belongs beside your other sacred '
+        'objects when you approach the restless cloth.',
+    'GOBLET OF WATER':
+        'Ordinary water may change when the vessel, '
+        'scripture, and the silver symbol are carried together.',
+    'blessing':
+        'The kitchen supply is plain water. The company it keeps '
+        'in a silver vessel can give it another purpose.',
+    'ritual-ready':
+        'Before entering the haunted room, have your light '
+        'ready. What follows calls for a sacred rite, without delay.',
+    'COAL':
+        'The fireplace contains dark fuel. '
+        'Its glow might resemble something the tunnel guard recognizes.',
+    'RAG':
+        'Oil can help another fuel catch. The workshop scrap is '
+        'more useful beside something combustible than burning alone.',
+    'embers':
+        'Imagine the dark lumps glowing at the guard’s feet. '
+        'Their appearance could do what force cannot.',
+    'dog':
+        'The guard has remarkable eyes. '
+        'A frightening imitation might be more effective than a weapon.',
+  };
+
   static AdventureHint next(
     AdventureEngine game,
     String Function(int) roomName,
