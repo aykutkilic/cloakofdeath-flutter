@@ -12,7 +12,7 @@ Legacy saves initialize knowledge from the current room only; inventory and
 puzzle flags are not evidence that the player visited every related room.
 
 Unvisited rooms have no card, name, contents, or floor entry. A room entered in
-darkness has an unnamed card until seen in light. Hover/long press shows known
+darkness has an unnamed card until seen in light. Mouse hover or touch tap shows known
 objects currently located in the room, using authoritative object locations so
 pickups, drops, transformations, and consumed objects do not leave stale lists.
 Objects still hidden by a puzzle are not disclosed. New games clear discovery.
@@ -22,7 +22,7 @@ Objects still hidden by a puzzle are not disclosed. New games clear discovery.
 Compact-map revision: nodes now measure 48 by 48 pixels and show short names
 only. Unused coordinate rows/columns collapse without changing compass order.
 Grid pitch is 88 pixels horizontally and 96 vertically. Details live in bounded
-hover/long-press tooltips rather than a permanent panel; U/D links also keep
+hover/tap tooltips rather than a permanent panel; U/D links also keep
 their full destination names in tooltips. Short names never disclose dark rooms.
 
 The authored coordinate table is presentation data, independent of movement
@@ -45,6 +45,13 @@ game menu at narrow widths to keep the existing header footprint.
 
 ## Travel semantics
 
+Touch input separates inspection from travel: a single tap opens the room
+tooltip, while double-tap or long press requests travel. Mouse input retains
+hover inspection and single-click travel. This is selected from the actual
+pointer kind, not screen width or platform, so mobile browsers and mixed-input
+devices behave consistently. Current and unreachable rooms remain inspectable;
+travel gestures on them only show details. Tooltips are dismissed before travel.
+
 Map travel feels immediate but follows the normal movement transactions. A BFS
 executes candidate movement commands on cloned engines and admits only visited
 destinations reached without death. This reuses rat, Bible, cellar latch, passage,
@@ -55,7 +62,7 @@ the safe awaits a combination and after the game ends.
 Search keys include room, object state, flags, and cloak progress. Shorter paths
 to the same physical state dominate longer paths, including remaining candle
 fuel. Path length is bounded by the discovered room count. The UI indicates
-the number of turns or a blocked route. Clicking revalidates against current
+the number of turns or a blocked route. Requesting travel revalidates against current
 state before executing the selected route through `processCommand`, preserving
 turns, candle consumption, entry effects, journal output, ordered saves, and
 discovery updates. Map previews and floor switching do not change game state.
@@ -77,6 +84,7 @@ The safe's variants can include 1327, following the user's earlier instruction.
 Regression coverage includes save migration/reset, unknown/dark room privacy,
 current room contents, route preview purity, manual-equivalent travel turns,
 locks and required equipment, entry side effects, fatal cloak routes, exact
-cardinal/floor relationships, hint rotation, mouse hover, click travel, and
+cardinal/floor relationships, hint rotation, mouse hover/click, touch inspection,
+double-tap/long-press travel, blocked touch travel, and
 desktop/phone/landscape map layouts. Preview files use the existing PREVIEW_DIR
 and PREVIEW_FONT test options. SDK-cache access needs sandbox escalation.

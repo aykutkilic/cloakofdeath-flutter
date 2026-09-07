@@ -1,5 +1,19 @@
 # Development history
 
+## 2026-09-08 — Separate touch map inspection and travel
+
+Purpose: let mobile players inspect a room without accidentally moving there.
+
+- Single touch taps show room details; double-tap or long press requests travel.
+  Mouse hover and single-click travel remain available. The interaction wrapper
+  uses actual pointer kinds rather than platform or viewport assumptions.
+- Current or blocked rooms show details without moving. Travel still uses the
+  existing route validation and normal engine transactions; gesture state and
+  tooltips are not persisted. Updated the map's on-screen gesture instructions.
+- Validation: all 14 focused map/hint tests passed, including phone tap-only
+  inspection, both touch travel gestures, blocked stairs, and mouse hover/click.
+  Targeted Dart analysis reported no issues.
+
 ## 2026-09-08 — Compact map nodes and hover details
 
 Purpose: reduce oversized room cards and long empty corridors while keeping

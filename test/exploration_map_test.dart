@@ -280,20 +280,110 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('KNIFE'), findsWidgets);
       expect(find.textContaining('Kitchen\n'), findsOneWidget);
-      await mouse.removePointer();
-      await tester.pumpAndSettle();
-      await tester.longPress(find.byKey(const ValueKey('map-room-3')));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('KNIFE'), findsOneWidget);
       final before = game.moveCount;
-      await tester.tap(find.byKey(const ValueKey('map-room-3')));
+      await mouse.down(
+        tester.getCenter(find.byKey(const ValueKey('map-room-3'))),
+      );
+      await mouse.up();
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(game.currentRoomId, 3);
       expect(game.moveCount, before + 2);
       expect(find.byType(ExplorationMapDialog), findsNothing);
+      await mouse.removePointer();
       await game.saveState();
     },
   );
+
+  for (final hold in [false, true]) {
+    testWidgets(
+      'touch inspects first; ${hold ? 'long press' : 'double tap'} travels',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final game = await fresh();
+        for (final command in ['W', 'N', 'S', 'E']) {
+          game.processCommand(command);
+        }
+        await tester.pumpWidget(
+          ChangeNotifierProvider.value(
+            value: game,
+            child: const MaterialApp(
+              home: Scaffold(body: ExplorationMapButton()),
+            ),
+          ),
+        );
+        await tester.tap(find.byTooltip('Exploration map'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Fit floor'));
+        await tester.pumpAndSettle();
+        final room = find.byKey(const ValueKey('map-room-3'));
+        final before = game.moveCount;
+        await tester.tap(room);
+        await tester.pump(const Duration(milliseconds: 400));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('Kitchen\n'), findsOneWidget);
+        expect(find.textContaining('KNIFE'), findsOneWidget);
+        expect(game.currentRoomId, 1);
+        expect(game.moveCount, before);
+        expect(find.byType(ExplorationMapDialog), findsOneWidget);
+        if (hold) {
+          await tester.longPress(room);
+        } else {
+          await tester.tap(room);
+          await tester.pump(const Duration(milliseconds: 60));
+          await tester.tap(room);
+        }
+        await tester.pumpAndSettle();
+        expect(game.currentRoomId, 3);
+        expect(game.moveCount, before + 2);
+        expect(find.byType(ExplorationMapDialog), findsNothing);
+        await game.saveState();
+      },
+    );
+  }
+
+  testWidgets('touch travel gestures cannot bypass a blocked stair route', (
+    tester,
+  ) async {
+    final engine = AdventureEngine();
+    final knowledge = ExplorationMap()
+      ..visited.addAll([1, 9])
+      ..revealed.addAll([1, 9]);
+    SharedPreferences.setMockInitialValues({
+      'cloak_save_state': jsonEncode({
+        ...engine.toJson(),
+        'exploration': knowledge.toJson(),
+      }),
+    });
+    final game = GameState();
+    await game.initialize();
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: game,
+        child: const MaterialApp(home: Scaffold(body: ExplorationMapButton())),
+      ),
+    );
+    await tester.tap(find.byTooltip('Exploration map'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('First floor').last);
+    await tester.pumpAndSettle();
+    final room = find.byKey(const ValueKey('map-room-9'));
+    await tester.tap(room);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.tap(room);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('No traversable route'), findsOneWidget);
+    await tester.longPress(room);
+    await tester.pumpAndSettle();
+    expect(game.currentRoomId, 1);
+    expect(game.moveCount, 0);
+    expect(find.byType(ExplorationMapDialog), findsOneWidget);
+  });
 
   for (final size in [
     const Size(1280, 900),

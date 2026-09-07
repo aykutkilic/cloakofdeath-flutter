@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../game/exploration_map.dart';
@@ -150,7 +151,7 @@ class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Hover or hold for room details. Click to travel.',
+                'Tap for details; double-tap or hold to travel. Mouse: hover for details, click to travel.',
                 style: TextStyle(fontSize: 11, color: AppTheme.mutedColor),
               ),
             ],
@@ -285,11 +286,13 @@ class _FloorCanvasState extends State<_FloorCanvas> {
                         for (final id in widget.rooms)
                           Positioned.fromRect(
                             rect: rects[id]!,
-                            child: Tooltip(
+                            child: _RoomGestureTarget(
                               message: widget.details(id),
-                              waitDuration: const Duration(milliseconds: 150),
-                              constraints: const BoxConstraints(maxWidth: 280),
-                              textAlign: TextAlign.left,
+                              onTravel:
+                                  widget.routes.containsKey(id) &&
+                                      id != widget.game.currentRoomId
+                                  ? () => widget.onTravel(id)
+                                  : null,
                               child: Material(
                                 color: id == widget.game.currentRoomId
                                     ? AppTheme.highlight
@@ -303,14 +306,8 @@ class _FloorCanvasState extends State<_FloorCanvas> {
                                     width: 2,
                                   ),
                                 ),
-                                child: InkWell(
+                                child: SizedBox(
                                   key: ValueKey('map-room-$id'),
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap:
-                                      widget.routes.containsKey(id) &&
-                                          id != widget.game.currentRoomId
-                                      ? () => widget.onTravel(id)
-                                      : null,
                                   child: Padding(
                                     padding: const EdgeInsets.all(4),
                                     child: FittedBox(
@@ -416,6 +413,61 @@ class _FloorCanvasState extends State<_FloorCanvas> {
           roomPositions[link.from]!.floor != roomPositions[link.to]!.floor)
         link.from == id ? link.to : link.from,
   };
+}
+
+/// Use actual pointer input so touch browsers/tablets behave like phones while
+/// a mouse still supports desktop inspection and single-click travel.
+class _RoomGestureTarget extends StatefulWidget {
+  final String message;
+  final VoidCallback? onTravel;
+  final Widget child;
+  const _RoomGestureTarget({
+    required this.message,
+    required this.onTravel,
+    required this.child,
+  });
+
+  @override
+  State<_RoomGestureTarget> createState() => _RoomGestureTargetState();
+}
+
+class _RoomGestureTargetState extends State<_RoomGestureTarget> {
+  final _tooltip = GlobalKey<TooltipState>();
+  PointerDeviceKind _pointer = PointerDeviceKind.touch;
+
+  void _inspect() => _tooltip.currentState?.ensureTooltipVisible();
+
+  void _travel() {
+    if (widget.onTravel == null) {
+      _inspect();
+      return;
+    }
+    Tooltip.dismissAllToolTips();
+    widget.onTravel!();
+  }
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    key: _tooltip,
+    message: widget.message,
+    triggerMode: TooltipTriggerMode.manual,
+    waitDuration: const Duration(milliseconds: 150),
+    showDuration: const Duration(seconds: 6),
+    constraints: const BoxConstraints(maxWidth: 280),
+    textAlign: TextAlign.left,
+    child: Listener(
+      onPointerDown: (event) => _pointer = event.kind,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () =>
+            _pointer == PointerDeviceKind.mouse ? _travel() : _inspect(),
+        onDoubleTap: _travel,
+        onLongPress: () =>
+            _pointer == PointerDeviceKind.mouse ? _inspect() : _travel(),
+        child: widget.child,
+      ),
+    ),
+  );
 }
 
 class _MapLines extends CustomPainter {
