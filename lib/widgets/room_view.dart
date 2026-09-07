@@ -55,9 +55,9 @@ class _RoomViewState extends State<RoomView> {
   Widget build(BuildContext context) {
     // Only watch specific fields to avoid full rebuilds if possible,
     // but AtariAnimatedRoomView already prevents internal restart.
-    final autoAnimateRooms = context.select<GameState, bool>(
-      (s) => s.autoAnimateRooms,
-    );
+    final autoAnimateRooms =
+        context.select<GameState, bool>((s) => s.autoAnimateRooms) &&
+        !MediaQuery.disableAnimationsOf(context);
     final showDebugInfo = context.select<GameState, bool>(
       (s) => s.showDebugInfo,
     );
@@ -71,7 +71,29 @@ class _RoomViewState extends State<RoomView> {
     if (isTooDarkToSee) {
       return Container(
         decoration: const BoxDecoration(color: AppTheme.panel),
-        child: const Center(child: Text('► IT\'S TOO DARK TO SEE')),
+        child: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.nightlight_outlined,
+                  size: 36,
+                  color: AppTheme.accent,
+                ),
+                SizedBox(height: 16),
+                Text('Too dark to see', style: TextStyle(fontSize: 18)),
+                SizedBox(height: 8),
+                Text(
+                  'You need a light to see this room.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppTheme.mutedColor),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
 

@@ -3,173 +3,117 @@ import 'package:provider/provider.dart';
 import '../game/game_state.dart';
 import '../app_theme.dart';
 import 'verb_panel.dart';
+import 'object_icon.dart';
 
-/// Interactive inventory widget with clickable items.
-/// [crossAxisCount] controls grid columns (6 for landscape, 4 for portrait).
 class InteractiveInventory extends StatelessWidget {
   final int crossAxisCount;
-
   const InteractiveInventory({super.key, this.crossAxisCount = 6});
 
-  String _getIconFor(String item) {
-    switch (item.toUpperCase()) {
-      case 'BIBLE': return 'assets/images/bible.png';
-      case 'CANDLE': return 'assets/images/candle.png';
-      case 'LIT CANDLE': return 'assets/images/lit_candle.png';
-      case 'MATCHES': return 'assets/images/matches.png';
-      case 'KEY': return 'assets/images/key.png';
-      case 'GATE KEY': return 'assets/images/gate_key.png';
-      case 'HAMMER': return 'assets/images/hammer.png';
-      case 'SAW': return 'assets/images/saw.png';
-      case 'BAR': return 'assets/images/bar.png';
-      case 'CRUCIFIX': return 'assets/images/crucifix.png';
-      case 'IRON': return 'assets/images/iron.png';
-      case 'HOLY WATER': return 'assets/images/holy_water.png';
-      case 'WATER': return 'assets/images/water.png';
-      case 'GOBLET': return 'assets/images/goblet.png';
-      case 'BREAD': return 'assets/images/bread.png';
-      case 'LETTER': return 'assets/images/letter.png';
-      case 'PAINTING': return 'assets/images/painting.png';
-      case 'RAG': return 'assets/images/rag.png';
-      case 'WIRE': return 'assets/images/wire.png';
-      case 'COAL': return 'assets/images/coal.png';
-      case 'SAFE': return 'assets/images/safe.png';
-      case 'CHAIR': return 'assets/images/chair.png';
-      case 'CHEST': return 'assets/images/chest.png';
-      case 'KNIFE': return 'assets/images/knife.png';
-      default: return 'assets/images/chest.png';
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (context, gameState, child) {
-        final inventory = gameState.inventory;
-        final selectedObject = gameState.selectedObject;
-        final inventoryCount = gameState.inventoryCount;
-        final maxInventory = GameState.maxInventory;
-
-        return Container(
-          decoration: const BoxDecoration(color: AppTheme.background),
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Consumer<GameState>(
+    builder: (context, game, child) => Container(
+      decoration: AppTheme.panelDecoration,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              // Title and count
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'INVENTORY',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppTheme.text,
-                      fontWeight: FontWeight.bold,
-                    ),
+              const Expanded(child: Text('INVENTORY', style: AppTheme.label)),
+              Tooltip(
+                message: 'Six carrying units. The iron weighs four units.',
+                child: Text(
+                  '${game.inventoryLoad} / ${GameState.maxInventory} units',
+                  style: TextStyle(
+                    color: game.inventoryLoad == GameState.maxInventory
+                        ? AppTheme.accent
+                        : AppTheme.mutedColor,
+                    fontSize: 12,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: inventoryCount >= maxInventory
-                          ? AppTheme.warningColor.withValues(alpha: 0.5)
-                          : AppTheme.highlight,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (game.inventory.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.backpack_outlined, color: AppTheme.mutedColor),
+                  SizedBox(width: 10),
+                  Expanded(
                     child: Text(
-                      '$inventoryCount/$maxInventory',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.text,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      'Your hands are empty.',
+                      style: TextStyle(color: AppTheme.mutedColor),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
-
-              // Inventory items
-              Expanded(
-                child: inventory.isEmpty
-                    ? Center(
-                        child: Text(
-                          'Empty',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.text.withValues(alpha: 0.5),
-                            fontStyle: FontStyle.italic,
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = (constraints.maxWidth / 105).floor().clamp(
+                  1,
+                  crossAxisCount,
+                );
+                final width =
+                    (constraints.maxWidth - (columns - 1) * 8) / columns;
+                return Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: game.inventory
+                      .map(
+                        (item) => SizedBox(
+                          width: width,
+                          child: OutlinedButton(
+                            onPressed: game.isGameOver
+                                ? null
+                                : () => VerbPanel.showVerbPopup(context, item),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppTheme.text,
+                              backgroundColor: AppTheme.background,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 12,
+                              ),
+                              side: const BorderSide(color: AppTheme.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                ObjectIcon(item, size: 26),
+                                const SizedBox(height: 8),
+                                Text(
+                                  item,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                if (item == 'IRON')
+                                  const Text(
+                                    '4 units',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.accent,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       )
-                    : GridView.builder(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          mainAxisExtent: 40,
-                          crossAxisSpacing: 2,
-                          mainAxisSpacing: 2,
-                        ),
-                        itemCount: inventory.length,
-                        itemBuilder: (context, index) {
-                          final item = inventory[index];
-                          final isSelected = selectedObject == item;
-
-                          return ElevatedButton(
-                            onPressed: () {
-                              gameState.selectObject(item);
-                              VerbPanel.showVerbPopup(context, item);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isSelected ? AppTheme.text : AppTheme.panel,
-                              foregroundColor: isSelected ? AppTheme.background : AppTheme.text,
-                              padding: EdgeInsets.zero,
-                              alignment: Alignment.center,
-                              shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                              side: BorderSide(
-                                color: AppTheme.highlight.withValues(alpha: 0.5),
-                                width: 1,
-                              ),
-                              elevation: 0,
-                            ),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 2),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Image.asset(
-                                      _getIconFor(item),
-                                      width: 20,
-                                      height: 20,
-                                      color: isSelected ? AppTheme.background : AppTheme.text,
-                                      errorBuilder: (context, error, stackTrace) => Icon(
-                                        Icons.inventory,
-                                        size: 20,
-                                        color: isSelected ? AppTheme.background : AppTheme.text,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 2),
-                                    Text(
-                                      item.toUpperCase(),
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        fontSize: 10,
-                                        color: isSelected ? AppTheme.background : AppTheme.text,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+                      .toList(),
+                );
+              },
+            ),
+        ],
+      ),
+    ),
+  );
 }

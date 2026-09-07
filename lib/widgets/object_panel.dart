@@ -3,117 +3,68 @@ import 'package:provider/provider.dart';
 import '../game/game_state.dart';
 import '../app_theme.dart';
 import 'verb_panel.dart';
+import 'object_icon.dart';
 
-/// Panel displaying clickable objects in current room.
-/// Tapping an object opens the 4x4 action popup.
+/// Objects flow naturally instead of overflowing a fixed-height side panel.
 class ObjectPanel extends StatelessWidget {
   const ObjectPanel({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<GameState>(
-      builder: (context, gameState, child) {
-        final objects = gameState.getVisibleObjects();
-
-        return Container(
-          decoration: const BoxDecoration(color: AppTheme.background),
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title
+  Widget build(BuildContext context) => Consumer<GameState>(
+    builder: (context, game, child) {
+      final objects = game.getVisibleObjects();
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('OBJECTS HERE', style: AppTheme.label),
+            const SizedBox(height: 10),
+            if (objects.isEmpty)
               Text(
-                'OBJECTS HERE',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.text,
-                  fontWeight: FontWeight.bold,
-                ),
+                game.isTooDarkToSee
+                    ? 'Too dark to make anything out.'
+                    : 'Nothing in sight. Try looking around.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppTheme.mutedColor),
               ),
-              const SizedBox(height: 4),
-
-              // Object count
-              Text(
-                '${objects.length} item${objects.length != 1 ? 's' : ''} visible',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.text.withValues(alpha: 0.7),
-                  fontSize: 8,
-                ),
-              ),
-              const SizedBox(height: 4),
-
-              // Objects list
-              if (objects.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Text(
-                      'No objects here',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.text.withValues(alpha: 0.5),
-                            fontStyle: FontStyle.italic,
-                          ),
-                    ),
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: objects.length,
-                  itemBuilder: (context, index) {
-                    final object = objects[index];
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          gameState.selectObject(object);
-                          VerbPanel.showVerbPopup(context, object);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.panel,
-                          foregroundColor: AppTheme.text,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 6,
-                          ),
-                          alignment: Alignment.centerLeft,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          side: BorderSide.none,
-                          elevation: 0,
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: objects
+                  .map(
+                    (object) => OutlinedButton.icon(
+                      onPressed: game.isGameOver
+                          ? null
+                          : () => VerbPanel.showVerbPopup(context, object),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.text,
+                        minimumSize: const Size(48, 48),
+                        side: const BorderSide(color: AppTheme.border),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.circle,
-                              size: 6,
-                              color: AppTheme.text,
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                object.toUpperCase(),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      fontSize: 10,
-                                      color: AppTheme.text,
-                                    ),
-                              ),
-                            ),
-                          ],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-                    );
-                  },
-                ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+                      icon: ObjectIcon(object, size: 20),
+                      label: Text(
+                        object,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          letterSpacing: 0.4,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }

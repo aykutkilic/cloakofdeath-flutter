@@ -104,9 +104,8 @@ void main() {
       expect(gameState.getVisibleObjects().contains('BIBLE'), isTrue);
     });
 
-    test('Dog at room 5 does not block east from room 26', () {
-      // DOG starts at room 5 (P(38)=5), should not block east from room 26
-      // (only blocks if dog is AT room 26)
+    test('Dog guards the gates at room 26', () {
+      // Cassette DATA, unlike the transcribed .bas, puts P(38) at 26.
 
       // Path to room 26: need knife, key, candle, matches
       gameState.processCommand('W'); // →2
@@ -139,9 +138,9 @@ void main() {
       gameState.processCommand('E'); // →26
       expect(gameState.currentRoomId, 26);
 
-      // East from 26 should be blocked by LOCKED GATES (not dog)
+      // The dog blocks passage even before the gate lock is checked.
       gameState.processCommand('E');
-      expect(gameState.outputMessages.last, 'The gates are locked.');
+      expect(gameState.outputMessages.join(' '), contains('The dog snarls'));
     });
 
     test('Room 9 upstairs hallway connects properly', () {

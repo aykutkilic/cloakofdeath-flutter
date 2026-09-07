@@ -58,12 +58,16 @@ class AtariRoomBytecode {
 ///   - C8 X1 Y1 X2 Y2... - polyline with current color
 ///   - C9 offset_byte - close last polyline and flood fill with current color at point0 + offset
 ///     - offset_byte: high nibble = X offset, low nibble = Y offset (e.g., 0x11 = +1X, +1Y)
-///   - CA color offset_byte - close last polyline and flood fill with specified color at point0 + offset
+///   - CA AB offset_byte - close last polyline and flood fill with AB at point0 + offset
+///     - AB: <= 3 solid fill with palette[AB], > 3 pattern fill (2-bit pattern, 4 columns)
 ///     - offset_byte: high nibble = X offset, low nibble = Y offset (e.g., 0x00 = +0X, +0Y)
 ///   - CB XX YY - flood fill with current color at absolute point (XX, YY)
 ///   - CC AB XX YY - flood fill at absolute point (XX, YY)
 ///     - If AB <= 3: solid fill with palette[AB]
 ///     - If AB > 3: pattern fill (2-bit pattern, 4 columns)
+///   - All fills are boundary fills (original routine at $8BA3): they paint
+///     downward from the seed and stop at pixels of the CURRENT drawing
+///     color, regardless of what colors lie inside the region.
 ///   - CD X1 Y1... - polyline with color0
 ///   - CE X1 Y1... - polyline with color1
 ///   - CF X1 Y1... - polyline with color2
@@ -329,6 +333,7 @@ class AtariBytecodeParser {
           commands.add(
             AtariBytecodeCommand(
               type: BytecodeCommandType.floodFillAt,
+              colorIndex: currentColor,
               fillPattern: currentColor,
               fillSeed: Offset(xx.toDouble(), yy.toDouble()),
               hexBytes: _getHexString(buffer, cmdStart, 3),
@@ -404,6 +409,7 @@ class AtariBytecodeParser {
           commands.add(
             AtariBytecodeCommand(
               type: BytecodeCommandType.floodFillAt,
+              colorIndex: currentColor,
               fillPattern: ab,
               fillSeed: Offset(xx.toDouble(), yy.toDouble()),
               hexBytes: _getHexString(buffer, cmdStart, 4),

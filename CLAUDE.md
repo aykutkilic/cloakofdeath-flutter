@@ -33,14 +33,17 @@ The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.
 
 **State management**: Provider pattern — `GameState` (ChangeNotifier) is the single source of truth for room, inventory, flags, and move count. Created in `main.dart` and consumed by all widgets.
 
-**Game logic engine** (`game/game_state.dart`): All game logic is monolithic in this single class — there is no separate rule engine or game_logic.dart. It contains:
-- Verb/noun ID parsing (39 verbs, 53 nouns) that exactly emulates ATARI BASIC line 1400/14 behavior
-- Command dispatch via hardcoded switch statements (`_dispatchLogic`)
-- 10 boolean game flags (safe_open, cupboard_open, dog_terrified, door_unlocked, etc.)
-- Object location tracking (~27 pickable/static objects), max 12 inventory items
-- Candle countdown (300-move lifetime), dark room logic (rooms 25 & 26)
-- 40-character text wrapping matching Atari 40-column display
-- Save/load persistence via SharedPreferences (JSON serialization)
+**Game logic engine** (`game/adventure_engine.dart`): Pure Dart command parsing,
+object locations, puzzle flags, conditional exits, and one turn-completion path.
+Inventory is derived from locations, with six carrying units and four-unit iron.
+The candle has 199 cumulative burning turns, including lighting; extinguishing
+does not refill it. Indoor rooms 15–26 need a local lit candle for visibility.
+The cloak and wrong safe combination can kill the player; room 27 is victory.
+
+**Flutter adapter** (`game/game_state.dart`): `ChangeNotifier` API, 40-column text
+wrapping, contextual actions, rendering preferences, and ordered SharedPreferences
+saves. Schema 2 persists transient puzzle state; legacy saves migrate explicitly.
+Read `docs/game-logic-audit.md` before changing rules or source interpretations.
 
 **Rendering pipeline** (the most complex subsystem):
 - `room_bytecode_loader.dart` — loads raw bytecode from `assets/rooms.bin` (extracted from original cassette)
@@ -56,11 +59,20 @@ The project requires **Flutter SDK with Dart ^3.10.0-162.1.beta** (see `pubspec.
 - `verb_panel.dart` / `object_panel.dart` — command input UI
 - `interactive_inventory.dart` — inventory display
 - `unified_minimap.dart` — room navigation minimap
+- `game_settings_dialog.dart` — scrollable display settings
+- `object_icon.dart` — shared pixel-asset icons and scenery glyphs
+
+The visual design and responsive layout rules are documented in
+`docs/visual-design.md`. Keep navigation reachable outside the scrolling scene on
+phones and short landscape windows. Disabling animation must render immediately,
+not leave an empty buffer. `test/ui_layout_test.dart` exercises the layouts and
+can export rendered PNG previews.
 
 ### Original Game Data
 
 - **27 rooms** (IDs 1-27), **53 objects** tracked in array `P(53)`, **10 state flags** (F1-F10)
-- Room connectivity is currently hardcoded in `GameState._roomConnections`
+- Base room connectivity comes from room definitions; `AdventureEngine.exits`
+  projects conditional exits, including the pool-table-controlled west return.
 - Binary room graphics data: `assets/rooms.bin` (extracted from cassette chunks 117-195)
 - JSON room data: `assets/room_vectors.json` (legacy format, rooms.bin is now primary)
 - Custom Atari font: `assets/fonts/Atari-Regular.ttf`
@@ -71,7 +83,11 @@ Contains original game data (`.bas`, `.cas`), reverse-engineered 6502 disassembl
 
 ## Testing
 
-Tests are in `test/`. The primary test (`game_logic_test.dart`) is a **full walkthrough integration test** that executes the entire game solution sequentially — it validates room transitions, inventory management, state flags, and end-to-end game completion. There are no isolated unit tests for individual verb/noun parsing. `game_logic_comprehensive_test.dart` covers specific logic blocks (rat blocking, object examination).
+Tests are in `test/`. `game_logic_test.dart` executes the complete walkthrough
+without injecting state and verifies every pickup, carrying load, and victory.
+`adventure_constraints_test.dart` covers fuel boundaries, prerequisites, deaths,
+object transformations, aliases, and restoration after every walkthrough command.
+`game_interaction_test.dart` exercises puzzle commands through actual tap menus.
 
 ## Key Technical Details
 
@@ -79,5 +95,8 @@ Tests are in `test/`. The primary test (`game_logic_test.dart`) is a **full walk
 - C9/CA commands close a polygon and flood fill using an offset byte encoding: high nibble = X offset, low nibble = Y offset, relative to vertex0.
 - Atari aspect ratio: pixels are non-square (160×96 stretched to ~4:3 display). The renderer accounts for this.
 - The original game uses ATASCII character encoding (not ASCII). The `.bas` file contains Unicode representations of ATASCII symbols.
-- GET verb restricts noun IDs to ≤28, exactly matching original ATARI BASIC behavior — do not change this threshold.
-- Verb ID 100 is a special "USE" bucket containing REMOVE, CUT, and other context-specific verbs.
+- GET permits only original portable objects (BASIC noun IDs ≤28), including
+  explicit names for state variants. Keep scenery nonportable.
+- Do not trust `tools/Cloak of Death.bas` DATA verbatim: its transcription omits
+  a zero and shifts the cupboard/desk/dog/door locations. The read-only script
+  `scripts/inspect_original.py` extracts the authoritative cassette evidence.

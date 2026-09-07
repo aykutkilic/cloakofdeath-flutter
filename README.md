@@ -5,15 +5,17 @@ A faithful Flutter recreation of **Cloak of Death**, a classic text adventure ga
 ## Features
 
 - **Authentic Atari pixel rendering** from original cassette bytecode (160x96 resolution, Bresenham lines, scanline flood fill)
-- **Complete game logic** — 27 rooms, 53 objects, 10 state flags, all puzzles fully implemented
-- **39 verbs / 53 nouns** — exact emulation of the original ATARI BASIC parser
+- **Source-checked game logic** — 27 rooms, the original puzzle chain, carrying constraints, and fatal hazards
+- **Adventure parser** — original command abbreviations plus explicit names for mobile object actions
 - **Progressive room animation** — pixel-by-pixel reveal effect with configurable speed
-- **Interactive UI** — tap objects/inventory for verb popup, collapsible floating navigation in portrait mode
-- **Responsive layout** — landscape and portrait orientations with adaptive navigation
+- **Atmospheric UI** — dark green panels, warm brass accents, readable journal, and original Atari artwork
+- **Responsive layout** — a desktop scene/journal split, fixed phone navigation, keyboard-aware input, and scrollable inventory
 - **Configurable aspect ratio** — Atari (160:96), 4:3, 16:9, or custom
 - **Save/load** via SharedPreferences
-- **Dark room mechanic** — candle with 300-move lifetime
-- **Full walkthrough test** — automated end-to-end game completion test
+- **Dark room mechanic** — 199 cumulative candle-burning turns; extinguishing pauses fuel use
+- **Six carrying units** — ordinary objects cost one unit; the iron costs four
+- **Accessible controls** — labeled actions, 48-pixel touch targets, scalable text, reduced-motion support, and instant scene rendering
+- **Full walkthrough tests** — end-to-end completion, save/restore at every step, and constraint regressions
 
 ## Running
 
@@ -30,8 +32,12 @@ Requires **Flutter SDK with Dart ^3.10.0-162.1.beta**.
 
 - **State**: Provider pattern with `GameState` (ChangeNotifier) as single source of truth
 - **Rendering**: Binary bytecode from `assets/rooms.bin` -> `AtariBytecodeParser` -> `AtariPixelRenderer` (CustomPainter) with progressive animation via `AtariRenderController`
-- **Game logic**: Monolithic in `lib/game/game_state.dart` — verb/noun ID parsing, command dispatch, object tracking, flag management
+- **Game logic**: `lib/game/adventure_engine.dart` owns deterministic rules, object locations, conditional exits, and turn accounting. `GameState` adapts it to Flutter and serializes saves.
 - **Room data**: Auto-generated `lib/data/room_definitions.dart` (~2,690 lines) from cassette extraction
+
+Source evidence, deliberate compatibility decisions, and validation are in
+[the game logic audit](docs/game-logic-audit.md). Dated changes are recorded in
+[development history](docs/development-history.md).
 
 ## Credits
 

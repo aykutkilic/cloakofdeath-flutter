@@ -208,7 +208,6 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   late Listenable _listenable;
   final bool _showCommands = false;
   Offset? _hoverAtariCoord;
-  Offset? _hoverLocalPos;
 
   @override
   void initState() {
@@ -217,8 +216,10 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
 
     if (widget.autoStart) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _controller.startAnimation();
+        if (mounted) _controller.startAnimation();
       });
+    } else {
+      _controller.renderAll();
     }
   }
 
@@ -234,18 +235,28 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
   void didUpdateWidget(AtariAnimatedRoomView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.roomData.roomId != widget.roomData.roomId ||
-        oldWidget.showDebugInfo != widget.showDebugInfo) {
+    if (oldWidget.roomData.roomId != widget.roomData.roomId) {
       _controller.dispose();
       _initController();
 
       if (widget.autoStart) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _controller.startAnimation();
+          if (mounted) _controller.startAnimation();
         });
+      } else {
+        _controller.renderAll();
       }
-    } else if (oldWidget.pixelsPerSecond != widget.pixelsPerSecond) {
-      _controller.setPixelsPerSecond(widget.pixelsPerSecond ?? 2000.0);
+    } else {
+      if (oldWidget.pixelsPerSecond != widget.pixelsPerSecond) {
+        _controller.setPixelsPerSecond(widget.pixelsPerSecond ?? 2000.0);
+      }
+      if (oldWidget.autoStart != widget.autoStart) {
+        if (widget.autoStart) {
+          _controller.startAnimation();
+        } else {
+          _controller.renderAll();
+        }
+      }
     }
   }
 
@@ -268,7 +279,7 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                   builder: (context, constraints) {
                     final aspectWidth = AtariScreenBuffer.width.toDouble();
                     final aspectHeight = AtariScreenBuffer.height.toDouble();
-                    
+
                     // Force the widget to fill the entire container by scaling the internal content to fit it
                     // The Atari aspect ratio is fundamentally ~3.0 but we want it to adapt or cover based on the view
                     return SizedBox.expand(
@@ -280,19 +291,19 @@ class _AtariAnimatedRoomViewState extends State<AtariAnimatedRoomView> {
                           child: MouseRegion(
                             cursor: SystemMouseCursors.precise,
                             onHover: (event) {
-                              final pixelX = (event.localPosition.dx).floorToDouble();
-                              final pixelY = (event.localPosition.dy).floorToDouble();
+                              final pixelX = (event.localPosition.dx)
+                                  .floorToDouble();
+                              final pixelY = (event.localPosition.dy)
+                                  .floorToDouble();
                               setState(() {
                                 _hoverAtariCoord = Offset(
                                   pixelX.clamp(0, AtariScreenBuffer.width - 1),
                                   pixelY.clamp(0, AtariScreenBuffer.height - 1),
                                 );
-                                _hoverLocalPos = event.localPosition;
                               });
                             },
                             onExit: (_) => setState(() {
                               _hoverAtariCoord = null;
-                              _hoverLocalPos = null;
                             }),
                             child: Stack(
                               clipBehavior: Clip.none,

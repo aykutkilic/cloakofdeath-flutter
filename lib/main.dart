@@ -1,25 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'game/game_state.dart';
 import 'widgets/room_view.dart';
 import 'widgets/unified_minimap.dart';
 import 'widgets/object_panel.dart';
 import 'widgets/interactive_inventory.dart';
+import 'widgets/game_settings_dialog.dart';
 import 'rendering/room_bytecode_loader.dart';
 import 'app_theme.dart';
-import 'models/room.dart';
 
 void main() async {
-  // Ensure Flutter is initialized before loading assets
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize room bytecode loader
   await RoomBytecodeLoader.initialize();
-
   runApp(
     ChangeNotifierProvider(
-      create: (context) => GameState()..initialize(),
+      create: (_) => GameState()..initialize(),
       child: const CloakOfDeathApp(),
     ),
   );
@@ -27,377 +22,381 @@ void main() async {
 
 class CloakOfDeathApp extends StatelessWidget {
   const CloakOfDeathApp({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Cloak of Death',
-      theme: AppTheme.themeData,
-      home: const GameScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    title: 'Cloak of Death',
+    theme: AppTheme.themeData,
+    home: const GameScreen(),
+    debugShowCheckedModeBanner: false,
+  );
 }
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
-
   @override
   State<GameScreen> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends State<GameScreen> {
-  final TextEditingController _commandController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  final FocusNode _commandFocusNode = FocusNode();
-  final GlobalKey _roomViewKey = GlobalKey();
-  bool _isFullScreen = false;
+  final _commandController = TextEditingController();
+  final _journalScroll = ScrollController();
+  String _lastTranscript = '';
 
   @override
   void dispose() {
     _commandController.dispose();
-    _scrollController.dispose();
-    _commandFocusNode.dispose();
+    _journalScroll.dispose();
     super.dispose();
   }
 
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  void _submit(GameState game) {
+    final command = _commandController.text.trim();
+    if (command.isEmpty || game.isGameOver) return;
+    game.processCommand(command);
+    _commandController.clear();
   }
 
-  void _showSettingsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return Consumer<GameState>(
-          builder: (context, gameState, child) {
-            return AlertDialog(
-              backgroundColor: AppTheme.background,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-                side: const BorderSide(color: AppTheme.highlight, width: 2),
-              ),
-              title: const Text(
-                'PIXEL RENDERER SETTINGS',
+  Future<void> _restart(GameState game) async {
+    if (!game.isGameOver) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Start again?'),
+          content: const Text(
+            'Your current journey will be replaced by a new game.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep playing'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('New game'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await game.reset();
+    _commandController.clear();
+  }
+
+  Widget _header(
+    GameState game,
+    bool narrow, {
+    bool compact = false,
+  }) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      narrow ? 16 : 24,
+      compact ? 4 : 12,
+      narrow ? 8 : 16,
+      compact ? 4 : 12,
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppTheme.accent.withValues(alpha: 0.08),
+            border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.local_fire_department_outlined,
+            color: AppTheme.accent,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'CLOAK OF DEATH',
                 style: TextStyle(
+                  fontFamily: 'Atari',
+                  fontSize: narrow ? 12 : 16,
                   color: AppTheme.text,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
-              content: SizedBox(
-                width: 400,
+              const SizedBox(height: 5),
+              const Text(
+                'AN ATARI ADVENTURE',
+                style: TextStyle(
+                  fontSize: 9,
+                  letterSpacing: 2.2,
+                  color: AppTheme.mutedColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Display settings',
+          icon: const Icon(Icons.tune),
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const GameSettingsDialog(),
+          ),
+        ),
+        PopupMenuButton<String>(
+          tooltip: 'Game menu',
+          icon: const Icon(Icons.more_horiz),
+          onSelected: (value) {
+            if (value == 'restart') _restart(game);
+            if (value == 'about') {
+              showAboutDialog(
+                context: context,
+                applicationName: 'Cloak of Death',
+                applicationVersion: 'An Atari adventure, reimagined for touch.',
+                children: [
+                  const Text(
+                    'Original game by David Cockram, 1984.\nExplore the house, unravel its secrets, and escape.',
+                  ),
+                ],
+              );
+            }
+          },
+          itemBuilder: (_) => [
+            const PopupMenuItem(value: 'restart', child: Text('New game')),
+            const PopupMenuItem(value: 'about', child: Text('About the game')),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget _status(GameState game) => Wrap(
+    spacing: 16,
+    runSpacing: 8,
+    children: [
+      _statusItem(Icons.explore_outlined, 'Turn ${game.moveCount}'),
+      if (game.inventory.contains('CANDLE') ||
+          game.inventory.contains('LIT CANDLE') ||
+          game.candleLife < 199)
+        Tooltip(
+          message:
+              'Burning turns remaining. Extinguishing the candle preserves its fuel.',
+          child: _statusItem(
+            Icons.local_fire_department_outlined,
+            game.candleLife == 0 ? 'Candle spent' : 'Candle ${game.candleLife}',
+            warning: game.candleLife <= 10,
+          ),
+        ),
+      _statusItem(Icons.backpack_outlined, '${game.inventoryLoad}/6 carried'),
+    ],
+  );
+
+  Widget _statusItem(IconData icon, String value, {bool warning = false}) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 15,
+            color: warning ? AppTheme.warningColor : AppTheme.accent,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              color: warning ? AppTheme.warningColor : AppTheme.mutedColor,
+            ),
+          ),
+        ],
+      );
+
+  Widget _scene(GameState game, {double maxImageHeight = 320}) => Container(
+    decoration: AppTheme.panelDecoration,
+    clipBehavior: Clip.antiAlias,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 8, 12),
+          child: Row(
+            children: [
+              Expanded(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Render Speed',
-                      style: TextStyle(color: AppTheme.text, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Slider(
-                            value: gameState.pixelRenderSpeed,
-                            min: 1,
-                            max: 5000,
-                            divisions: 100,
-                            activeColor: AppTheme.text,
-                            inactiveColor: AppTheme.panel,
-                            label:
-                                '${gameState.pixelRenderSpeed.toStringAsFixed(0)} px/s',
-                            onChanged: (value) {                              gameState.setPixelRenderSpeed(value);
-                            },
-                          ),
-                        ),
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            '${gameState.pixelRenderSpeed.toStringAsFixed(0)} px/s',
-                            style: const TextStyle(
-                              color: AppTheme.text,
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text(
-                        'Auto-animate rooms',
-                        style: TextStyle(color: AppTheme.text, fontSize: 14),
-                      ),
-                      value: gameState.autoAnimateRooms,
-                      activeThumbColor: AppTheme.text,
-                      activeTrackColor: AppTheme.highlight,
-                      inactiveThumbColor: AppTheme.mutedColor,
-                      inactiveTrackColor: AppTheme.panel,
-                      onChanged: (value) {
-                        gameState.setAutoAnimateRooms(value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Aspect Ratio',
-                      style: TextStyle(color: AppTheme.text, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Slider(
-                            value: gameState.aspectRatio,
-                            min: 1.0,
-                            max: 3.0,
-                            divisions: 40,
-                            activeColor: AppTheme.text,
-                            inactiveColor: AppTheme.panel,
-                            label: gameState.aspectRatio.toStringAsFixed(2),
-                            onChanged: (value) {
-                              gameState.setAspectRatio(value);
-                            },
-                          ),
-                        ),
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            gameState.aspectRatio.toStringAsFixed(2),
-                            style: const TextStyle(
-                              color: AppTheme.text,
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        _aspectPresetButton(gameState, 'Atari', 160.0 / 96.0),
-                        _aspectPresetButton(gameState, '4:3', 4.0 / 3.0),
-                        _aspectPresetButton(gameState, '16:9', 16.0 / 9.0),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
                     Text(
-                      'Authentic Atari speed: 20 px/s\nFast rendering: 200+ px/s',
-                      style: TextStyle(
-                        color: AppTheme.text.withValues(alpha: 0.7),
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                      ),
+                      'THE HOUSE  /  ${game.currentRoomId.toString().padLeft(2, '0')}',
+                      style: AppTheme.label,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      game.isTooDarkToSee
+                          ? 'In the dark'
+                          : game.currentRoom!.name,
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                  },
-                  child: const Text(
-                    'CLOSE',
-                    style: TextStyle(
-                      color: AppTheme.text,
-                      fontWeight: FontWeight.bold,
+              IconButton(
+                tooltip: 'Enlarge scene',
+                icon: const Icon(Icons.open_in_full, size: 20),
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (context) => Dialog(
+                    insetPadding: const EdgeInsets.all(16),
+                    child: Stack(
+                      children: [
+                        AspectRatio(
+                          aspectRatio: game.aspectRatio,
+                          child: RoomView(room: game.currentRoom!),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: IconButton.filledTonal(
+                            tooltip: 'Close scene',
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showAboutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-            side: const BorderSide(color: AppTheme.highlight, width: 2),
-          ),
-          title: const Text(
-            'ABOUT',
-            style: TextStyle(color: AppTheme.text, fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'Cloak of Death\n\nOriginally written for 8-bit Atari computers by David Cockram.\n\nFlutter Implementation.',
-            style: TextStyle(color: AppTheme.text),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'CLOSE',
-                style: TextStyle(color: AppTheme.text),
               ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showStatsDialog(BuildContext context, GameState gameState) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.background,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-            side: const BorderSide(color: AppTheme.highlight, width: 2),
+            ],
           ),
-          title: const Text(
-            'STATS',
-            style: TextStyle(color: AppTheme.text, fontWeight: FontWeight.bold),
-          ),
-          content: Text(
-            'Moves: ${gameState.moveCount}\nInventory Items: ${gameState.inventoryCount}/${GameState.maxInventory}',
-            style: const TextStyle(color: AppTheme.text),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'CLOSE',
-                style: TextStyle(color: AppTheme.text),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _aspectPresetButton(GameState gameState, String label, double ratio) {
-    final isActive = (gameState.aspectRatio - ratio).abs() < 0.01;
-    return TextButton(
-      onPressed: () => gameState.setAspectRatio(ratio),
-      style: TextButton.styleFrom(
-        backgroundColor: isActive ? AppTheme.highlight : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        minimumSize: Size.zero,
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: AppTheme.text,
-          fontSize: 11,
-          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
         ),
-      ),
-    );
-  }
-
-  Widget _buildMenuButtons(BuildContext context, GameState gameState) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.settings, color: AppTheme.text, size: 20),
-          onPressed: () => _showSettingsDialog(context),
-          tooltip: 'Settings',
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(),
-        ),
-        const SizedBox(width: 8),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.menu, color: AppTheme.text, size: 20),
-          color: AppTheme.panel,
-          padding: EdgeInsets.zero,
-          onSelected: (value) {
-            if (value == 'restart') {
-              context.read<GameState>().reset();
-            } else if (value == 'about') {
-              _showAboutDialog(context);
-            } else if (value == 'stats') {
-              _showStatsDialog(context, gameState);
-            }
-          },
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-            const PopupMenuItem<String>(
-              value: 'restart',
-              child: Text('Restart', style: TextStyle(color: AppTheme.text, fontFamily: 'Atari')),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black,
+              border: Border.all(color: AppTheme.border),
+              borderRadius: BorderRadius.circular(6),
             ),
-            const PopupMenuItem<String>(
-              value: 'about',
-              child: Text('About', style: TextStyle(color: AppTheme.text, fontFamily: 'Atari')),
-            ),
-            const PopupMenuItem<String>(
-              value: 'stats',
-              child: Text('Stats', style: TextStyle(color: AppTheme.text, fontFamily: 'Atari')),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCommandInput(GameState gameState) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: const BoxDecoration(color: AppTheme.panel),
-      child: Row(
-        children: [
-          Expanded(
-            child: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _commandController,
-              builder: (context, value, child) {
-                final isEmpty = value.text.isEmpty;
-                return TextField(
-                  controller: _commandController,
-                  focusNode: _commandFocusNode,
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.characters,
-                  inputFormatters: [UppercaseTextFormatter()],
-                  style: TextStyle(
-                    color: isEmpty ? AppTheme.panel : AppTheme.text,
-                    fontSize: 16,
-                    backgroundColor: isEmpty ? AppTheme.text : Colors.transparent,
+            clipBehavior: Clip.antiAlias,
+            child: LayoutBuilder(
+              builder: (context, constraints) => SizedBox(
+                height: (constraints.maxWidth / game.aspectRatio).clamp(
+                  0,
+                  maxImageHeight,
+                ),
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: game.aspectRatio,
+                    child: RoomView(room: game.currentRoom!),
                   ),
-                  cursorColor: isEmpty ? AppTheme.panel : AppTheme.text,
-                  cursorWidth: 10,
-                  cursorRadius: const Radius.circular(0),
-                  decoration: InputDecoration(
-                    fillColor: isEmpty ? AppTheme.text : Colors.transparent,
-                    filled: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                    isDense: true,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    hintText: 'What shall I do?',
-                    hintStyle: TextStyle(
-                      color: AppTheme.panel.withValues(alpha: 0.8),
-                      fontStyle: FontStyle.italic,
-                      backgroundColor: AppTheme.text,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const ObjectPanel(),
+      ],
+    ),
+  );
+
+  Widget _navigation(GameState game) => Padding(
+    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(child: Text('EXPLORE', style: AppTheme.label)),
+            TextButton.icon(
+              onPressed: game.isGameOver
+                  ? null
+                  : () => game.processCommand('LOOK'),
+              icon: const Icon(Icons.visibility_outlined, size: 18),
+              label: const Text('Look around'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const UnifiedMinimap(),
+      ],
+    ),
+  );
+
+  Widget _exploration(
+    GameState game, {
+    required bool compact,
+    bool includeNavigation = true,
+  }) => SingleChildScrollView(
+    key: const ValueKey('exploration-scroll'),
+    padding: EdgeInsets.fromLTRB(compact ? 12 : 24, 0, compact ? 12 : 20, 16),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _status(game),
+        ),
+        _scene(
+          game,
+          maxImageHeight: compact && MediaQuery.sizeOf(context).height < 650
+              ? 120
+              : 320,
+        ),
+        if (includeNavigation) _navigation(game),
+        const SizedBox(height: 12),
+        const InteractiveInventory(),
+      ],
+    ),
+  );
+
+  Widget _journal(GameState game, {bool showHeading = true}) {
+    final transcript = game.outputMessages.join('\n');
+    if (_lastTranscript != transcript) {
+      _lastTranscript = transcript;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _journalScroll.hasClients) {
+          _journalScroll.jumpTo(_journalScroll.position.maxScrollExtent);
+        }
+      });
+    }
+    return Container(
+      decoration: AppTheme.panelDecoration,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (showHeading)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
+                children: [
+                  Icon(Icons.subject, size: 18, color: AppTheme.accent),
+                  SizedBox(width: 8),
+                  Text('YOUR JOURNEY', style: AppTheme.label),
+                ],
+              ),
+            ),
+          Expanded(
+            child: ListView.builder(
+              key: const ValueKey('journey-scroll'),
+              controller: _journalScroll,
+              padding: const EdgeInsets.all(16),
+              itemCount: game.outputMessages.length,
+              itemBuilder: (context, index) {
+                final message = game.outputMessages[index];
+                if (message.isEmpty) return const SizedBox(height: 10);
+                final command = message.startsWith('What shall I do?');
+                return Padding(
+                  padding: EdgeInsets.only(top: command ? 14 : 0, bottom: 3),
+                  child: Text(
+                    command
+                        ? '› ${message.substring('What shall I do?'.length)}'
+                        : message,
+                    style: TextStyle(
+                      color: command ? AppTheme.accent : AppTheme.text,
+                      fontSize: command ? 13 : 14,
+                      height: 1.55,
+                      fontWeight: command ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
-                  onSubmitted: (submitValue) {
-                    if (submitValue.trim().isNotEmpty) {
-                      gameState.processCommand(submitValue.toUpperCase());
-                      _commandController.clear();
-                      _commandFocusNode.requestFocus();
-                    }
-                  },
                 );
               },
             ),
@@ -407,236 +406,176 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget _buildTextOutput(GameState gameState) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.panel,
-        border: Border.all(color: AppTheme.highlight, width: 2),
-      ),
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(8),
-        itemCount: gameState.outputMessages.length,
-        itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              gameState.outputMessages[index],
-              style: const TextStyle(color: AppTheme.text, fontSize: 14),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFullScreenView(Room room) {
-    return Expanded(
-      flex: 11,
-      child: Stack(
-        children: [
-          SizedBox.expand(child: RoomView(key: _roomViewKey, room: room)),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: IconButton(
-              icon: const Icon(Icons.fullscreen_exit, color: AppTheme.text),
-              onPressed: () => setState(() => _isFullScreen = false),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Landscape layout: nav left, room center, objects right
-  Widget _buildLandscapeLayout(BuildContext context, GameState gameState, Room room) {
-    return Expanded(
-      flex: 11,
-      child: Container(
-        margin: const EdgeInsets.all(8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left: Navigation + settings
-            SizedBox(
-              width: 160,
-              child: Column(
-                children: [
-                  _buildMenuButtons(context, gameState),
-                  const SizedBox(height: 4),
-                  const Expanded(child: UnifiedMinimap()),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Center: Room visualization + Inventory
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: Center(
-                      child: AspectRatio(
-                        aspectRatio: gameState.aspectRatio,
-                        child: Stack(
-                          children: [
-                            SizedBox.expand(child: RoomView(key: _roomViewKey, room: room)),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: IconButton(
-                                icon: const Icon(Icons.fullscreen, color: AppTheme.text, size: 20),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => setState(() => _isFullScreen = true),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Expanded(flex: 1, child: InteractiveInventory()),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-
-            // Right: Objects panel
-            SizedBox(
-              width: 150,
-              child: SingleChildScrollView(child: const ObjectPanel()),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Portrait layout: room with floating nav, then inventory+objects row
-  Widget _buildPortraitLayout(BuildContext context, GameState gameState, Room room) {
-    return Expanded(
-      flex: 11,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Top bar: settings
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [_buildMenuButtons(context, gameState)],
-            ),
-            const SizedBox(height: 4),
-
-            // Room view with floating navigation overlay
-            Expanded(
-              flex: 5,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: gameState.aspectRatio,
-                  child: Stack(
-                    children: [
-                      SizedBox.expand(child: RoomView(key: _roomViewKey, room: room)),
-                      // Floating navigation — bottom left
-                      const Positioned(
-                        left: 4,
-                        bottom: 4,
-                        child: UnifiedMinimap(floating: true),
-                      ),
-                      // Fullscreen button — top right
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: IconButton(
-                          icon: const Icon(Icons.fullscreen, color: AppTheme.text, size: 20),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          onPressed: () => setState(() => _isFullScreen = true),
-                        ),
-                      ),
-                    ],
+  Widget _composer(GameState game) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: game.isGameOver
+        ? Container(
+            padding: const EdgeInsets.all(16),
+            decoration: AppTheme.panelDecoration,
+            child: Row(
+              children: [
+                Icon(
+                  game.hasWon ? Icons.wb_twilight : Icons.nightlight_outlined,
+                  color: AppTheme.accent,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    game.hasWon ? 'You escaped.' : 'Your journey ends here.',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-              ),
+                TextButton(
+                  onPressed: () => _restart(game),
+                  child: const Text('Play again'),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-
-            // Inventory + Objects side by side, each 3 rows tall and scrollable
-            SizedBox(
-              height: 150,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: const [
-                  // Inventory: 4 columns, scrollable
-                  Expanded(child: InteractiveInventory(crossAxisCount: 4)),
-                  SizedBox(width: 4),
-                  // Objects: scrollable list
-                  Expanded(child: ObjectPanel()),
-                ],
+          )
+        : Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('command-input'),
+                  controller: _commandController,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textInputAction: TextInputAction.send,
+                  style: const TextStyle(fontSize: 16, color: AppTheme.text),
+                  decoration: InputDecoration(
+                    hintText: game.awaitingCombination
+                        ? 'Enter the combination'
+                        : 'What shall I do?',
+                    hintStyle: const TextStyle(color: AppTheme.mutedColor),
+                    prefixIcon: const Icon(
+                      Icons.chevron_right,
+                      color: AppTheme.accent,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                  ),
+                  onSubmitted: (_) => _submit(game),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+              const SizedBox(width: 8),
+              IconButton.filled(
+                tooltip: 'Send command',
+                onPressed: () => _submit(game),
+                style: IconButton.styleFrom(minimumSize: const Size(52, 52)),
+                icon: const Icon(Icons.arrow_upward),
+              ),
+            ],
+          ),
+  );
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: SafeArea(
+  Widget build(BuildContext context) => Scaffold(
+    body: DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF20322B), AppTheme.background, Color(0xFF141C1B)],
+        ),
+      ),
+      child: SafeArea(
         child: Consumer<GameState>(
-          builder: (context, gameState, child) {
-            final room = gameState.currentRoom;
-
-            if (room == null) {
-              return const Center(
-                child: CircularProgressIndicator(color: AppTheme.text),
-              );
+          builder: (context, game, child) {
+            if (game.currentRoom == null) {
+              return const Center(child: CircularProgressIndicator());
             }
-
-            _scrollToBottom();
-
-            final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
-
-            return Column(
-              children: [
-                // Main game area
-                if (_isFullScreen)
-                  _buildFullScreenView(room)
-                else if (isPortrait)
-                  _buildPortraitLayout(context, gameState, room)
-                else
-                  _buildLandscapeLayout(context, gameState, room),
-
-                // Game output text
-                Expanded(flex: 5, child: _buildTextOutput(gameState)),
-
-                // Command input
-                _buildCommandInput(gameState),
-              ],
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 760;
+                final short = constraints.maxHeight < 500;
+                final split = wide || (short && constraints.maxWidth > 580);
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1440),
+                    child: Column(
+                      children: [
+                        _header(
+                          game,
+                          constraints.maxWidth < 600,
+                          compact: constraints.maxHeight < 650,
+                        ),
+                        Expanded(
+                          child: split
+                              ? Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      flex: 6,
+                                      child: short
+                                          ? Column(
+                                              children: [
+                                                Expanded(
+                                                  child: _exploration(
+                                                    game,
+                                                    compact: true,
+                                                    includeNavigation: false,
+                                                  ),
+                                                ),
+                                                _navigation(game),
+                                              ],
+                                            )
+                                          : _exploration(game, compact: false),
+                                    ),
+                                    Expanded(
+                                      flex: 4,
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 16,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Expanded(child: _journal(game)),
+                                            _composer(game),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    Expanded(
+                                      child: _exploration(
+                                        game,
+                                        compact: true,
+                                        includeNavigation: false,
+                                      ),
+                                    ),
+                                    _navigation(game),
+                                    SizedBox(
+                                      height: (constraints.maxHeight * 0.2)
+                                          .clamp(96.0, 160.0),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                        ),
+                                        child: _journal(
+                                          game,
+                                          showHeading: !short,
+                                        ),
+                                      ),
+                                    ),
+                                    _composer(game),
+                                  ],
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           },
         ),
       ),
-    );
-  }
-}
-
-class UppercaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
-    );
-  }
+    ),
+  );
 }
