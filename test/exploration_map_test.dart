@@ -261,6 +261,12 @@ void main() {
       await tester.tap(find.byTooltip('Exploration map'));
       await tester.pumpAndSettle();
       expect(find.text('Kitchen'), findsOneWidget);
+      expect(find.text('3'), findsNothing);
+      expect(find.textContaining('turns away'), findsNothing);
+      expect(
+        tester.getSize(find.byKey(const ValueKey('map-room-3'))),
+        const Size(48, 48),
+      );
       expect(find.text('Oak Panelled Study'), findsNothing);
       expect(find.text('Attic'), findsNothing);
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -270,9 +276,15 @@ void main() {
       await mouse.moveTo(
         tester.getCenter(find.byKey(const ValueKey('map-room-3'))),
       );
+      await tester.pump(const Duration(milliseconds: 200));
       await tester.pumpAndSettle();
       expect(find.textContaining('KNIFE'), findsWidgets);
+      expect(find.textContaining('Kitchen\n'), findsOneWidget);
       await mouse.removePointer();
+      await tester.pumpAndSettle();
+      await tester.longPress(find.byKey(const ValueKey('map-room-3')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('KNIFE'), findsOneWidget);
       final before = game.moveCount;
       await tester.tap(find.byKey(const ValueKey('map-room-3')));
       await tester.pumpAndSettle();
@@ -316,7 +328,8 @@ void main() {
       expect(find.text('First floor'), findsOneWidget);
       expect(tester.takeException(), isNull);
       const preview = String.fromEnvironment('PREVIEW_DIR');
-      if (preview.isNotEmpty) {
+      Future<void> captureMap(String name) async {
+        if (preview.isEmpty) return;
         await tester.runAsync(() async {
           final boundary =
               capture.currentContext!.findRenderObject()!
@@ -325,10 +338,19 @@ void main() {
           final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await Directory(preview).create(recursive: true);
           await File(
-            '$preview/map-${size.width.toInt()}.png',
+            '$preview/$name.png',
           ).writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
+      }
+
+      await captureMap('map-${size.width.toInt()}');
+      if (size.width == 1280) {
+        await tester.tap(find.byType(DropdownButton<int>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Ground floor').last);
+        await tester.pumpAndSettle();
+        await captureMap('map-ground');
       }
       await game.saveState();
     });

@@ -1,5 +1,22 @@
 # Development history
 
+## 2026-09-08 — Compact map nodes and hover details
+
+Purpose: reduce oversized room cards and long empty corridors while keeping
+room identities readable at a glance.
+
+- Replaced large cards with 48-pixel nodes bearing short room names. Full names,
+  room contents, travel cost, and blocked-route explanations appear on hover or
+  long press. The current room keeps its brass outline.
+- Collapsed unused map rows/columns while retaining directional ordering;
+  reduced grid spacing and dialog size. Removed the permanent detail panel and
+  shortened floor-link controls to U/D with destination tooltips.
+- An initial numbered-node design was revised to short names following the
+  user's visual feedback. Dark visited rooms say Unlit until actually seen.
+- Validation: all 11 focused map tests and targeted static analysis passed.
+  Inspected compact ground/first-floor renders on desktop and phone; hover and
+  long-press tests verify details appear without expanding the nodes.
+
 ## 2026-09-08 — Rotating clues and exploration map
 
 Purpose: avoid repeating a single tip and provide a useful map of discovered

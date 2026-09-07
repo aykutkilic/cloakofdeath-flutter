@@ -5,6 +5,37 @@ import '../app_theme.dart';
 import '../game/exploration_map.dart';
 import '../game/game_state.dart';
 
+// Compact labels are presentation-only; hover details retain the full names.
+const _shortRoomNames = {
+  1: 'Hall',
+  2: 'Dining',
+  3: 'Kitchen',
+  4: 'Pantry',
+  5: 'Corridor',
+  6: 'Conserv.',
+  7: 'Study',
+  8: 'Sitting',
+  9: 'Landing',
+  10: 'Guest',
+  11: 'Dressing',
+  12: 'Annexe',
+  13: 'Master',
+  14: 'Icy hall',
+  15: 'Haunted',
+  16: 'Library',
+  17: 'Passage',
+  18: 'Sewing',
+  19: 'Attic',
+  20: 'Store',
+  21: 'Pool',
+  22: 'Wine',
+  23: 'Cellar',
+  24: 'Garage',
+  25: 'Workshop',
+  26: 'Tunnel',
+  27: 'Exit',
+};
+
 class ExplorationMapButton extends StatelessWidget {
   const ExplorationMapButton({super.key});
   @override
@@ -26,7 +57,6 @@ class ExplorationMapDialog extends StatefulWidget {
 
 class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
   int? _floor;
-  int? _hovered;
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +72,6 @@ class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
             .where((id) => roomPositions[id]!.floor == floor)
             .toList()
           ..sort();
-    final selected =
-        _hovered ??
-        (rooms.contains(game.currentRoomId) ? game.currentRoomId : rooms.first);
     String details(int id) {
       final contents = game.mapRoomContents(id);
       final route = routes[id];
@@ -64,8 +91,8 @@ class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
     return Dialog(
       insetPadding: const EdgeInsets.all(12),
       child: SizedBox(
-        width: 1080,
-        height: MediaQuery.sizeOf(context).height * 0.9,
+        width: 640,
+        height: math.min(480, MediaQuery.sizeOf(context).height * 0.9),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -101,7 +128,6 @@ class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
                   ],
                   onChanged: (value) => setState(() {
                     _floor = value;
-                    _hovered = null;
                   }),
                 ),
               ),
@@ -113,32 +139,18 @@ class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
                   game: game,
                   routes: routes,
                   details: details,
-                  onHover: (id) => setState(() => _hovered = id),
                   onTravel: (id) {
                     if (!game.travelToRoom(id)) return;
                     Navigator.pop(context);
                   },
                   onFloor: (value) => setState(() {
                     _floor = value;
-                    _hovered = null;
                   }),
                 ),
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                height: 72,
-                child: SingleChildScrollView(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      details(selected),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ),
               const Text(
-                'Hover or hold for contents. Click a room to travel. Drag to pan; pinch to zoom.',
+                'Hover or hold for room details. Click to travel.',
                 style: TextStyle(fontSize: 11, color: AppTheme.mutedColor),
               ),
             ],
@@ -154,14 +166,13 @@ class _FloorCanvas extends StatefulWidget {
   final GameState game;
   final Map<int, List<String>> routes;
   final String Function(int) details;
-  final ValueChanged<int> onHover, onTravel, onFloor;
+  final ValueChanged<int> onTravel, onFloor;
   const _FloorCanvas({
     super.key,
     required this.rooms,
     required this.game,
     required this.routes,
     required this.details,
-    required this.onHover,
     required this.onTravel,
     required this.onFloor,
   });
@@ -180,26 +191,20 @@ class _FloorCanvasState extends State<_FloorCanvas> {
 
   @override
   Widget build(BuildContext context) {
-    final minX = widget.rooms
-        .map((id) => roomPositions[id]!.x)
-        .reduce(math.min);
-    final maxX = widget.rooms
-        .map((id) => roomPositions[id]!.x)
-        .reduce(math.max);
-    final minY = widget.rooms
-        .map((id) => roomPositions[id]!.y)
-        .reduce(math.min);
-    final maxY = widget.rooms
-        .map((id) => roomPositions[id]!.y)
-        .reduce(math.max);
-    final size = Size((maxX - minX) * 230 + 260, (maxY - minY) * 190 + 230);
+    // Collapse unused rows/columns while preserving compass order. The fixed
+    // 48px nodes remain easy to tap; detail text never expands the layout.
+    final columns =
+        widget.rooms.map((id) => roomPositions[id]!.x).toSet().toList()..sort();
+    final rows = widget.rooms.map((id) => roomPositions[id]!.y).toSet().toList()
+      ..sort();
+    final size = Size(columns.length * 88 + 72, rows.length * 96 + 64);
     final rects = {
       for (final id in widget.rooms)
         id: Rect.fromLTWH(
-          (roomPositions[id]!.x - minX) * 230 + 40,
-          (roomPositions[id]!.y - minY) * 190 + 60,
-          180,
-          106,
+          columns.indexOf(roomPositions[id]!.x) * 88 + 40,
+          rows.indexOf(roomPositions[id]!.y) * 96 + 40,
+          48,
+          48,
         ),
     };
     return LayoutBuilder(
@@ -282,62 +287,47 @@ class _FloorCanvasState extends State<_FloorCanvas> {
                             rect: rects[id]!,
                             child: Tooltip(
                               message: widget.details(id),
-                              child: MouseRegion(
-                                onEnter: (_) => widget.onHover(id),
-                                child: Material(
-                                  color: id == widget.game.currentRoomId
-                                      ? AppTheme.highlight
-                                      : AppTheme.panel,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    side: BorderSide(
-                                      color: id == widget.game.currentRoomId
-                                          ? AppTheme.accent
-                                          : AppTheme.border,
-                                      width: 2,
-                                    ),
+                              waitDuration: const Duration(milliseconds: 150),
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              textAlign: TextAlign.left,
+                              child: Material(
+                                color: id == widget.game.currentRoomId
+                                    ? AppTheme.highlight
+                                    : AppTheme.panel,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  side: BorderSide(
+                                    color: id == widget.game.currentRoomId
+                                        ? AppTheme.accent
+                                        : AppTheme.border,
+                                    width: 2,
                                   ),
-                                  child: InkWell(
-                                    key: ValueKey('map-room-$id'),
-                                    borderRadius: BorderRadius.circular(10),
-                                    onTap:
-                                        widget.routes.containsKey(id) &&
-                                            id != widget.game.currentRoomId
-                                        ? () => widget.onTravel(id)
-                                        : null,
-                                    onLongPress: () => widget.onHover(id),
-                                    onFocusChange: (focused) {
-                                      if (focused) widget.onHover(id);
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            widget.game.mapRoomName(id),
-                                            textAlign: TextAlign.center,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            id == widget.game.currentRoomId
-                                                ? 'You are here'
-                                                : widget.routes.containsKey(id)
-                                                ? '${widget.routes[id]!.length} turns away'
-                                                : 'Route blocked',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: AppTheme.mutedColor,
-                                            ),
-                                          ),
-                                        ],
+                                ),
+                                child: InkWell(
+                                  key: ValueKey('map-room-$id'),
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap:
+                                      widget.routes.containsKey(id) &&
+                                          id != widget.game.currentRoomId
+                                      ? () => widget.onTravel(id)
+                                      : null,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        widget.game.isRoomRevealed(id)
+                                            ? _shortRoomNames[id]!
+                                            : 'Unlit',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: id == widget.game.currentRoomId
+                                              ? AppTheme.accent
+                                              : widget.routes.containsKey(id)
+                                              ? AppTheme.text
+                                              : AppTheme.mutedColor,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -355,13 +345,23 @@ class _FloorCanvasState extends State<_FloorCanvas> {
                                 spacing: 4,
                                 children: [
                                   for (final target in _stairs(id))
-                                    TextButton(
-                                      onPressed: () => widget.onFloor(
-                                        roomPositions[target]!.floor,
-                                      ),
-                                      child: Text(
-                                        '${roomPositions[target]!.floor > roomPositions[id]!.floor ? 'U:' : 'D:'} ${widget.game.mapRoomName(target)}',
-                                        style: const TextStyle(fontSize: 10),
+                                    Tooltip(
+                                      message: widget.game.mapRoomName(target),
+                                      child: TextButton(
+                                        style: TextButton.styleFrom(
+                                          padding: EdgeInsets.zero,
+                                          minimumSize: const Size(48, 32),
+                                        ),
+                                        onPressed: () => widget.onFloor(
+                                          roomPositions[target]!.floor,
+                                        ),
+                                        child: Text(
+                                          roomPositions[target]!.floor >
+                                                  roomPositions[id]!.floor
+                                              ? 'U'
+                                              : 'D',
+                                          style: const TextStyle(fontSize: 10),
+                                        ),
                                       ),
                                     ),
                                 ],

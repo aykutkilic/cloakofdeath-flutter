@@ -19,6 +19,12 @@ Objects still hidden by a puzzle are not disclosed. New games clear discovery.
 
 ## Geography and layout
 
+Compact-map revision: nodes now measure 48 by 48 pixels and show short names
+only. Unused coordinate rows/columns collapse without changing compass order.
+Grid pitch is 88 pixels horizontally and 96 vertically. Details live in bounded
+hover/long-press tooltips rather than a permanent panel; U/D links also keep
+their full destination names in tooltips. Short names never disclose dark rooms.
+
 The authored coordinate table is presentation data, independent of movement
 legality. North is up, west is left, and floors encode vertical relationships.
 All engine cardinal connections are tested against coordinate order; U/D pairs
