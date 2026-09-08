@@ -40,6 +40,20 @@ void main() {
     expect(colors.length, 4);
   });
 
+  test('hallway ceiling and inner right door have solid interiors', () {
+    final screen = _render(9);
+    final room = AtariBytecodeParser.parseRoom(
+      RoomBytecodeLoader.getRoomBuffer(9)!,
+      9,
+    )!;
+    int argb(int i) => AtariScreenBuffer.colorToArgb(room.palette[i]);
+    expect(screen.peek(80, 10), argb(2)); // ceiling
+    expect(screen.peek(109, 40), argb(1)); // inner right door
+    expect(screen.peek(54, 40), argb(1)); // matching left door
+    expect(screen.peek(100, 25), argb(3)); // wall survives
+    expect(screen.peek(80, 80), argb(1)); // runner survives
+  });
+
   test('room 8 doorway is boundary-filled with the CC 64 pattern', () {
     // CC 64 3F 1A fills the open doorway (x 70-80, y 26-39) with pattern
     // [1,2,1,0], plowing through the color-2 frame line and color-3 interior

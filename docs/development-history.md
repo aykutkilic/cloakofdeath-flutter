@@ -272,3 +272,30 @@ classic adventure reference, and explain movement restrictions in darkness.
 - Validation: 59 tests passed, including dark cellar escape with a propped door,
   locked-door feedback without the prop, eight viewport/state renders, and aspect
   ratio/right-side placement assertions. Inspected desktop and phone renders.
+
+## 2026-09-08 — Visual floor selection, eight save slots and hallway fills
+
+Purpose: make the house's vertical layout clear, let players keep recoverable
+checkpoints, and repair the two missing upstairs hallway fills.
+
+- Replaced the exploration-map dropdown with a house cross-section ordered from
+  attic to cellar/courtyard, with separate selected/current floor indicators and
+  disabled unexplored levels. Preserved discovery and state-aware travel rules.
+- Added Game menu → Save / load game, with eight independent local checkpoints,
+  room/turn/time summaries, overwrite/load confirmations and damaged-save
+  feedback. Shared the existing ordered autosave path and complete snapshot
+  restore; manual slots survive new games and loading updates the resume save.
+- Moved two room-9 fill seeds off their outline pixels into the ceiling and inner
+  right door. Kept the original cassette extraction as evidence and documented
+  the deliberate two-byte artwork correction.
+- Inspected rendered hallway, desktop/phone map and desktop/phone/landscape/
+  enlarged-text save-dialog PNGs. Built the macOS application and successfully
+  hot-reloaded it; the VM reported no runtime errors. Flutter's automatic attempt
+  to foreground the window failed, so these visual captures are widget renders.
+
+[Implementation and verification notes](save-slots-and-floor-selector.md) record
+storage/layout decisions, original seed bytes and testing/tooling experience.
+
+Validation: all 116 tests passed, including complete walkthrough/constraint
+regressions and the new persistence, fill and responsive-dialog checks.
+Final `flutter analyze` reported no issues.
