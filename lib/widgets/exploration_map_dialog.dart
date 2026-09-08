@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../app_theme.dart';
 import '../game/exploration_map.dart';
 import '../game/game_state.dart';
+import 'map_floor_selector.dart';
 
 // Compact labels are presentation-only; hover details retain the full names.
 const _shortRoomNames = {
@@ -115,38 +116,34 @@ class _ExplorationMapDialogState extends State<ExplorationMapDialog> {
                   ),
                 ],
               ),
-              SizedBox(
-                height: 48,
-                child: DropdownButton<int>(
-                  isExpanded: true,
-                  value: floor,
-                  items: [
-                    for (final value in floors)
-                      DropdownMenuItem(
-                        value: value,
-                        child: Text(mapFloorNames[value]!),
-                      ),
-                  ],
-                  onChanged: (value) => setState(() {
-                    _floor = value;
-                  }),
-                ),
-              ),
-              const SizedBox(height: 8),
               Expanded(
-                child: _FloorCanvas(
-                  key: ValueKey('map-floor-$floor-${rooms.join(',')}'),
-                  rooms: rooms,
-                  game: game,
-                  routes: routes,
-                  details: details,
-                  onTravel: (id) {
-                    if (!game.travelToRoom(id)) return;
-                    Navigator.pop(context);
-                  },
-                  onFloor: (value) => setState(() {
-                    _floor = value;
-                  }),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    MapFloorSelector(
+                      selectedFloor: floor,
+                      currentFloor: currentFloor,
+                      visitedFloors: floors.toSet(),
+                      onSelected: (value) => setState(() => _floor = value),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _FloorCanvas(
+                        key: ValueKey('map-floor-$floor-${rooms.join(',')}'),
+                        rooms: rooms,
+                        game: game,
+                        routes: routes,
+                        details: details,
+                        onTravel: (id) {
+                          if (!game.travelToRoom(id)) return;
+                          Navigator.pop(context);
+                        },
+                        onFloor: (value) => setState(() {
+                          _floor = value;
+                        }),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 8),

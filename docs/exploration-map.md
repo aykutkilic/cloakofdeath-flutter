@@ -11,7 +11,8 @@ under the additive `exploration` save field. Engine schema 2 stays intact.
 Legacy saves initialize knowledge from the current room only; inventory and
 puzzle flags are not evidence that the player visited every related room.
 
-Unvisited rooms have no card, name, contents, or floor entry. A room entered in
+Unvisited rooms have no card, name, or contents. The house section shows all four
+levels in elevation order, but unexplored floors cannot be selected. A room entered in
 darkness has an unnamed card until seen in light. Mouse hover or touch tap shows known
 objects currently located in the room, using authoritative object locations so
 pickups, drops, transformations, and consumed objects do not leave stale lists.
@@ -37,8 +38,11 @@ cross-floor links carry U/D labels and switch the floor view without moving the
 player. Connectors detour around intermediate cards, notably the entrance hall
 to conservatory line beside the dark corridor. The canvas uses a readable initial
 zoom centered on the current room when an overview would shrink cards too far;
-it supports pan/zoom, zoom buttons, and a Fit floor control. A floor dropdown keeps the active
-floor visible on phones; a horizontal chip strip initially hid it offscreen.
+it supports pan/zoom, zoom buttons, and a Fit floor control. A house cross-section
+beside the canvas replaces the dropdown: attic, first floor, ground floor, then
+cellar/courtyard. The selected floor has a brass border and the player’s floor
+has a location marker. Its independently scrollable stack preserves touch targets
+on short screens. Selecting a level changes only the view, never the game state.
 
 The header map button stays visible on phones. Display settings moves into the
 game menu at narrow widths to keep the existing header footprint.

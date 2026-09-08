@@ -487,7 +487,19 @@ void main() {
         const Size(48, 48),
       );
       expect(find.text('Oak Panelled Study'), findsNothing);
-      expect(find.text('Attic'), findsNothing);
+      expect(find.byKey(const ValueKey('map-room-19')), findsNothing);
+      expect(
+        tester
+            .widget<InkWell>(find.byKey(const ValueKey('select-floor-2')))
+            .onTap,
+        isNull,
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const ValueKey('select-floor-2'))).dy,
+        lessThan(
+          tester.getTopLeft(find.byKey(const ValueKey('select-floor-0'))).dy,
+        ),
+      );
       final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await tester.tap(find.byTooltip('Fit floor'));
       await tester.pumpAndSettle();
@@ -587,8 +599,6 @@ void main() {
     );
     await tester.tap(find.byTooltip('Exploration map'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButton<int>));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('First floor').last);
     await tester.pumpAndSettle();
     final room = find.byKey(const ValueKey('map-room-9'));
@@ -655,8 +665,6 @@ void main() {
 
       await captureMap('map-${size.width.toInt()}');
       if (size.width == 1280) {
-        await tester.tap(find.byType(DropdownButton<int>));
-        await tester.pumpAndSettle();
         await tester.tap(find.text('Ground floor').last);
         await tester.pumpAndSettle();
         await captureMap('map-ground');
