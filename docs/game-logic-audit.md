@@ -116,3 +116,25 @@ successfully formatted files but initially returned failure while writing Dart
 telemetry outside the workspace. Flutter tests needed an approved SDK-cache write
 outside the workspace; that was an environment restriction, not a game failure.
 No emulator comparison or physical-device run was performed in this audit.
+
+## Mechanism feedback — 2026-09-08
+
+Puzzle effects are reported by the engine transaction and reach the journal via
+`GameState.processCommand`, so typed commands and object/inventory actions give
+the same feedback without extra turns or presentation-owned puzzle state.
+
+- Dropping iron in the guest bedroom after pulling the cord confirms that the
+  iron holds it taut and the mechanism settles into place. Ordinary iron drops
+  do not claim success; the existing pull/weight prerequisites remain intact.
+- Dropping the chest beside a closed cellar door reports placement only. Opening
+  the door with the chest already there confirms it is keeping the door open.
+  Dropping the chest after opening gives the same confirmation.
+- Opening or checking an open, unpropped cellar door warns that it will slam shut
+  on entry and that the broken latch prevents reopening it from inside. Entering
+  without the chest reports both the slam and why the player cannot reopen it.
+
+Decision: the engine already supported both chest-placement orders. Share the
+open-door status message between opening and dropping instead of adding flags
+or reimplementing puzzle conditions in UI widgets. Extend the existing constraint
+and full-walkthrough checks to cover truthful feedback, return travel and journal
+propagation; preserve the original key consumption and turn accounting.

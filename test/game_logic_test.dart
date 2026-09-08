@@ -19,6 +19,18 @@ void main() {
           reason: 'Before step $index: $command',
         );
         game.processCommand(command);
+        if (command == 'UNLOCK DOOR') {
+          expect(
+            game.outputMessages.join(' '),
+            contains('chest is keeping the door open'),
+          );
+        }
+        if (command == 'DROP IRON') {
+          expect(
+            game.outputMessages.join(' '),
+            contains('iron holds the cord taut'),
+          );
+        }
         expect(game.inventoryLoad, lessThanOrEqualTo(6), reason: command);
         if (command.startsWith('GET ')) {
           final item = command.substring(4);

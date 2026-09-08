@@ -316,7 +316,10 @@ class AdventureEngine {
     if (room == 17) locations['PASSAGEWAY'] = 0;
     if (room == 23 && !flag('door_propped')) {
       locations['DOOR'] = 23;
-      say('The door slammed shut behind you!!');
+      say(
+        'The door slammed shut behind you!! Nothing was holding it open. '
+        'The broken latch prevents you from reopening it from the cellar.',
+      );
     }
     describeRoom = true;
   }
@@ -706,15 +709,37 @@ class AdventureEngine {
     // GOBLET resolves to its current filled or empty container variant.
     if (!requireHeld(object)) return;
     locations[object] = room;
-    if (object == 'CHEST' && room == 5 && flag('door_unlocked')) {
-      flags['door_propped'] = true;
-      locations['DOOR'] = 5;
+    if (object == 'CHEST' && room == 5) {
+      if (flag('door_unlocked')) {
+        flags['door_propped'] = true;
+        locations['DOOR'] = 5;
+        _describeCellarDoor();
+      } else {
+        say('You set the chest beside the closed cellar door.');
+      }
+      return;
     }
     if (object == 'IRON' && room == 10 && flag('cord_pulled')) {
       locations['ANNEXE'] = 13;
       flags['cord_held'] = true;
+      say(
+        'The iron holds the cord taut. '
+        'You hear the mechanism settle into place.',
+      );
+      return;
     }
     say('Ok');
+  }
+
+  void _describeCellarDoor() {
+    say(
+      flag('door_propped')
+          ? 'The cellar door is open. Its latch is broken, but the chest is '
+                'keeping the door open.'
+          : 'The cellar door is open, but nothing is holding it open. '
+                'It will slam shut behind you if you enter without a prop. '
+                'Its broken latch will prevent you from reopening it from the cellar.',
+    );
   }
 
   void open(String object) {
@@ -725,7 +750,7 @@ class AdventureEngine {
         return;
       }
       if (flag('door_unlocked')) {
-        say("It's OPEN.");
+        _describeCellarDoor();
         return;
       }
       if (!held('KEY')) {
@@ -735,7 +760,7 @@ class AdventureEngine {
       flags['door_unlocked'] = true;
       locations['KEY'] = 0;
       flags['door_propped'] = here('CHEST');
-      say('Ok');
+      _describeCellarDoor();
     } else if (object == 'GATE') {
       if (here('DOG')) {
         say('The dog snarls, revealing bloodstained fangs!!');

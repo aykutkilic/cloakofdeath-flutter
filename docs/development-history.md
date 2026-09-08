@@ -299,3 +299,27 @@ storage/layout decisions, original seed bytes and testing/tooling experience.
 Validation: all 116 tests passed, including complete walkthrough/constraint
 regressions and the new persistence, fill and responsive-dialog checks.
 Final `flutter analyze` reported no issues.
+
+## 2026-09-08 — Explicit feedback for cord and cellar-door props
+
+Purpose: tell the player when placing an object has operated a mechanism and
+explain the consequence of entering the cellar without holding its door open.
+
+- Added journal feedback when the iron holds the pulled guest-bedroom cord.
+- Added chest-prop confirmation for both placement orders: chest before opening,
+  or chest after opening. Placement beside a still-closed door is described
+  accurately without claiming it is already propped open.
+- Opening an unpropped door now warns about the impending slam and broken latch;
+  unpropped entry explains why the door cannot be reopened from the cellar.
+- Kept feedback in the engine's command result and reused one door-status helper.
+  Inspection confirmed both chest-placement orders already worked, so no puzzle
+  rules, persistence schema or turn accounting needed changes.
+
+[Game-logic audit](game-logic-audit.md#mechanism-feedback--2026-09-08) records the
+feedback contract and regression approach.
+
+Validation: all 40 targeted constraint, full-walkthrough and interaction tests
+passed. Hot reload succeeded in the connected macOS game, with no runtime errors.
+The first journal assertion checked only the last stored line; `addMessage`
+wraps long messages, so the corrected assertion checks the joined transcript.
+`flutter analyze` reported no issues.

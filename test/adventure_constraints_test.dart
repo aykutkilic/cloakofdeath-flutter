@@ -256,7 +256,12 @@ void main() {
       final game = scene(5, ['KEY']);
       run(game, 'UNLOCK DOOR');
       expect(game.locations['KEY'], 0);
+      expect(game.messages.join(' '), contains('without a prop'));
+      expect(game.messages.join(' '), contains('broken latch'));
+      run(game, 'OPEN DOOR');
+      expect(game.messages.join(' '), contains('without a prop'));
       run(game, 'GO DOOR');
+      expect(game.messages.join(' '), contains('Nothing was holding it open'));
       run(game, 'U');
       expect(game.room, 23);
       run(game, 'OPEN DOOR');
@@ -266,7 +271,21 @@ void main() {
     test('chest props door, and picking it up removes the prop', () {
       final game = scene(5, ['KEY', 'CHEST']);
       run(game, 'DROP CHEST');
+      expect(game.flag('door_propped'), isFalse);
+      expect(
+        game.messages.join(' '),
+        contains('beside the closed cellar door'),
+      );
       run(game, 'UNLOCK DOOR');
+      expect(
+        game.messages.join(' '),
+        contains('chest is keeping the door open'),
+      );
+      run(game, 'OPEN DOOR');
+      expect(
+        game.messages.join(' '),
+        contains('chest is keeping the door open'),
+      );
       run(game, 'GO DOOR');
       run(game, 'U');
       expect(game.room, 5);
@@ -275,6 +294,26 @@ void main() {
       run(game, 'U');
       expect(game.room, 23);
     });
+
+    test(
+      'dropping chest after opening reports the prop and permits return',
+      () {
+        final game = scene(5, ['KEY', 'CHEST']);
+        run(game, 'OPEN DOOR');
+        expect(game.messages.join(' '), contains('without a prop'));
+        run(game, 'DROP CHEST');
+        expect(game.flag('door_propped'), isTrue);
+        expect(
+          game.messages.join(' '),
+          contains('chest is keeping the door open'),
+        );
+        run(game, 'GO DOOR');
+        expect(game.messages.join(' '), isNot(contains('slammed shut')));
+        run(game, 'U');
+        expect(game.room, 5);
+        expect(game.moves, 4);
+      },
+    );
 
     test('unlocking a remote door cannot change it', () {
       final game = scene(1, ['KEY']);
@@ -333,10 +372,16 @@ void main() {
         run(game, 'W');
         run(game, 'DROP IRON');
         expect(game.locations['ANNEXE'], 0);
+        expect(game.messages.join(' '), isNot(contains('holds the cord taut')));
         run(game, 'GET IRON');
         run(game, 'PULL CORD');
         run(game, 'DROP IRON');
         expect(game.locations['ANNEXE'], 13);
+        expect(game.messages.join(' '), contains('iron holds the cord taut'));
+        expect(
+          game.messages.join(' '),
+          contains('mechanism settle into place'),
+        );
         run(game, 'GET IRON');
         expect(game.locations['ANNEXE'], 0);
       },
