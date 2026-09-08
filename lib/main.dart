@@ -7,6 +7,7 @@ import 'widgets/unified_minimap.dart';
 import 'widgets/object_panel.dart';
 import 'widgets/interactive_inventory.dart';
 import 'widgets/game_settings_dialog.dart';
+import 'widgets/save_game_dialog.dart';
 import 'widgets/hint_button.dart';
 import 'widgets/exploration_map_dialog.dart';
 import 'widgets/safe_combination_overlay.dart';
@@ -159,6 +160,12 @@ class _GameScreenState extends State<GameScreen> {
                 builder: (_) => const GameSettingsDialog(),
               );
             }
+            if (value == 'saves') {
+              showDialog<void>(
+                context: context,
+                builder: (_) => const SaveGameDialog(),
+              );
+            }
             if (value == 'restart') _restart(game);
             if (value == 'about') {
               showAboutDialog(
@@ -191,6 +198,10 @@ class _GameScreenState extends State<GameScreen> {
                 value: 'settings',
                 child: Text('Display settings'),
               ),
+            const PopupMenuItem(
+              value: 'saves',
+              child: Text('Save / load game'),
+            ),
             const PopupMenuItem(value: 'restart', child: Text('New game')),
             const PopupMenuItem(value: 'about', child: Text('About the game')),
           ],

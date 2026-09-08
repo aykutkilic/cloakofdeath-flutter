@@ -51,6 +51,10 @@ void main() {
     ('safe-phone', const Size(320, 568), 0, 1),
     ('safe-landscape', const Size(844, 390), 0, 1),
     ('safe-large-text', const Size(390, 844), 0, 1.6),
+    ('saves-phone', const Size(320, 568), 0, 1),
+    ('saves-landscape', const Size(844, 390), 0, 1),
+    ('saves-large-text', const Size(390, 844), 0, 1.6),
+    ('saves-desktop', const Size(1280, 900), 0, 1),
     ('hint-phone', const Size(320, 568), 0, 1),
   ]) {
     testWidgets('${variant.$1}: layout and command submission remain usable', (
@@ -151,6 +155,16 @@ void main() {
         await tester.tap(find.byTooltip('A gentle hint'));
         await tester.pumpAndSettle();
         expect(find.text('Hints for your next step'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+
+      if (variant.$1.startsWith('saves-')) {
+        await game.saveToSlot(1);
+        await tester.tap(find.byTooltip('Game menu'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Save / load game'));
+        await tester.pumpAndSettle();
+        expect(find.text('Slot 1'), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
 

@@ -6,6 +6,7 @@ import '../models/room.dart';
 import 'adventure_engine.dart';
 import 'adventure_hints.dart';
 import 'exploration_map.dart';
+import 'save_slot.dart';
 
 /// Flutter adapter: transcript/settings stay outside the deterministic rules.
 class GameState extends ChangeNotifier {
@@ -20,6 +21,13 @@ class GameState extends ChangeNotifier {
   bool _showDebugInfo = false;
   double _aspectRatio = 160 / 96;
   Future<void> _pendingSave = Future.value();
+
+  static const int saveSlotCount = 8;
+  final List<SaveSlot> _saveSlots = List.generate(
+    saveSlotCount,
+    (i) => SaveSlot(i + 1),
+  );
+  List<SaveSlot> get saveSlots => List.unmodifiable(_saveSlots);
 
   static const int maxInventory = AdventureEngine.capacity;
   GameData? get gameData => _gameData;
@@ -115,17 +123,16 @@ class GameState extends ChangeNotifier {
   Future<void> initialize() async {
     _gameData = await GameData.loadFromAssets();
     final prefs = await SharedPreferences.getInstance();
+    for (var i = 0; i < saveSlotCount; i++) {
+      _saveSlots[i] = SaveSlot.decode(i + 1, prefs.getString(_slotKey(i + 1)));
+    }
     final saved = prefs.getString('cloak_save_state');
     if (saved == null) {
       _initNewGame();
     } else {
       try {
         final data = Map<String, dynamic>.from(json.decode(saved));
-        _engine = AdventureEngine.fromJson(data);
-        _exploration = ExplorationMap.fromJson(
-          Map<String, dynamic>.from(data['exploration'] ?? {}),
-        );
-        _outputMessages = List<String>.from(data['outputMessages'] ?? []);
+        _restoreSnapshot(data);
         for (final message in _engine.messages) {
           addMessage(message);
         }
@@ -138,22 +145,77 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveState() {
-    // Capture now and serialize writes so rapid commands cannot reorder saves.
-    final snapshot = json.encode({
-      ..._engine.toJson(),
-      'outputMessages': List<String>.of(_outputMessages),
-      'exploration': _exploration.toJson(),
-    });
+  String _snapshot() => json.encode({
+    ..._engine.toJson(),
+    'outputMessages': List<String>.of(_outputMessages),
+    'exploration': _exploration.toJson(),
+  });
+
+  void _restoreSnapshot(Map<String, dynamic> data) {
+    final engine = AdventureEngine.fromJson(data);
+    final exploration = ExplorationMap.fromJson(
+      Map<String, dynamic>.from(data['exploration'] ?? {}),
+    )..observe(engine);
+    final messages = List<String>.from(data['outputMessages'] ?? []);
+    _engine = engine;
+    _exploration = exploration;
+    _outputMessages = messages;
+    _selectedObject = null;
+    _hintOffsets.clear();
+  }
+
+  // Autosave, checkpoint writes and loads share one queue so a delayed older
+  // write cannot replace the journey that was just loaded.
+  Future<void> _enqueueSave(Future<void> Function(SharedPreferences) action) {
     _pendingSave = _pendingSave
         .catchError((Object error) {
           debugPrint('Previous game save failed: $error');
         })
-        .then((_) async {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('cloak_save_state', snapshot);
-        });
+        .then((_) async => action(await SharedPreferences.getInstance()));
     return _pendingSave;
+  }
+
+  Future<void> _write(SharedPreferences prefs, String key, String value) async {
+    if (!await prefs.setString(key, value)) {
+      throw StateError('The game could not be saved. Please try again.');
+    }
+  }
+
+  Future<void> saveState() {
+    final snapshot = _snapshot();
+    return _enqueueSave((prefs) => _write(prefs, 'cloak_save_state', snapshot));
+  }
+
+  String _slotKey(int number) {
+    RangeError.checkValueInInterval(number, 1, saveSlotCount, 'slot');
+    return 'cloak_save_slot_$number';
+  }
+
+  Future<void> saveToSlot(int number) {
+    final key = _slotKey(number);
+    final slot = SaveSlot(
+      number,
+      savedAt: DateTime.now(),
+      snapshot: _snapshot(),
+    );
+    return _enqueueSave((prefs) async {
+      await _write(prefs, key, slot.encode());
+      _saveSlots[number - 1] = slot;
+      notifyListeners();
+    });
+  }
+
+  Future<void> loadFromSlot(int number) {
+    _slotKey(number);
+    return _enqueueSave((prefs) async {
+      final slot = _saveSlots[number - 1];
+      if (!slot.canLoad) throw StateError('This slot cannot be loaded.');
+      final data = slot.data;
+      // Commit storage first: failure leaves the current journey untouched.
+      await _write(prefs, 'cloak_save_state', slot.snapshot!);
+      _restoreSnapshot(data);
+      notifyListeners();
+    });
   }
 
   void _initNewGame() {
